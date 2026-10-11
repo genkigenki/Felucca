@@ -20,7 +20,7 @@
  *   PULSE   the MAKU pulse's kick, crossfaded by TONE between two voices: a thick, heavy kick (a long round body, a
  *           shallow sweep, strong 2nd and 3rd harmonics, a soft-clip DRIVE, a soft click) below TONE 80, and an ECG
  *           monitor's beep (a ~600 Hz sine, one pip of 50 ms a hit; TUNE moves it) from
- *           TONE 110 up; the kick's body shortens from TONE 8 (long) to 40 (a tight cut); in between, both at once, the kick down and the beeps up (the drive stays on the kick)
+ *           TONE 110 up (from 100 the beep climbs 4 semitones and an octave above it fades in: a monitor's alarm); the kick's body shortens from TONE 8 (long) to 40 (a tight cut); in between, both at once, the kick down and the beeps up (the drive stays on the kick)
  *   SNARE   two sines (f, 1.6 f) with a small downward glide under a short shell envelope, plus noise
  *           through a band-pass (TONE: its centre) under a spike and a body envelope and a little
  *           high-passed noise on the spike; soft-clipped. Extra: SNAPPY (the noise level)
@@ -141,6 +141,7 @@ static const struct {
 #define DV_PL_CUT 40                                         /* the kick's body is at its shortest from here */
 #define DV_PL_LO 80
 #define DV_PL_HI 110
+#define DV_PL_UP 100                                         /* from here the beep climbs: up to +4 semitones, an octave above it fades in */
 #define DV_PL_TUNE 1222                                      /* the beeps' pitch (p16: 674 Hz at TUNE 0; 600 Hz at the MAKU kick's TUNE) */
 #define DV_SEED 0x5EED1234
 #define DV_P16(hz_p16) pitch_inc(clamp((hz_p16), 0, 2047))
@@ -359,7 +360,9 @@ static void dv_setup_own(dv_coef_t *c, const dv_param_t *p)
         int32_t m = 256 - (clamp((int32_t)tn, 8, DV_PL_CUT) - 8) * 206 / (DV_PL_CUT - 8);   /* the kick's body, x1 at TONE 8
                                                           * down to x0.2 at 40: a long thick kick below, a tight cut above */
         c->hp = ge;                                      /* the beeps' share (Q15); the kick's is 1 - it */
-        c->kb[1] = DV_P16(DV_PL_TUNE + p16 - DV_DEF[t].p16);   /* the beep's increment (follows TUNE) */
+        int32_t up = clamp((int32_t)tn - DV_PL_UP, 0, 127 - DV_PL_UP);   /* 0 .. 27 */
+        c->kb[1] = DV_P16(DV_PL_TUNE + p16 - DV_DEF[t].p16 + up * 64 / (127 - DV_PL_UP));   /* the beep's increment (follows TUNE) */
+        c->g[5] = up * 20000 / (127 - DV_PL_UP);         /* the octave above (a monitor's alarm: bright, high) */
         c->metal = 2205;                                 /* its length: 50 ms, a pip */
         c->span[1] = DV_P16(p16 + 96) - c->inc[0];       /* the sweep: half an octave, slow (tau 45 ms) ... */
         c->k[1] = dv_k(45000);
@@ -699,7 +702,7 @@ static __attribute__((noinline)) void dv_kick_run(const dv_coef_t *c, dv_voice_t
     v->live = v->q[0] > DV_QUIET;
 }
 
-/* PULSE: the kick (dv_kick_run) at 1 - the share, and a beep at the share (c->hp): a sine at c->kb[1] of c->metal samples
+/* PULSE: the kick (dv_kick_run) at 1 - the share, and a beep at the share (c->hp): a sine at c->kb[1] (+ its octave at g[5]) of c->metal samples
  * (v->s[1] its phase, v->s[0] the sample in it), with a 3 ms rise and a 5 ms fall. One pip a hit */
 static __attribute__((noinline)) void dv_pulse_run(const dv_coef_t *c, dv_voice_t *v, int32_t *y, uint32_t n)
 {
@@ -722,7 +725,7 @@ static __attribute__((noinline)) void dv_pulse_run(const dv_coef_t *c, dv_voice_
                 e = e > 32767 ? 32767 : e;
             }
             ph += c->kb[1];
-            e = (sine_i(ph) * e) >> 15;
+            e = (((sine_i(ph) + ((sine_i(ph << 1) * c->g[5]) >> 15)) * (e >> 1)) >> 14) * 32768 / (32768 + (c->g[5] >> 1));
             y[i] += (((e * 18000) >> 15) * ge) >> 15;
         }
         v->live |= t < len;
