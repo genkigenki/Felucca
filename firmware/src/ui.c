@@ -1177,7 +1177,7 @@ static void maku_setup(void)
     }
     for (i = 0; i < NTRK; i++)
         maku_sound(i, MAKU_R[i].eng, MAKU_R[i].pre);
-    trk[MAKU_DRA].p[P_LRATE] = 36;                    /* SWAY's slow LFO on the drone's filter */
+    trk[MAKU_DRA].p[P_LRATE] = 14;                    /* SWAY's very slow LFO on the drone's filter (~0.1 Hz: a 10 s turn) */
     for (i = 0; i < 4u; i++)
         for (j = 0; j < 3u; j++)
             maku_macro_set(i, j, 40u);
@@ -1231,7 +1231,7 @@ static void maku_world(uint32_t seed)
         maku_voice_apply(MAKU_DRA, a);
         maku_voice_apply(MAKU_DRB, b);
         maku_voice_apply(MAKU_ARP, c);
-        trk[MAKU_DRA].p[P_LRATE] = 36;
+        trk[MAKU_DRA].p[P_LRATE] = 14;                   /* ~0.1 Hz */
     }
     {   /* the INSERT: a slow sweep on the drone and, less often, the shimmer (or none: the macros' MIX then does nothing).
          * RATE 15..45 is 0.1 .. 0.5 Hz (LFO_INC's table); the TONE macros carry the MIX (MAKU_MAC) */
