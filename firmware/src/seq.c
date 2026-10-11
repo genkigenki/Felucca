@@ -605,14 +605,15 @@ static uint32_t perf_key(uint32_t k)
 static void key_on(uint32_t k, track_t *t)
 {
     uint32_t n = chord_build(t, kb_note[k], kb_chord[k]), i, mc = trk_midi_ch(trk_index(t));
+    uint32_t v = maku.on && trk_index(t) == MAKU_KICK ? maku_pad_vel() : 100u;   /* (MAKU's noise pads: softer, louder again at high DENSITY) */
     kb_chn[k] = 0;
     in_key = (uint8_t)(k + 1u);                     /* (the arp keeps the key: arp_add) */
     for (i = 0; i < n; i++) {
         uint32_t x = kb_chord[k][i];
         if (midi_local_held(t, x))
             continue;
-        input_on(t, x, 100);
-        midi_out_event(0x09u | (0x90u | mc) << 8 | x << 16 | 100u << 24);
+        input_on(t, x, v);
+        midi_out_event(0x09u | (0x90u | mc) << 8 | x << 16 | v << 24);
     }
     in_key = 0;
     kb_chn[k] = (uint8_t)n;

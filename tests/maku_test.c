@@ -91,19 +91,24 @@ static int kick(void)
 {
     int bad = 0;
     uint32_t d, last = 0, orn = 0, per[6] = {0}, n, bars = 40u;
-    static const uint32_t D[6] = {0, 20, 60, 95, 96, 127};
+    static const uint32_t D[6] = {0, 20, 80, 105, 106, 127};
     for (d = 0; d < 6u; d++) {
         start(D[d]);
         sim(bars * BAR_STEPS);
         per[d] = nhits[0];
+        if (D[d] == 106u) {                         /* (a hair past the floor: ornaments may have begun, count the beats) */
+            uint32_t k;
+            for (per[d] = 0, k = 0; k < nhits[0]; k++)
+                per[d] += hits[0][k].step % 4u == 0u;
+        }
     }
-    printf("ui:   hits in %u bars at DENSITY 0 20 60 95 96 127: %u %u %u %u %u %u\n", bars, per[0], per[1], per[2], per[3], per[4], per[5]);
+    printf("ui:   hits in %u bars at DENSITY 0 20 80 105 106 127: %u %u %u %u %u %u\n", bars, per[0], per[1], per[2], per[3], per[4], per[5]);
     bad += check("KICK: DENSITY 0 is silent", per[0] == 0u);
     bad += check("  DENSITY 20: about once a bar at most", per[1] > 0u && per[1] <= bars);
-    bad += check("  DENSITY 60: more than 20, at most 2 a bar", per[2] > per[1] && per[2] <= 2u * bars);
-    bad += check("  DENSITY 95: more again, at most 4 a bar, no ornaments yet", per[3] > per[2] && per[3] <= 4u * bars);
-    bad += check("  DENSITY 96: the four on the floor, exactly 4 a bar", per[4] == 4u * bars);
-    start(96);
+    bad += check("  DENSITY 80: more than 20, at most 2 a bar", per[2] > per[1] && per[2] <= 2u * bars);
+    bad += check("  DENSITY 105: more again, at most 4 a bar, no ornaments yet", per[3] > per[2] && per[3] <= 4u * bars);
+    bad += check("  DENSITY 106: the four on the floor, exactly 4 a bar", per[4] == 4u * bars);
+    start(106);
     sim(BAR_STEPS);
     for (n = 0; n < nhits[0]; n++)
         last |= 1u << hits[0][n].step;

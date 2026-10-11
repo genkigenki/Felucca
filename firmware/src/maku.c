@@ -213,6 +213,19 @@ static int32_t maku_dip(int32_t dip)
     return d < 0 ? 0 : d;
 }
 
+/* the kick's reach into DENSITY: what sounded at 60 now sounds at 80 (0..80 runs 0..60, 80..127 runs 60..127) */
+static uint32_t maku_kick_d(uint32_t d)
+{
+    return d <= 80u ? d * 60u / 80u : 60u + (d - 80u) * 67u / 47u;
+}
+
+/* the velocity of a black-key pad: quieter than a plain key, and above DENSITY 120 it grows again (to 100 at 127) */
+static uint32_t maku_pad_vel(void)
+{
+    uint32_t d = maku.dens;
+    return d > 120u ? 70u + (d - 120u) * 30u / 7u : 70u;
+}
+
 /* the kick's chance (percent) on step idx of 16 at density d: each rung adds steps, and fades them in so the
  * pulse grows rather than switches. d<4: silence; d >= MAKU_FOUR: steps 0 4 8 12, always */
 static uint32_t maku_kick_chance(uint32_t idx, uint32_t d)
@@ -332,7 +345,7 @@ static uint32_t maku_kick_ghosts(void)
 {
     uint32_t i, m = 0;
     for (i = 0; i < 16u; i++)
-        m |= (uint32_t)(maku_kick_chance(i, maku.dens) > 0u) << i;
+        m |= (uint32_t)(maku_kick_chance(i, maku_kick_d(maku.dens)) > 0u) << i;
     return m & ~maku_kick_mask();
 }
 
@@ -497,6 +510,7 @@ static __attribute__((noinline)) uint32_t maku_step(uint32_t i, uint32_t idx, st
         uint32_t hit = 0, oc, ol;
         if (idx >= 16u)
             return 0;
+        d = maku_kick_d(d);                         /* (the kick's own reach into DENSITY) */
         vel = 0;
         if ((maku_kick_mask() >> idx) & 1u) {       /* a step set by hand (the grid) always plays; DENSITY only adds ghosts */
             vel = 96u + ((step_accents(&t->step[idx]) & 1u) ? 24u : 0u);
