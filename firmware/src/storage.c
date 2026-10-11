@@ -25,9 +25,11 @@
  * Those two sectors held the FM6 patch bank of 1.0..1.0.2 (OBJ_FM6BANK, retired): both objects use the same pair,
  * told apart by the commit record's type. The bank is only read, once, to move its patches into the user presets
  * (up_fm6.c upf_boot); the first write of the new object goes to the sector that does not hold the bank's newest
- * copy (st_save_to), so a power cut never loses both. */
+ * copy (st_save_to), so a power cut never loses both.
+ * MAKU's likes (maku_fav.c, project.c maku_fav_store) use the autosave's pair under a type of their own: MAKU never
+ * writes or restores an autosave, and the commit record's type tells the two apart. */
 enum { OBJ_SETTINGS, OBJ_PROJECT0, OBJ_UPRESET0 = OBJ_PROJECT0 + 4, OBJ_FM6BANK = OBJ_UPRESET0 + 2, OBJ_UPFM6,
-       OBJ_AUTOSAVE, OBJ_COUNT };
+       OBJ_AUTOSAVE, OBJ_MAKUFAV, OBJ_COUNT };
 
 typedef struct {
     uint32_t magic;
@@ -62,7 +64,7 @@ static uint32_t st_sector(uint32_t obj, uint32_t copy)  /* flash offset of copy 
         return 0xFC000u + copy * ST_SECTOR;
     if (obj == OBJ_FM6BANK || obj == OBJ_UPFM6)          /* (the same pair: see the flash map) */
         return copy ? 0xFE000u : 0x9F000u;
-    if (obj == OBJ_AUTOSAVE)
+    if (obj == OBJ_AUTOSAVE || obj == OBJ_MAKUFAV)       /* (the same pair: see the flash map) */
         return 0xE5000u + copy * ST_SECTOR;
     if (obj >= OBJ_UPRESET0)
         return 0xDC000u + (obj - OBJ_UPRESET0) * 2u * ST_SECTOR + copy * ST_SECTOR;

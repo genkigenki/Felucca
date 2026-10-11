@@ -4,8 +4,12 @@
  * engine and preset with an articulation (ART_*, maku.c) and the changes that make it that sound. A world draws one row per
  * part by weight (maku_world). Included by ui.c.
  *
- * Changing a row (or the weights) changes what a seed means: raise MAKU_CATALOG (web/emu/felucca_web.c) with it, so the
- * emulator's rating log does not mix ratings of different catalogs. */
+ * The catalog is append-only: each row has a stable id (its part's own, from 1), which the likes (maku_fav.c) keep and the
+ * flash holds. A row's id and meaning never change; a new sound, or new weights for one, is a new row with a new id (an
+ * old row is retired by weight 0: it is never drawn again, but a like naming it still plays it).
+ * Changing a row or a weight changes what a seed means: raise MAKU_CATALOG_VERSION with it, so the emulator's rating log
+ * (web/emu/felucca_web.c) does not mix ratings of different catalogs. It is the rating log's key only: the likes do not
+ * look at it. */
 #define MAKU_CATALOG_VERSION 1u
 
 typedef struct {
@@ -17,6 +21,7 @@ typedef struct {
     uint8_t e[8];                /* P_E0..P_E7 over the preset's, +1 (0: keep) */
     mm_t t[3];                   /* the TONE macro of this sound: p 0 keeps the part's default entry, MM_NONE none */
     uint8_t l;                   /* the part's LEVEL over MAKU_R's, +1 (0: keep): evens out the loudness of the rows */
+    uint8_t id;                  /* the stable id (1..; unique in its part, never reused): what a like keeps */
 } maku_voice_t;
 #define V1(v) ((uint8_t)((v) + 1))
 #define LV_ANALOG 72               /* the ANALOG pads sound ~4 dB louder than the PHYS / GRAIN rows at MAKU_R's level */
@@ -38,37 +43,38 @@ static const struct { uint8_t a, d, s, r; } MAKU_ART[] = {
 #define T_ANALOG_LINE {{P_E4, 10, 127}, {P_E5, 0, 70}, {MM_NONE, 0, 0}}
 
 static const maku_voice_t MAKU_V_DRA[] = {          /* the floor */
-    {"DRONE STRING", ENGI_PHYS, 7, ART_STRK, 3},
-    {"HARP", ENGI_PHYS, 8, ART_STRK, 2},
-    {"BOWED METAL", ENGI_PHYS, 3, ART_BOW, 3, .t = {{P_E2, 0, 127}, {P_E6, 30, 127}, {0, 0, 0}}},
+    {"DRONE STRING", ENGI_PHYS, 7, ART_STRK, 3, .id = 1},
+    {"HARP", ENGI_PHYS, 8, ART_STRK, 2, .id = 2},
+    {"BOWED METAL", ENGI_PHYS, 3, ART_BOW, 3, .t = {{P_E2, 0, 127}, {P_E6, 30, 127}, {0, 0, 0}}, .id = 3},
     {"BOWED STRING", ENGI_PHYS, 2, ART_BOW, 2, V1(85), 0, 0, {0, 0, V1(50), V1(110), 0, 0, V1(70), 0},   /* the string model (the preset's), bowed */
-        T_PHYS_BOW},
-    {"GLASS", ENGI_PHYS, 0, ART_BOW, 2, V1(95), 0, V1(105), {0, V1(34), V1(60), 0, 0, 0, V1(50), 0}, T_PHYS_BOW},
-    {"SOFT PAD", 0, 1, ART_HOLD, 3, .t = T_ANALOG, .l = V1(LV_ANALOG)},
-    {"STRINGS", 0, 11, ART_HOLD, 2, .t = T_ANALOG, .l = V1(LV_ANALOG)},
-    {"PWM STR", 0, 3, ART_HOLD, 2, .t = T_ANALOG, .l = V1(LV_ANALOG)},
-    {"FROZEN", 8, 2, ART_HOLD, 2, V1(110), 0, 0, {0}, T_GRAIN},
+        T_PHYS_BOW, .id = 4},
+    {"GLASS", ENGI_PHYS, 0, ART_BOW, 2, V1(95), 0, V1(105), {0, V1(34), V1(60), 0, 0, 0, V1(50), 0}, T_PHYS_BOW, .id = 5},
+    {"SOFT PAD", 0, 1, ART_HOLD, 3, .t = T_ANALOG, .l = V1(LV_ANALOG), .id = 6},
+    {"STRINGS", 0, 11, ART_HOLD, 2, .t = T_ANALOG, .l = V1(LV_ANALOG), .id = 7},
+    {"PWM STR", 0, 3, ART_HOLD, 2, .t = T_ANALOG, .l = V1(LV_ANALOG), .id = 8},
+    {"FROZEN", 8, 2, ART_HOLD, 2, V1(110), 0, 0, {0}, T_GRAIN, .id = 9},
 };
 static const maku_voice_t MAKU_V_DRB[] = {          /* the haze */
-    {"CLOUD PAD", 8, 0, ART_SWEL, 3, V1(98)},
-    {"FROZEN", 8, 2, ART_SWEL, 2, V1(105)},
-    {"SHIMMER", 8, 3, ART_SWEL, 2, V1(92)},
-    {"GLASS HIGH", ENGI_PHYS, 0, ART_BOW, 2, V1(95), 0, V1(105), {0, V1(34), V1(60), 0, 0, 0, V1(50), 0}, T_PHYS_BOW},
-    {"SPARKLE", 8, 3, ART_STRK, 2, V1(20)},
+    {"CLOUD PAD", 8, 0, ART_SWEL, 3, V1(98), .id = 1},
+    {"FROZEN", 8, 2, ART_SWEL, 2, V1(105), .id = 2},
+    {"SHIMMER", 8, 3, ART_SWEL, 2, V1(92), .id = 3},
+    {"GLASS HIGH", ENGI_PHYS, 0, ART_BOW, 2, V1(95), 0, V1(105), {0, V1(34), V1(60), 0, 0, 0, V1(50), 0}, T_PHYS_BOW, .id = 4},
+    {"SPARKLE", 8, 3, ART_STRK, 2, V1(20), .id = 5},
 };
 static const maku_voice_t MAKU_V_ARP[] = {          /* the voice */
-    {"KALIMBA", ENGI_PHYS, 4, ART_STRK, 2},
-    {"MARIMBA", ENGI_PHYS, 1, ART_STRK, 1},
-    {"PLUCK", ENGI_PHYS, 2, ART_STRK, 1},
-    {"BELL TREE", ENGI_PHYS, 0, ART_STRK, 1},
-    {"HARP", ENGI_PHYS, 8, ART_STRK, 1},
-    {"FELT KALIMBA", ENGI_PHYS, 4, ART_SOFT, 2, 0, 0, V1(80), {0, 0, V1(8), 0, 0, V1(50), 0, V1(10)}, T_SOFT},
-    {"FELT MARIMBA", ENGI_PHYS, 1, ART_SOFT, 2, V1(45), 0, V1(70), {0, 0, V1(25), 0, 0, V1(60), 0, V1(5)}, T_SOFT},
-    {"SOFT HARP", ENGI_PHYS, 8, ART_SOFT, 1, V1(55), 0, V1(85), {0, 0, 0, 0, 0, V1(55), 0, 0}, T_SOFT},
-    {"SINE LINE", 0, 5, ART_SWEL, 3, V1(90), V1(110), V1(95), {0}, T_ANALOG_LINE},
-    {"BOWED LINE", ENGI_PHYS, 3, ART_BOW, 1, V1(75), 0, V1(95), {0}, T_PHYS_BOW},
+    {"KALIMBA", ENGI_PHYS, 4, ART_STRK, 2, .id = 1},
+    {"MARIMBA", ENGI_PHYS, 1, ART_STRK, 1, .id = 2},
+    {"PLUCK", ENGI_PHYS, 2, ART_STRK, 1, .id = 3},
+    {"BELL TREE", ENGI_PHYS, 0, ART_STRK, 1, .id = 4},
+    {"HARP", ENGI_PHYS, 8, ART_STRK, 1, .id = 5},
+    {"FELT KALIMBA", ENGI_PHYS, 4, ART_SOFT, 2, 0, 0, V1(80), {0, 0, V1(8), 0, 0, V1(50), 0, V1(10)}, T_SOFT, .id = 6},
+    {"FELT MARIMBA", ENGI_PHYS, 1, ART_SOFT, 2, V1(45), 0, V1(70), {0, 0, V1(25), 0, 0, V1(60), 0, V1(5)}, T_SOFT, .id = 7},
+    {"SOFT HARP", ENGI_PHYS, 8, ART_SOFT, 1, V1(55), 0, V1(85), {0, 0, 0, 0, 0, V1(55), 0, 0}, T_SOFT, .id = 8},
+    {"SINE LINE", 0, 5, ART_SWEL, 3, V1(90), V1(110), V1(95), {0}, T_ANALOG_LINE, .id = 9},
+    {"BOWED LINE", ENGI_PHYS, 3, ART_BOW, 1, V1(75), 0, V1(95), {0}, T_PHYS_BOW, .id = 10},
 };
-static const struct { const maku_voice_t *v; uint8_t n; } MAKU_V[4] = {
+/* (not const: the host test lays a longer, reordered catalog in to show that a like finds its rows by id) */
+static struct { const maku_voice_t *v; uint8_t n; } MAKU_V[4] = {
     {0, 0},
     {MAKU_V_DRA, (uint8_t)NELEM(MAKU_V_DRA)},
     {MAKU_V_DRB, (uint8_t)NELEM(MAKU_V_DRB)},
@@ -138,3 +144,15 @@ static uint32_t maku_voice_pick(uint32_t i, uint32_t arts, uint32_t not_phys_bow
 #define ARTS_ALL 0x1Fu
 #define ARTS_HELD ((1u << ART_SWEL) | (1u << ART_BOW) | (1u << ART_HOLD))
 #define ARTS_STRUCK ((1u << ART_STRK) | (1u << ART_SOFT))
+
+/* the row of part i whose stable id is `id`; 0xFF: none (a like from a later catalog, or a broken one) */
+static uint32_t maku_voice_row(uint32_t i, uint32_t id)
+{
+    uint32_t r;
+    if (i < 1u || i > 3u || !id)
+        return 0xFFu;
+    for (r = 0; r < MAKU_V[i].n; r++)
+        if (MAKU_V[i].v[r].id == id)
+            return r;
+    return 0xFFu;
+}

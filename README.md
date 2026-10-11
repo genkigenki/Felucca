@@ -6,8 +6,9 @@
 
 **MAKU (幕間機)** is an always-on ambience machine for the M-VAVE FM-1: power it on and a new, random, in-key
 world is already playing. Four parts (a pulse, a floor, a haze, a voice), four volume knobs, three macros per part,
-and buttons that are verbs (sink, cascade, swell, wobble, lift, scramble, drift). Nothing is saved: every boot is a
-new world, and HOME held makes another.
+and buttons that are verbs (sink, cascade, swell, wobble, lift, scramble, drift). Nothing is saved but your likes:
+every boot is a new world, HOME held makes another, and REC marks one you like; the more you like, the more the new
+worlds come from your likes (a little changed), so MAKU grows to your taste.
 
 MAKU is built on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita (Hügelton Instruments), GPL-3.0-only.
 The sequencer editing, presets and projects, engine pages, web editor and the other Felucca features are removed (see
@@ -36,10 +37,16 @@ The sequencer editing, presets and projects, engine pages, web editor and the ot
   (longer, the chords stay), LFO wobbles (filter and pitch), EDIT lifts (brighter, harder, thinner), GLO scrambles (the beat and the
   phrase come apart); while one is held the three knobs move its own three parameters
 - **The lower row keeps**: ARP sets root / scale / register (a tap steps the scale), SEQ sets tempo / swing / duck, PLAY is a switch for
-  DRIFT (the values wander on their own; lit while on; hold it to set RATE / RANGE / REACH), SAVE and REC do nothing;
+  DRIFT (the values wander on their own; lit while on; hold it to set RATE / RANGE / REACH), SAVE does nothing;
   OCT- / OCT+ step the key around the circle of fifths
 - **Kick**: when the kick part has focus the keys become a 16-step sequencer
-- **HOME** held: a new random world. HOME + OCT-: the settings menu (colour, screen off, calibration)
+- **HOME** held: a new world, random or (more often the more likes there are, up to 90 %) one of your likes, a little changed.
+  HOME + OCT-: the settings menu (colour, screen off, calibration)
+- **REC** tapped: a like (the world playing now is kept, up to 16, REC lit); held ~2 s: every like forgotten. Besides the
+  settings menu, the likes are the only thing written to flash, and only when REC is pressed (a short gap in the sound).
+  **Returning to the official firmware (Return to official V15, or M-VAVE's updater) erases your likes**; updates
+  between MAKU / Felucca builds keep them (read from the code; not yet verified on hardware).
+  **更新・公式V15復帰で好みは消える**（公式V15に戻す・M-VAVE のアップデータを使うと、いいねは消えます。MAKU 同士の更新では残る見込み、実機未確認）
 - **MIDI**: USB and TRS in, clock follow; CC20 is the kick density. USB also carries the stereo audio input
 
 ## Layout

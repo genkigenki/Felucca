@@ -413,6 +413,109 @@ static int autosave_test(void)
     return bad;
 }
 
+/* MAKU's likes (maku_fav.c) in flash: OBJ_MAKUFAV, the autosave's pair under its own type, written only by REC
+ * (maku_fav_store), read once at power-on (persist_boot calls maku_fav_boot); a damaged copy falls back, a damaged ring
+ * starts empty */
+static void fav_fill(uint32_t n, uint32_t salt)
+{
+    uint32_t i, k;
+    maku_fav.n = 0;
+    for (i = 0; i < n; i++) {
+        maku_fav_t e;
+        memset(&e, 0, sizeof e);
+        e.seed = salt * 1000u + i;
+        for (k = 0; k < 3u; k++)
+            e.v[k] = (uint8_t)(1u + (i + k) % 5u);
+        e.root = (uint8_t)(i % 12u);
+        e.scale = 2;
+        e.bpm = (uint8_t)(70u + i);
+        for (k = 0; k < 12u; k++)
+            e.m[k] = (uint8_t)((i * 7u + k * 3u) % 128u);
+        e.it[0] = IT_PHASER;
+        e.ia[0] = 20;
+        e.ib[1] = 90;
+        e.ic[1] = 40;
+        maku_fav_push(&e);
+    }
+}
+static int fav_test(void)
+{
+    int bad = 0;
+    maku_fav_t keep[MAKU_FAV_MAX];
+    uint32_t e0, a0, n;
+    reset();
+    flash_ok = 1;                                   /* (persist_boot would ask the part's id: the stub says none) */
+    maku_fav_boot();
+    bad += check("MAKU likes: empty flash, the ring starts empty", maku_fav.n == 0u);
+    fav_fill(5, 1);
+    memcpy(keep, maku_fav.e, sizeof keep);
+    e0 = erases;
+    a0 = as_erases;
+    bad += check("  REC: the ring written with one sector erase, in the autosave's pair", maku_fav_store() == 0 &&
+                 erases == e0 + 1u && as_erases == a0 + 1u);
+    maku_fav.n = 0;
+    maku_fav_boot();
+    bad += check("  power-on: the five likes back, as they were", maku_fav.n == 5u && !memcmp(keep, maku_fav.e, 5u * sizeof keep[0]));
+    bad += check("  .. and the power-on wrote nothing", erases == e0 + 1u);
+    bad += check("  not an autosave: the autosave's loader finds none there", st_load(OBJ_AUTOSAVE, &proj_wire, sizeof proj_wire) < 0);
+    fav_fill(16, 2);
+    memcpy(keep, maku_fav.e, sizeof keep);
+    bad += check("  a second REC goes to the other sector (A / B by turns)", maku_fav_store() == 0 && erases == e0 + 2u &&
+                 nor[0xE5000u] != 0xFFu && nor[0xE6000u] != 0xFFu);
+    {
+        uint32_t i;
+        for (i = 0; i < 300u; i++)                       /* new worlds, likes or not: no flash */
+            maku_world_pref(i * 7919u + 1u);
+        bad += check("  300 new worlds from the likes: no flash write", erases == e0 + 2u);
+    }
+    maku_fav.n = 0;
+    maku_fav_boot();
+    n = maku_fav.n;
+    bad += check("  .. power-on: the newer ring (16 likes)", n == 16u && !memcmp(keep, maku_fav.e, sizeof keep));
+    {
+        uint32_t cur = st_sector(OBJ_MAKUFAV, nor[0xE6000u + 8] != 0xFFu && ((st_hdr_t *)(nor + 0xE6000u))->seq == 2u ? 1u : 0u);
+        nor[cur + ST_PAYLOAD_OFF + 40u] ^= 0x10u;        /* the newer copy rots */
+        maku_fav.n = 0;
+        maku_fav_boot();
+        bad += check("  the newer copy damaged: the one before it loads (5 likes)", maku_fav.n == 5u);
+    }
+    nor[0xE5000u + ST_PAYLOAD_OFF + 41u] ^= 0x10u;
+    nor[0xE6000u + ST_PAYLOAD_OFF + 41u] ^= 0x10u;
+    maku_fav.n = 7;
+    maku_fav_boot();
+    bad += check("  both damaged: the ring starts empty", maku_fav.n == 0u);
+    {   /* a ring whose own checksum fails (the storage CRC over it is right): empty */
+        uint8_t b[MAKU_FAV_BYTES];
+        fav_fill(3, 3);
+        maku_fav_pack(b);
+        b[MAKU_FAV_HEAD + 3u] ^= 1u;
+        memset(nor + 0xE5000u, 0xFF, 0x2000u);
+        st_save(OBJ_MAKUFAV, b, sizeof b);
+        maku_fav.n = 3;
+        maku_fav_boot();
+        bad += check("  a ring with a bad checksum of its own: empty", maku_fav.n == 0u);
+        fav_fill(3, 3);
+        maku_fav_pack(b);
+        b[4] = MAKU_FAV_VER + 1u;
+        maku_put32(b + MAKU_FAV_BYTES - 4u, maku_fav_sum(b, MAKU_FAV_BYTES - 4u));
+        st_save(OBJ_MAKUFAV, b, sizeof b);
+        maku_fav_boot();
+        bad += check("  a ring of another version: empty", maku_fav.n == 0u);
+    }
+    fav_fill(4, 4);
+    e0 = erases;
+    erase_error = 1;
+    bad += check("  a failed write is reported (the likes stay in RAM)", maku_fav_store() != 0 && maku_fav.n == 4u);
+    erase_error = 0;
+    maku_fav.n = 0;
+    bad += check("  the clearing is written too (an empty ring)", maku_fav_store() == 0 && erases == e0 + 2u);
+    fav_fill(2, 5);
+    maku_fav_boot();
+    bad += check("  .. and power-on finds it empty", maku_fav.n == 0u);
+    maku_fav.n = 0;
+    return bad;
+}
+
 int main(void)
 {
     int bad = 0, ok;
@@ -625,6 +728,7 @@ int main(void)
                   irq_races == 3u && song.playing && !transport_req && persist_pending && erases == before);
     bad += mig_test();
     bad += autosave_test();
+    bad += fav_test();
     printf("%s\n", bad ? "PERSISTENCE TEST FAILED" : "persistence test passed");
     return bad != 0;
 }

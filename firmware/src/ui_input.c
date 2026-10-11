@@ -301,7 +301,7 @@ static void ui_leds(void)
         led_put(nl, panel.btn[B_FX], 1);                /* FX LATCH: lit while an effect or a macro is on */
     if (ui.layer)                                       /* the layer's button breathes while its map is up */
         led_put(nb, panel.btn[layer_btn()], 1);
-    led_put(nl, panel.btn[B_REC], song.rec != 0u && ui.layer != LAYER_REC);   /* (its layer: it breathes) */
+    led_put(nl, panel.btn[B_REC], (song.rec != 0u && ui.layer != LAYER_REC) || (maku.on && maku_fav.liked));   /* (its layer: it breathes; MAKU: this world is a like) */
     k = oct_leds();
     led_put(nl, panel.btn[B_OCTDN], (int)(k & 1u));
     led_put(nl, panel.btn[B_OCTUP], (int)((k >> 1) & 1u));
@@ -1124,8 +1124,8 @@ static void maku_knobs(void)
 /* AMBIENT.md, docs/VERBS_PLAN.md: the upper row's buttons are verbs of change, held: FX sinks (SINK), SCL cascades (CASCADE), ENV swells
  * (SWELL), LFO wobbles (WOBBLE), EDIT lifts (LIFT), GLO scrambles (SCRAMBLE). Each has three parameters on the screen while it is held
  * (maku.vp). The lower row keeps: ARP is the key and SEQ the tempo (the layers GLO and SCL of ui_layer.c, moved to those buttons), PLAY
- * is DRIFT's switch (a tap; held, DRIFT's three parameters), its LED shows it; SAVE and REC do nothing (the keys played melt into the arp
- * phrase at all times). HOME held: a new world. Called once a pass */
+ * is DRIFT's switch (a tap; held, DRIFT's three parameters), its LED shows it; SAVE does nothing (the keys played melt into the arp
+ * phrase at all times); REC is the like (maku_rec). HOME held: a new world. Called once a pass */
 static void maku_world_new(void);
 static void maku_buttons(uint32_t pressed, uint32_t notes)
 {
@@ -1161,6 +1161,29 @@ static void maku_buttons(uint32_t pressed, uint32_t notes)
             maku_pick(kb_map(TSEL, k));
 }
 
+/* MAKU's REC (maku_fav.c): let go before MAKU_FAV_CLEAR_MS, the world now is a like; held that long, every like is
+ * forgotten (once; the release then does nothing). `on`: MAKU has the buttons (no menu, dialog or NAME) */
+static void maku_rec(uint32_t now, int on)
+{
+    static uint32_t t0;                                 /* press time | 1; bit 1: the hold fired */
+    if (!on) {
+        t0 = 0;
+        return;
+    }
+    if ((fm1_in.buttons >> panel.btn[B_REC]) & 1u) {
+        if (!t0) {
+            t0 = (now | 1u) & ~2u;
+        } else if (!(t0 & 2u) && now - (t0 & ~3u) > MAKU_FAV_CLEAR_MS * 1000u * FM1_TICKS_PER_US) {
+            t0 |= 2u;
+            maku_fav_clear();
+        }
+        return;
+    }
+    if (t0 && !(t0 & 2u))
+        maku_fav_like();
+    t0 = 0;
+}
+
 static void ui_input(void)
 {
     uint32_t pressed = fm1_input_edges(0), notes = fm1_input_note_edges(), now = fm1_ticks(), id, b, k;
@@ -1186,6 +1209,7 @@ static void ui_input(void)
     rec = btn_hold(&ui.rec_t0, B_REC, now, 0);          /* (a tap; held, the REC layer: ui_layer.c) */
     seq = btn_hold(&ui.seq_t0, B_SEQ, now, !ui.menu && !ui.confirm);
     save = btn_hold(&ui.save_t0, B_SAVE, now, !ui.menu && !ui.confirm);   /* held: UNDO (ui.c undo_swap) */
+    maku_rec(now, maku_knobs_on());                     /* (REC: a like, held ~2 s: the likes forgotten) */
     if (maku_knobs_on()) {                              /* (the buttons that are verbs: not a tap, a hold or a page) */
         seq = save = rec = BT_NONE;
         ui.seq_t0 = ui.save_t0 = ui.rec_t0 = 0;

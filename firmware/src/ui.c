@@ -1212,9 +1212,17 @@ static void maku_setup(void)
 
 /* A new random world (docs/AMBIENT.md): the key, the scale, the tempo and how dense it starts, from `seed`. Call after
  * maku_setup(); the same seed gives the same world. Every scale here is calm: no CHR, no HARM / BLUES / DIM */
+static const uint8_t MAKU_CALM[] = {2, 3, 4, 5, 6, 9};      /* MIN DOR MIX PEN MPEN LYD */
+/* a new world's macro j of track i: one draw (the kick's DENSITY 24..56: a hint to a pulse; OPEN and LOOSE their own
+ * ranges; every other macro somewhere in the middle) */
+static uint32_t maku_macro_draw(uint32_t i, uint32_t j)
+{
+    if (!i && !j)
+        return 24u + rng() % 33u;
+    return i == MAKU_ARP && !j ? rng() % 40u : i == MAKU_DRA && !j ? 45u + rng() % 70u : 25u + rng() % 60u;
+}
 static void maku_world(uint32_t seed)
 {
-    static const uint8_t SC[] = {2, 3, 4, 5, 6, 9};          /* MIN DOR MIX PEN MPEN LYD */
     uint32_t i, j;
     maku.seed = seed;
     maku.world_n++;
@@ -1247,27 +1255,27 @@ static void maku_world(uint32_t seed)
         b->p[P_IC] = (int16_t)(30u + rng() % 50u);
     }
     trk[MAKU_DRA].p[P_ROOT] = (int16_t)(rng() % 12u);
-    trk[MAKU_DRA].p[P_SCALE] = SC[rng() % sizeof SC];
+    trk[MAKU_DRA].p[P_SCALE] = MAKU_CALM[rng() % sizeof MAKU_CALM];
     maku_follow();
     maku.root = (uint8_t)trk[MAKU_DRA].p[P_ROOT];
     maku.scale = (uint8_t)trk[MAKU_DRA].p[P_SCALE];
     song.g[G_BPM] = (int16_t)(70u + rng() % 21u);             /* 70..90 */
-    maku_macro_set(0, 0, 24u + rng() % 33u);                  /* 24..56: a hint to a pulse */
-    for (i = 0; i < 4u; i++)                                  /* every track's other macros start somewhere in the middle */
+    for (i = 0; i < 4u; i++)                                  /* (the kick's DENSITY first) */
         for (j = 0; j < 3u; j++)
-            if (i || j)
-                maku_macro_set(i, j, i == MAKU_ARP && !j ? rng() % 40u : i == MAKU_DRA && !j ? 45u + rng() % 70u : 25u + rng() % 60u);
+            maku_macro_set(i, j, maku_macro_draw(i, j));
 }
-/* HOME held: a new world, from the time since boot and the knobs' last turns */
+#include "maku_fav.c"                                  /* the likes: REC keeps a world, a new world is drawn from them */
+/* HOME held: a new world, from the time since boot and the knobs' last turns; with likes kept, often one of them
+ * (maku_world_pref) */
 static void maku_world_new(void)
 {
     static uint32_t n;
-    uint32_t seed = fm1_ms * 0x9E3779B1u + ++n * 0x85EBCA6Bu;
+    uint32_t seed = fm1_ms * 0x9E3779B1u + ++n * 0x85EBCA6Bu, liked;
     maku_setup();
-    maku_world(seed);
+    liked = maku_world_pref(seed);
     perf_kill = 1;                                    /* (what was held lets go; the next pass clears it) */
     perf_latched = 0;
-    ui_message("NEW WORLD");
+    ui_message(liked ? "FROM A LIKE" : "NEW WORLD");
     ui.force = 1;
 }
 static void set_engine(uint32_t ei) { set_engine_of(TSEL, ei); }
