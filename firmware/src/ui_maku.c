@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* AMBIENT.md: the screen while MAKU is on, 240 x 240 in four 119 x 119 quadrants, laid out like the knobs:
- *   top left      the key (ROOT and SCALE, always: OCT- / OCT+ move it), the waveform, BPM, the four tracks' volumes
- *                 (KNOB 1..4 left to right), the focus
+ *   top left      the focused track (its number and name), the waveform, the key (ROOT and SCALE, always: OCT- / OCT+
+ *                 move it) and BPM on one line, the four tracks' volumes (KNOB 1..4 left to right), the focus
  *   top right     SELECT's macro of the focused track (DENSITY: the kick's 16 steps too)
  *   bottom left   PRESETS' macro
  *   bottom right  ALGORITHM's macro
- * A verb held (GLO tempo, SCL root, PLAY sink; ui_input.c maku_verb_now): the three quadrants show its three parameters
+ * A verb held (SEQ tempo, ARP key, FX sink, PLAY drift, ..; ui_input.c maku_verb_now): the three quadrants show its three parameters
  * instead (SELECT / PRESETS / ALGORITHM move them). One style for every mode. The scope is drawn each
  * frame, the other three only when something they show changes (or ui.force). */
 static int maku_knobs_on(void);
@@ -46,10 +46,7 @@ static void mq_macro(uint32_t j, uint32_t f, uint32_t tempo)
     const char *name = tempo ? "BPM" : MAKU_MAC[f][j].name;
     int32_t v = tempo ? song.g[G_BPM] : maku.m[f][j];
     uint16_t cc = mk_col(f), c = ui.hot_t && ui.hot_col == j ? T_ACCENT : cc;
-    char tag[4] = {'C', 'H', 0, 0};
-    cv_text(8, 6, &AF_S, MAKU_ROLE[j], T_DIM);
-    tag[2] = MAKU_NUM[f & 3u][0];
-    cv_text(MKQ - 6 - text_w(&AF_S, tag), 6, &AF_S, tag, cc);
+    cv_text(8, 6, &AF_S, MAKU_ROLE[j], T_DIM);          /* (the knob's name only: the track is in the top left) */
     cv_text(8, 24, &AF_M, name, T_MID);
     fmt_int(b, v);
     cv_text_in(0, 48, MKQ, &AF_L, b, c, T_BG);
@@ -67,16 +64,15 @@ static void mq_macro(uint32_t j, uint32_t f, uint32_t tempo)
 /* the verbs that hold three parameters (maku.c VB_*): their names, as printed on the button where there is one */
 static const struct { const char *title, *name[3]; } MAKU_VB[VB_N] = {
     {"", {"", "", ""}},
-    {"SINK", {"SINK", "WASH", "HUSH"}},                 /* PLAY: the reverb feeds back, the sends rise, the kick steps out */
-    {"TEMPO", {"BPM", "SWING", "DUCK"}},                /* GLO */
-    {"ROOT", {"ROOT", "SCALE", "REG"}},                 /* SCL */
-    {"KEEP", {"LEN", "HOLD", "ECHO"}},                  /* SAVE: the arp loops its last steps, the drones stay */
-    {"SCRAMBLE", {"ARP", "KICK", "SWING"}},             /* SEQ */
-    {"CASCADE", {"DENSE", "SPAN", "ECHO"}},             /* ARP */
-    {"DRIFT", {"RATE", "RANGE", "REACH"}},            /* FX: the macros (and from REACH 43 the space, from 86 the tempo) wander while held */
-    {"TWIST", {"DENS", "TONE", "WASH"}},                /* EDIT: every track's macros of that knob */
-    {"SWELL", {"ATTACK", "RELEASE", "REV"}},            /* ENV: longer attacks and releases, a deeper reverse swell */
-    {"WOBBLE", {"RATE", "DEPTH", "CHORUS"}},            /* LFO: the filter LFO faster and deeper, more chorus */
+    {"SINK", {"SINK", "WASH", "HUSH"}},                 /* FX: the reverb feeds back, the sends rise, the kick steps out */
+    {"TEMPO", {"BPM", "SWING", "DUCK"}},                /* SEQ (the layer GLO) */
+    {"KEY", {"ROOT", "SCALE", "REG"}},                  /* ARP (the layer SCL) */
+    {"SCRAMBLE", {"ARP", "KICK", "SWING"}},             /* GLO */
+    {"CASCADE", {"DENSE", "SPAN", "HARM"}},             /* SCL: the arp plays every step, octaves and a third above */
+    {"DRIFT", {"RATE", "RANGE", "REACH"}},              /* PLAY (a tap switches it; its LED): the macros (from REACH 43 the space, from 86 the tempo) wander */
+    {"LIFT", {"TONE", "EDGE", "THIN"}},                 /* EDIT: brighter tone, a harder edge, a thinner master */
+    {"SWELL", {"ATTACK", "RELEASE", "STAY"}},           /* ENV: longer attacks and releases, the chords stay */
+    {"WOBBLE", {"RATE", "DEPTH", "PITCH"}},             /* LFO: the filter LFO faster and deeper (and chorus), a pitch wobble */
 };
 static const char *const MAKU_REG[3] = {"LOW", "MID", "HIGH"};
 
@@ -102,10 +98,7 @@ static int32_t maku_vb_value(uint32_t v, uint32_t j, char *b)
         str_cpy(b, MAKU_REG[g % 3], 8);
         return g * 63;
     }
-    if (v == VB_KEEP && j == 0u)
-        fmt_int(b, 2 + g * 14 / 127);                    /* LEN: steps */
-    else
-        fmt_int(b, g);
+    fmt_int(b, g);
     return g;
 }
 
@@ -114,9 +107,10 @@ static void mq_verb(uint32_t j, uint32_t v)
 {
     char b[8];
     int32_t g = maku_vb_value(v, j, b);
+    const char *title = v == VB_DRIFT ? (maku.dr_tog ? "DRIFT ON" : "DRIFT OFF") : MAKU_VB[v].title;   /* (PLAY's tap switches it) */
     cv_text(8, 6, &AF_S, MAKU_ROLE[j], T_DIM);
     if (j == 0u)                                        /* (the verb's name once, where SELECT is) */
-        cv_text(MKQ - 6 - text_w(&AF_S, MAKU_VB[v].title), 6, &AF_S, MAKU_VB[v].title, T_ACCENT);
+        cv_text(MKQ - 6 - text_w(&AF_S, title), 6, &AF_S, title, v == VB_DRIFT && !maku.dr_tog ? T_MID : T_ACCENT);
     cv_text(8, 24, &AF_M, MAKU_VB[v].name[j], T_MID);
     cv_text_in(0, 48, MKQ, &AF_L, b, T_ACCENT, T_BG);
     mq_gauge(8, 92, MKQ - 16, g, T_ACCENT);
@@ -150,13 +144,23 @@ static void mq_top_left(void)
             cv_line_t(x - 1, py, x, y, mk_col(f), 2);
         py = y;
     }
-    {                                                   /* the key, whatever else the screen shows (the message has its own line) */
+    {                                                   /* the focused track, "4 VOICE" (a message in its place a while) */
+        char t[16];
+        str_cpy(t, MAKU_NUM[f], sizeof t);
+        str_cpy(t + str_len(t), " ", sizeof t - str_len(t));
+        str_cpy(t + str_len(t), MAKU_TRK_NAME[f], sizeof t - str_len(t));
+        if (ui.msg_t)                                   /* (the small face: a message may be long) */
+            cv_text(6, 8, &AF_S, ui.msg, T_ACCENT);
+        else
+            cv_text(6, 4, &AF_M, t, mk_col(f));
+    }
+    {                                                   /* the key, whatever else the screen shows, on BPM's line */
         char k[16];
         str_cpy(k, N_NOTE[(uint32_t)trk[MAKU_DRA].p[P_ROOT] % 12u], sizeof k);
         str_cpy(k + str_len(k), " ", sizeof k - str_len(k));
         str_cpy(k + str_len(k), N_SCALE[clamp(trk[MAKU_DRA].p[P_SCALE], 0, (int32_t)(sizeof N_SCALE / sizeof N_SCALE[0]) - 1)],
                 sizeof k - str_len(k));
-        cv_text(6, 4, &AF_M, k, T_TEXT);
+        cv_text(6, 52, &AF_S, k, T_TEXT);
     }
     fmt_int(b, song.g[G_BPM]);
     {
@@ -173,7 +177,6 @@ static void mq_top_left(void)
         if (i == f)
             cv_rect(bx, 116, 25, 2, cc);
     }
-    cv_text(6, 52, &AF_S, ui.msg_t ? ui.msg : MAKU_TRK_NAME[f], ui.msg_t ? T_ACCENT : mk_col(f));
     cv_blit(0, 0);
 }
 
@@ -181,7 +184,7 @@ static void maku_draw(void)
 {
     static uint32_t sig;
     uint32_t j, f = song.sel < 4u ? song.sel : 0u, v = ui.layer == LAYER_GLO ? VB_GLO : ui.layer == LAYER_SCL ? VB_ROOT : (uint32_t)maku.verb, s;
-    s = f * 977u + v * 13u + (uint32_t)song.g[G_BPM] * 31u + (uint32_t)(ui.hot_t != 0u) * 7u + ui.hot_col;
+    s = f * 977u + v * 13u + (uint32_t)maku.dr_tog * 5u + (uint32_t)song.g[G_BPM] * 31u + (uint32_t)(ui.hot_t != 0u) * 7u + ui.hot_col;
     for (j = 0; j < 3u; j++)
         s = s * 31u + maku.m[f][j] + (v ? (uint32_t)maku.vp[v][j] * 7u : 0u);
     s = s * 31u + (uint32_t)trk[MAKU_DRA].p[P_ROOT] * 17u + (uint32_t)trk[MAKU_DRA].p[P_SCALE];

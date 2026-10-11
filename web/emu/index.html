@@ -70,19 +70,6 @@ footer { margin-top: 12px; font-size: 12px; }
 footer nav a { margin: 0 6px; }
 footer small { font-size: 11px; opacity: .8; }
 
-/* the rating bar (docs/VOICES_RATING.md): -2 .. +2 for the sound now, with the state it came from */
-.rate { margin: 16px auto 0; max-width: 760px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
-        justify-content: center; color: var(--fg); }
-.rate .btns { display: flex; gap: 6px; }
-.rate button { font: 600 14px ui-monospace, Menlo, monospace; min-width: 48px; padding: 6px 10px; border: 1px solid var(--rule);
-               background: #d6d6d8; color: #111; cursor: pointer; border-radius: 4px; }
-.rate button:disabled { opacity: .4; cursor: default; }
-.rate button:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
-.rate button.neg { background: #e4c9c9; } .rate button.pos { background: #c9e4d0; }
-.rate input[type=text] { font: inherit; padding: 5px 8px; border: 1px solid var(--rule); border-radius: 4px; width: 14em; max-width: 100%; }
-.rate .meta { font-size: 12px; color: var(--dim); }
-.rate .meta button { min-width: 0; padding: 2px 8px; font: inherit; }
-.rate .say { flex-basis: 100%; text-align: center; font-size: 12px; min-height: 1.6em; }
 </style>
 </head>
 <body>
@@ -93,19 +80,9 @@ footer small { font-size: 11px; opacity: .8; }
   <div class="start" id="start"><button id="go" type="button">Switch on</button><p id="status" hidden></p></div>
 </div>
 
-<div class="rate" id="rate" aria-label="Rate the sound now">
-  <span>now</span>
-  <span class="btns" role="group" aria-label="Rating from minus two to plus two">
-    <button type="button" data-r="-2" class="neg" disabled>−2</button><button type="button" data-r="-1" class="neg" disabled>−1</button><button type="button" data-r="0" disabled>0</button><button type="button" data-r="1" class="pos" disabled>+1</button><button type="button" data-r="2" class="pos" disabled>+2</button>
-  </span>
-  <input type="text" id="rnote" placeholder="note (optional)" maxlength="200" aria-label="Note for the next rating">
-  <span class="meta"><span id="rcount">0 ratings</span> · <button type="button" id="rjson">JSON</button> <button type="button" id="rcsv">CSV</button> <button type="button" id="rclear">clear</button></span>
-  <span class="say" id="rsay" role="status" aria-live="polite"></span>
-</div>
-
 <p class="keys">
   <span><kbd>Z</kbd>–<kbd>'</kbd> <kbd>Q</kbd>–<kbd>O</kbd> keys</span>
-  <span><kbd>1</kbd>–<kbd>=</kbd> FX … REC (hold: freeze, tape stop, sweep, repeat, break…)</span>
+  <span><kbd>1</kbd>–<kbd>=</kbd> FX … REC (hold: sink, cascade, swell, wobble, lift, scramble; ARP key, SEQ tempo; tap PLAY: drift on / off)</span>
   <span style="white-space:normal">KNOB 1–4 = volumes · SELECT / PRESETS / ALGORITHM = the focused part's three macros · HOME held = a new world</span>
   <span><kbd>[</kbd> <kbd>]</kbd> OCT</span>
   <span><kbd>↑</kbd> <kbd>↓</kbd> SELECT</span>
@@ -137,9 +114,10 @@ const STORE = "felucca-emu-flash";
 // Two drawings of the same controls: WIDE after the FM-1's own layout, TALL for a phone held upright (the
 // screen larger, the keys across the whole width). Rebuilt when the orientation changes; the state stays.
 const ROW1 = ["FX", "SCL", "ENV", "LFO", "EDIT", "GLO"], ROW2 = ["HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC"];
-// what each button does on MAKU (docs/AMBIENT.md): the verb under its label
-const VERB = { FX: "FREEZE", SCL: "ROOT", ENV: "TAPE", LFO: "SWEEP", EDIT: "SHIMMER", GLO: "TEMPO",
-               HOME: "NEW", SAVE: "REPEAT", ARP: "ARP", SEQ: "RISE", PLAY: "BREAK", REC: "" };
+// what each button does on MAKU (docs/AMBIENT.md): the verb under its label. The upper row is held verbs of change; ARP is the key and
+// SEQ the tempo (hold, turn the three knobs); PLAY: tap switches DRIFT (its green LED), hold to set it; SAVE and REC do nothing
+const VERB = { FX: "SINK", SCL: "CASCADE", ENV: "SWELL", LFO: "WOBBLE", EDIT: "LIFT", GLO: "SCRAMBLE",
+               HOME: "NEW", SAVE: "", ARP: "KEY", SEQ: "TEMPO", PLAY: "DRIFT", REC: "" };
 const KNOBS = ["MASTER", "SELECT", "PRESETS", "ALGORITHM", "KNOB 1", "KNOB 2", "KNOB 3", "KNOB 4"];
 const LAYOUTS = {
   wide: {
@@ -493,7 +471,6 @@ async function switchOn() {
         const m = e.data;
         if (m.type === "ready") res();
         else if (m.type === "error") rej(new Error(m.message));
-        else if (m.type === "snap") { const f = snapWait.get(m.id); snapWait.delete(m.id); if (f) f(m.data); }
         else if (m.type === "frame") {
           if (m.fb) drawScreen(m.fb);
           if (m.leds) drawLights(lastLeds = m.leds, m.anim);
@@ -508,7 +485,6 @@ async function switchOn() {
     await resumed;
     await ac.resume();
     document.getElementById("start").hidden = true;
-    setRateEnabled(true);
     go.textContent = "On";
     if (ac.sampleRate !== 44100) console.warn(`Felucca: the browser plays at ${ac.sampleRate} Hz, the pitch is off by ${(1200 * Math.log2(ac.sampleRate / 44100)).toFixed(0)} cents.`);
     syncButtons();
@@ -523,68 +499,6 @@ async function switchOn() {
   }
 }
 
-// ------------------------------------------------------------------ the rating log
-// A rating is the number plus the whole state that made the sound (worklet.js snap): the world's seed (#seed=N
-// plays it again), the catalog version, the voices, the 12 macros, every raw parameter. localStorage is a convenience
-// (browsers clear it): JSON / CSV are the record.
-const RKEY = "maku-ratings-v1", ratings = [];
-try { ratings.push(...JSON.parse(localStorage.getItem(RKEY) || "[]")); } catch (e) { /* no storage: the log lasts the visit */ }
-const rate = document.getElementById("rate"), rsay = document.getElementById("rsay"), rnote = document.getElementById("rnote");
-const rbtn = [...rate.querySelectorAll("button[data-r]")];
-let snapId = 0;
-const snapWait = new Map();
-function rsaySet(t) { rsay.textContent = t; }
-function rcount() {
-  document.getElementById("rcount").textContent = ratings.length + (ratings.length === 1 ? " rating" : " ratings");
-  if (ratings.length >= 20 && ratings.length % 10 === 0) rsaySet(ratings.length + " ratings: export them (JSON) — the browser may clear its storage.");
-}
-function rsave() { try { localStorage.setItem(RKEY, JSON.stringify(ratings)); } catch (e) { /* see above */ } rcount(); }
-function download(name, type, text) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type }));
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-}
-function flatten(r) {
-  const o = { time: r.time, rating: r.rating, replay: location.origin + location.pathname + "#seed=" + r.seed, note: r.note, catalog: r.catalog, seed: r.seed, world: r.world,
-              world_age_s: +(r.world_age_ms / 1000).toFixed(1), short: r.world_age_ms < 10000 ? 1 : 0,
-              bpm: r.bpm, root: r.root, scale: r.scale, dens: r.dens, dens_eff: r.dens_eff, open: r.open, loose: r.loose,
-              focus: r.focus, buttons: r.buttons, perf_held: r.perf_held, flags: r.flags };
-  r.macros.forEach((v, i) => { o["m" + (i / 3 | 0) + "." + (i % 3)] = v; });
-  r.tracks.forEach((t, i) => {
-    o["t" + i + ".eng"] = t.eng; o["t" + i + ".voice"] = t.voice; o["t" + i + ".name"] = t.name; o["t" + i + ".art"] = t.art;
-    t.labels.forEach((l, j) => { if (l) o["t" + i + "." + l + (t.labels.indexOf(l) !== j ? "_" + j : "")] = t.p[j]; });
-  });
-  return o;
-}
-function toCsv() {
-  const rows = ratings.map(flatten), cols = [];
-  for (const r of rows) for (const k of Object.keys(r)) if (!cols.includes(k)) cols.push(k);
-  const q = (v) => v === undefined ? "" : /[",\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
-  return [cols.join(","), ...rows.map((r) => cols.map((c) => q(r[c])).join(","))].join("\n") + "\n";
-}
-function setRateEnabled(on) { rbtn.forEach((b) => { b.disabled = !on; }); }
-function rate1(v) {
-  if (!node) return;
-  const id = ++snapId, note = rnote.value.trim();
-  snapWait.set(id, (d) => {
-    ratings.push({ rating: v, note, time: new Date().toISOString(), buttons: btnMask | latched, build: document.querySelector(".version")?.textContent.trim() || "", ...d });
-    rsave();
-    rnote.value = "";
-    const age = d.world_age_ms / 1000;
-    rsaySet((v > 0 ? "+" : "") + v + " recorded — world #" + d.world + ", " + age.toFixed(0) + " s in" + (age < 10 ? " (early: still arriving?)" : "") + " · #" + ratings.length);
-  });
-  send({ type: "snap", id });
-}
-rbtn.forEach((b) => b.addEventListener("click", () => rate1(+b.dataset.r)));
-document.getElementById("rjson").addEventListener("click", () => ratings.length && download("maku-ratings.json", "application/json", JSON.stringify(ratings, null, 1)));
-document.getElementById("rcsv").addEventListener("click", () => ratings.length && download("maku-ratings.csv", "text/csv", toCsv()));
-document.getElementById("rclear").addEventListener("click", () => {
-  if (ratings.length && confirm("Delete all " + ratings.length + " ratings from this browser? (Export first.)")) { ratings.length = 0; rsave(); rsaySet("cleared"); }
-});
-rnote.addEventListener("keydown", (e) => e.stopPropagation());     // typing a note must not play keys or press buttons
-rcount();
 const seedHash = /[#&]seed=(\d+)/.exec(location.hash);
 const seedOpt = seedHash ? (+seedHash[1] >>> 0) : 0;
 document.getElementById("go").addEventListener("click", switchOn);

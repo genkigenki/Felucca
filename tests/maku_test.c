@@ -7,7 +7,7 @@
  *   DRONES    57 and 13 steps (the arp 29), chords of 3 / 1 and 2 notes, six chords before the first repeats, the two never fall on the same step all the way round.
  *   SCALE     every drone and arp note is in the scale, for all roots and scales; nothing from the arp below DENSITY 16.
  *   ARP       runs of consecutive table places, then a jump; the table comes back when DENSITY goes down (tidy).
- *   FOLLOW    the kick's TUNE follows ROOT; a ROOT / SCALE edit on any track becomes all four's.
+ *   FOLLOW    the kick's TUNE does not follow ROOT; a ROOT / SCALE edit on any track becomes all four's.
  *   COST      a bar of the four tracks at DENSITY 127 costs a bounded number of note-ons.
  * Built and run by tests/run_tests.sh. */
 #define UI_TEST_NO_MAIN 1
@@ -91,19 +91,24 @@ static int kick(void)
 {
     int bad = 0;
     uint32_t d, last = 0, orn = 0, per[6] = {0}, n, bars = 40u;
-    static const uint32_t D[6] = {0, 20, 60, 95, 96, 127};
+    static const uint32_t D[6] = {0, 20, 80, 105, 106, 127};
     for (d = 0; d < 6u; d++) {
         start(D[d]);
         sim(bars * BAR_STEPS);
         per[d] = nhits[0];
+        if (D[d] == 106u) {                         /* (a hair past the floor: ornaments may have begun, count the beats) */
+            uint32_t k;
+            for (per[d] = 0, k = 0; k < nhits[0]; k++)
+                per[d] += hits[0][k].step % 4u == 0u;
+        }
     }
-    printf("ui:   hits in %u bars at DENSITY 0 20 60 95 96 127: %u %u %u %u %u %u\n", bars, per[0], per[1], per[2], per[3], per[4], per[5]);
+    printf("ui:   hits in %u bars at DENSITY 0 20 80 105 106 127: %u %u %u %u %u %u\n", bars, per[0], per[1], per[2], per[3], per[4], per[5]);
     bad += check("KICK: DENSITY 0 is silent", per[0] == 0u);
     bad += check("  DENSITY 20: about once a bar at most", per[1] > 0u && per[1] <= bars);
-    bad += check("  DENSITY 60: more than 20, at most 2 a bar", per[2] > per[1] && per[2] <= 2u * bars);
-    bad += check("  DENSITY 95: more again, at most 4 a bar, no ornaments yet", per[3] > per[2] && per[3] <= 4u * bars);
-    bad += check("  DENSITY 96: the four on the floor, exactly 4 a bar", per[4] == 4u * bars);
-    start(96);
+    bad += check("  DENSITY 80: more than 20, at most 2 a bar", per[2] > per[1] && per[2] <= 2u * bars);
+    bad += check("  DENSITY 105: more again, at most 4 a bar, no ornaments yet", per[3] > per[2] && per[3] <= 4u * bars);
+    bad += check("  DENSITY 106: the four on the floor, exactly 4 a bar", per[4] == 4u * bars);
+    start(106);
     sim(BAR_STEPS);
     for (n = 0; n < nhits[0]; n++)
         last |= 1u << hits[0][n].step;
@@ -258,22 +263,13 @@ static int follow(void)
     uint32_t root;
     start(0);
     maku_block();
-    bad += check("FOLLOW: root C: the kick's TUNE is 2 semitones under the design (53)", trk[0].p[P_E1] == 53);
+    bad += check("FOLLOW: the kick's TUNE is 2 semitones under the design (53)", trk[0].p[P_E1] == 53);
     for (root = 0; root < 12u; root++) {
         trk[1].p[P_ROOT] = (int16_t)root;
         maku_block();
-        ok &= trk[0].p[P_E1] >= 53 - 33 && trk[0].p[P_E1] <= 53 + 33;
+        ok &= trk[0].p[P_E1] == 53;
     }
-    bad += check("  every root keeps the kick within +-6 semitones of its root pitch (TUNE 20..86)", ok);
-    trk[1].p[P_ROOT] = 7;
-    maku_block();
-    {
-        int16_t g = trk[0].p[P_E1];
-        trk[1].p[P_ROOT] = 0;
-        maku_block();
-        bad += check("  G (7) folds down a fourth: TUNE below the design; back to C: 53 again",
-                     g < 53 && trk[0].p[P_E1] == 53);
-    }
+    bad += check("  and stays there for every root", ok);
     trk[2].p[P_ROOT] = 9;                             /* an edit on another track's SCL page */
     trk[2].p[P_SCALE] = 3;
     maku_block();
@@ -307,10 +303,10 @@ static int duck(void)
     maku.duck = 2300;
     bad += check("  the kick itself is never ducked", maku_gain(0) == 4096);
     maku.duck = 4096;
-    maku.brk = 1;                                           /* the BREAK: the kick out fast, the rest dives into the sends */
+    maku.brk = 1;                                           /* SINK: the kick out fast, the rest dives into the sends */
     for (b = 0; b < 200u; b++)
         maku_block();
-    bad += check("BREAK: PLAY held pulls the kick to 0 and dives the rest (not the kick) into reverb and reverse",
+    bad += check("SINK: FX held pulls the kick to 0 and dives the rest (not the kick) into reverb and reverse",
                  maku_gain(0) == 0 && maku_dive() > 500 && maku_gain(1) == 4096);
     for (b = 0; b < 2000u; b++)
         maku_block();
@@ -532,35 +528,48 @@ static int buttons(void)
     uint32_t i;
     start(0);
     ui.home = 1; ui.menu = 0; ui.confirm = 0;
-    down_for(B_FX, 3);
-    bad += check("BUTTONS: FX held: DRIFT, no layer opens", (maku.hv & VBIT(VB_DRIFT)) && maku.verb == VB_DRIFT && !ui.layer &&
-                 !(kb_mask & (1u << panel.btn[B_FX])));
+    down_for(B_PLAY, 3);
+    bad += check("BUTTONS: PLAY held: DRIFT's three parameters, the transport does not start, no layer", (maku.hv & VBIT(VB_DRIFT)) && maku.verb == VB_DRIFT &&
+                 !ui.layer && !transport_req && !maku.dr_tog);
     turn(EN_SELECT, 5);
     bad += check("  .. SELECT is its RATE (the macros stay)", maku.vp[VB_DRIFT][0] == 65 && maku.m[0][0] == 40u);
+    let_go(B_PLAY);
+    bad += check("  let go after a knob was turned: DRIFT stays off", !maku.hv && maku.verb == VB_NONE && !maku.dr_tog);
+    down_for(B_PLAY, 3);
+    let_go(B_PLAY);
+    bad += check("  PLAY tapped: DRIFT is on", maku.dr_tog && !maku.hv);
+    down_for(B_PLAY, 3);
+    let_go(B_PLAY);
+    bad += check("  .. tapped again: off", !maku.dr_tog);
+    down_for(B_FX, 3);
+    bad += check("  FX held: SINK, no layer opens", maku.brk && maku.verb == VB_SINK && !ui.layer && !(kb_mask & (1u << panel.btn[B_FX])) && !transport_req);
     let_go(B_FX);
-    bad += check("  let go: it is off", !maku.hv && maku.verb == VB_NONE && perf_k[0] == 0);
-    down_for(B_SAVE, 3);
-    down_for(B_ARP, 3);
-    bad += check("  SAVE: KEEP, ARP: CASCADE, together; the last pressed has the screen", (maku.hv & VBIT(VB_KEEP)) && (maku.hv & VBIT(VB_CASC)) && maku.verb == VB_CASC);
-    let_go(B_ARP);
-    bad += check("  .. one let go: the other has it", maku.verb == VB_KEEP);
-    let_go(B_SAVE);
-    down_for(B_SEQ, 3);
-    bad += check("  SEQ: SCRAMBLE (no riser any more)", maku.verb == VB_SCRAM && maku_eff() == maku.dens);
-    let_go(B_SEQ);
-    down_for(B_EDIT, 3);
-    bad += check("  EDIT: TWIST", maku.verb == VB_TWIST && !(perf_held & PF_BIT(PF_OUP)));
-    let_go(B_EDIT);
+    bad += check("  .. and back", !maku.brk && !maku.hv && perf_k[0] == 0);
+    down_for(B_SCL, 3);
     down_for(B_ENV, 3);
-    bad += check("  ENV: SWELL, no layer, no page, no old tape stop", maku.verb == VB_SWELL && !perf_held && !ui.layer && ui.home);
+    bad += check("  SCL: CASCADE, ENV: SWELL, together; the last pressed has the screen", (maku.hv & VBIT(VB_CASC)) && (maku.hv & VBIT(VB_SWELL)) && maku.verb == VB_SWELL && !ui.layer && ui.home);
     let_go(B_ENV);
+    bad += check("  .. one let go: the other has it", maku.verb == VB_CASC);
+    let_go(B_SCL);
+    down_for(B_GLO, 3);
+    bad += check("  GLO: SCRAMBLE", maku.verb == VB_SCRAM && maku_eff() == maku.dens && !ui.layer);
+    let_go(B_GLO);
+    down_for(B_EDIT, 3);
+    bad += check("  EDIT: LIFT", maku.verb == VB_LIFT && !(perf_held & PF_BIT(PF_OUP)));
+    maku.va[VB_LIFT] = 4096;
+    frame();
+    bad += check("  .. its THIN raises the master's high-pass (perf_k[0] > 0)", perf_k[0] > 0);
+    maku.drs = 127;
+    frame();
+    bad += check("  .. and the space DRIFT added darkens it from the other side (the sum)", perf_k[0] < 60 * 64 / 127 + 1 && perf_k[0] > -40);
+    maku.drs = 0;
+    let_go(B_EDIT);
     down_for(B_LFO, 3);
     bad += check("  LFO: WOBBLE, no old filter sweep", maku.verb == VB_WOB && !perf_held && !ui.layer && ui.home);
     let_go(B_LFO);
-    down_for(B_PLAY, 3);
-    bad += check("  PLAY held: the BREAK, and the transport does not start", maku.brk && maku.verb == VB_PLAY && !transport_req);
-    let_go(B_PLAY);
-    bad += check("  .. and back", !maku.brk && !maku.hv);
+    down_for(B_SAVE, 3);
+    bad += check("  SAVE does nothing (no verb, no undo, no page)", !maku.hv && ui.home && !ui.layer);
+    let_go(B_SAVE);
     down_for(B_REC, 3);
     let_go(B_REC);
     bad += check("  REC does nothing here (it arms no recording)", song.rec == 0u);
@@ -607,6 +616,22 @@ static int melt(void)
             hit_b++;
     }
     bad += check("  with REC never pressed the played note is heard in the phrase, then fades away for good", hit_a > 5u && hit_b == 0u);
+    {
+        uint32_t first = 0, t, k;                       /* a key just played: the first arp step that sounds is that note, for sure */
+        for (t = 0; t < 200u; t++) {
+            memset(maku.pk_w, 0, sizeof maku.pk_w);
+            maku.pk_new = 0;
+            maku_pick(110u);
+            for (k = 0; k < 64u; k++) {
+                maku.run_left = 3;
+                if (maku_step(MAKU_ARP, k % 20u, &st) && st.n) {
+                    first += st.note[0] == 110u;
+                    break;
+                }
+            }
+        }
+        bad += check("  a key just played is the next note the arp sounds (not left to chance), once", first == 200u);
+    }
     return bad;
 }
 
@@ -622,8 +647,8 @@ static int fifths(void)
     maku_block();
     down_for(B_OCTUP, 3);
     let_go(B_OCTUP);
-    bad += check("FIFTHS: C major, OCT+: G major on all four tracks, the kick follows, the keys' octave untouched",
-                 trk[1].p[P_ROOT] == 7 && trk[0].p[P_ROOT] == 7 && trk[3].p[P_ROOT] == 7 && song.octave == 0 && trk[0].p[P_E1] < 53);
+    bad += check("FIFTHS: C major, OCT+: G major on all four tracks, the keys' octave untouched",
+                 trk[1].p[P_ROOT] == 7 && trk[0].p[P_ROOT] == 7 && trk[3].p[P_ROOT] == 7 && song.octave == 0 && trk[0].p[P_E1] == 53);
     down_for(B_OCTDN, 3);
     let_go(B_OCTDN);
     down_for(B_OCTDN, 3);
@@ -679,7 +704,7 @@ static int fifths(void)
     return bad;
 }
 
-/* the verbs that hold three parameters: PLAY (SINK WASH HUSH), GLO (BPM SWING DUCK), SCL (ROOT SCALE REG); SCL tapped goes on through the scales */
+/* the verbs that hold three parameters: FX (SINK WASH HUSH), SEQ (BPM SWING DUCK), ARP (ROOT SCALE REG); ARP tapped goes on through the scales */
 static int verbs(void)
 {
     int bad = 0;
@@ -692,62 +717,62 @@ static int verbs(void)
     maku_block();
     for (n = 0; n < 8u; n++) {                          /* eight taps: MAJ MIN LYD DOR MIX PHRY PEN MPEN, then MAJ again */
         static const uint8_t WANT[8] = {2, 9, 3, 4, 8, 5, 6, 1};
-        down_for(B_SCL, 3);
-        let_go(B_SCL);
+        down_for(B_ARP, 3);
+        let_go(B_ARP);
         ok &= trk[1].p[P_SCALE] == WANT[n] && trk[0].p[P_SCALE] == WANT[n] && trk[3].p[P_SCALE] == WANT[n];
     }
-    bad += check("VERBS: SCL tapped: the scale goes on, major and minor in turn, on all four tracks; eight taps come home", ok);
+    bad += check("VERBS: ARP tapped: the scale goes on, major and minor in turn, on all four tracks; eight taps come home", ok);
     for (i = 0; i < NTRK; i++)
         trk[i].p[P_SCALE] = 7;                          /* HARM: not on the list */
     maku_block();
-    down_for(B_SCL, 3);
-    let_go(B_SCL);
+    down_for(B_ARP, 3);
+    let_go(B_ARP);
     bad += check("  a scale off the list starts it over at MAJ", trk[1].p[P_SCALE] == 1 && !ui.layer);
-    down_for(B_SCL, 3);
-    turn(EN_SELECT, 2);                                 /* SCL held, a knob turned: the layer opens, ROOT moves */
-    bad += check("  SCL held: SELECT moves the ROOT, and the key reaches all four tracks", trk[1].p[P_ROOT] == 2 && ui.layer == LAYER_SCL && maku_verb_now() == VB_ROOT);
+    down_for(B_ARP, 3);
+    turn(EN_SELECT, 2);                                 /* ARP held, a knob turned: the layer opens, ROOT moves */
+    bad += check("  ARP held: SELECT moves the ROOT, and the key reaches all four tracks", trk[1].p[P_ROOT] == 2 && ui.layer == LAYER_SCL && maku_verb_now() == VB_ROOT);
     turn(EN_PRESET, 1);
     bad += check("  .. PRESETS the scale along the list (MAJ -> MIN)", trk[1].p[P_SCALE] == 2 && trk[2].p[P_SCALE] == 2);
     turn(EN_ALGO, -1);
     bad += check("  .. ALGORITHM the drones' register (MID -> LOW): the drone chord is an octave lower", maku.vp[VB_ROOT][2] == 0 && maku_low(36u) == 24u);
     turn(EN_K2, 5);
     bad += check("  .. KNOB 1..4 do nothing in it", trk[1].p[P_LEVEL] == (int16_t)90);
-    let_go(B_SCL);
+    let_go(B_ARP);
     maku.vp[VB_ROOT][2] = 1;
 
     bpm = song.g[G_BPM];
     i = (uint32_t)trk[2].p[P_LEVEL];
-    down_for(B_GLO, 3);
+    down_for(B_SEQ, 3);
     turn(EN_SELECT, 3);
-    bad += check("  GLO held: SELECT is the tempo, as before", song.g[G_BPM] == bpm + 3 && maku_verb_now() == VB_GLO);
+    bad += check("  SEQ held: SELECT is the tempo, as before", song.g[G_BPM] == bpm + 3 && maku_verb_now() == VB_GLO);
     turn(EN_PRESET, 10);
     turn(EN_ALGO, -4);
     bad += check("  .. PRESETS the arp's SWING, ALGORITHM the DUCK depth (64 = as designed)", maku.vp[VB_GLO][1] == 10 && maku.vp[VB_GLO][2] == 60 &&
                  trk[MAKU_ARP].p[P_SSWING] == 10 * 40 / 127);
     turn(EN_K3, 7);
     bad += check("  .. and the knobs give no gain: the volumes stay where they were", (uint32_t)trk[2].p[P_LEVEL] == i);
-    let_go(B_GLO);
-    bad += check("  GLO has no solo: the keys solo nothing", perf_solo == 0u);
+    let_go(B_SEQ);
+    bad += check("  SEQ has no solo: the keys solo nothing", perf_solo == 0u);
 
     start(0);
     ui.home = 1; ui.menu = 0; ui.confirm = 0;
-    down_for(B_PLAY, 3);
+    down_for(B_FX, 3);
     turn(EN_SELECT, -20);
     turn(EN_PRESET, -27);
     turn(EN_ALGO, -63);
-    bad += check("  PLAY held: SELECT the SINK, PRESETS the WASH, ALGORITHM the HUSH; the macros stay",
-                 maku.vp[VB_PLAY][0] == 80 && maku.vp[VB_PLAY][1] == 100 && maku.vp[VB_PLAY][2] == 64 && maku.m[0][1] == 40u);
+    bad += check("  FX held: SELECT the SINK, PRESETS the WASH, ALGORITHM the HUSH; the macros stay",
+                 maku.vp[VB_SINK][0] == 80 && maku.vp[VB_SINK][1] == 100 && maku.vp[VB_SINK][2] == 64 && maku.m[0][1] == 40u);
     for (n = 0; n < 3000u; n++)
         maku_block();
     bad += check("  held: the dive reaches WASH's share, the reverb's pull SINK's, and the kick stops at HUSH's half",
                  maku_dive() == 4096 * 100 / 127 && maku_sink() == 4096 * 80 / 127 && maku_gain(0) > 2000 && maku_gain(0) < 2100);
-    let_go(B_PLAY);
+    let_go(B_FX);
     start(0);
     maku.brk = 1;
     for (n = 0; n < 3000u; n++)
         maku_block();
     maku.brk = 0;
-    bad += check("  at the defaults PLAY is the BREAK as it was, and SINK is on top of it", maku_dive() == 4096 && maku_gain(0) == 0 && maku_sink() == 4096 * 100 / 127);
+    bad += check("  at the defaults SINK is the old BREAK as it was, and SINK is on top of it", maku_dive() == 4096 && maku_gain(0) == 0 && maku_sink() == 4096 * 100 / 127);
     for (n = 0; n < 5000u; n++)
         maku_block();
     bad += check("  let go: the pull on the reverb lifts too", maku_sink() == 0);
@@ -771,60 +796,32 @@ static int verbs(void)
             }
             tail[pass] = (int32_t)(e >> 8);
         }
-        bad += check("  SINK: the room's tail is longer (over twice) while PLAY is held", tail[1] > 2 * tail[0]);
+        bad += check("  SINK: the room's tail is longer (over twice) while FX is held", tail[1] > 2 * tail[0]);
     }
     return bad;
 }
 
-/* the five verbs that change the music while held (docs/AMBIENT.md): KEEP, SCRAMBLE, CASCADE, DRIFT, TWIST */
+/* the verbs that change the music (docs/VERBS_PLAN.md): SWELL's STAY, SCRAMBLE, CASCADE, DRIFT, LIFT, WOBBLE */
 static int verbs2(void)
 {
     int bad = 0;
     uint32_t i, ok, a0, a1, d0;
     int32_t c, d, r, l0;
     uint8_t m0;
-    /* KEEP: the arp loops its last LEN steps, the drones keep their chord */
-    start(100);
-    sim(16 * 8);
-    maku.hv = VBIT(VB_KEEP);
-    maku.vp[VB_KEEP][0] = 0;                            /* LEN 2 */
-    memset(nhits, 0, sizeof nhits);
-    sim(16 * 8);
+    /* SWELL's STAY: the drones' chord stays while it is held (a held part rings on: its next chord is not struck; a struck one repeats) */
     {
-        uint8_t seen[8];
-        uint32_t ns = 0, j;
-        for (i = 0; i < nhits[3]; i++) {
-            for (j = 0; j < ns && seen[j] != hits[3][i].note; j++)
-                ;
-            if (j == ns && ns < 8u)
-                seen[ns++] = hits[3][i].note;
-        }
-        bad += check("KEEP held: the arp plays at most the two notes of its loop", nhits[3] > 4u && ns <= 2u);
-    }
-    maku.hv = 0;
-    memset(nhits, 0, sizeof nhits);
-    sim(16 * 8);
-    {
-        uint8_t seen[64];
-        uint32_t ns = 0, j;
-        for (i = 0; i < nhits[3]; i++) {
-            for (j = 0; j < ns && seen[j] != hits[3][i].note; j++)
-                ;
-            if (j == ns && ns < 64u)
-                seen[ns++] = hits[3][i].note;
-        }
-        bad += check("  let go: it runs on through the table again (more than two notes)", ns > 2u);
-    }
-    {   /* the drone's chords as it plays them: the notes of each step, summed to one signature */
-        uint32_t sig[24], ns, j, k;
+        uint32_t sig[24], ns, j, k, tie = 0;
         for (k = 0; k < 2u; k++) {
             start(60);
-            maku.hv = k ? VBIT(VB_KEEP) : 0u;
+            maku.hv = k ? VBIT(VB_SWELL) : 0u;
+            maku.vp[VB_SWELL][2] = 127;
             for (i = 0, ns = 0; i < 24u; i++) {
                 step_t st;
                 uint32_t sg = 0;
                 memset(&st, 0, sizeof st);
                 maku_step(MAKU_DRA, (i % 3u) * 19u, &st);
+                if (st.time == ST_TIE)
+                    tie++;
                 for (j = 0; j < st.n; j++)
                     sg = sg * 131u + st.note[j];
                 if (i >= 3u)
@@ -832,7 +829,8 @@ static int verbs2(void)
             }
             for (j = 1, ok = 0; j < ns; j++)
                 ok |= sig[j] != sig[0];
-            bad += check(k ? "  the drone's chord stays while it is held (HOLD 127)" : "  and without it the chords move on", k ? !ok : ok);
+            bad += check(k ? "SWELL held: STAY 127: the drone's chord stays (a held floor ties it on, a struck one repeats)" : "  and without it the chords move on",
+                         k ? (!ok || tie > 0u) : ok);
         }
         maku.hv = 0;
     }
@@ -876,6 +874,33 @@ static int verbs2(void)
         }
     }
     bad += check("CASCADE held: the arp plays much more, in its breath too, and stacks octaves (SPAN)", nhits[3] > a0 * 3u / 2u && ok && a1 == 3u);
+    maku.vp[VB_CASC][1] = 0;                            /* no octaves: only HARM's third is stacked */
+    maku.vp[VB_CASC][2] = 127;
+    {
+        uint32_t tries, in_key = 1, found = 0;
+        for (tries = 0; tries < 200u; tries++) {
+            step_t st;
+            memset(&st, 0, sizeof st);
+            if (maku_step(MAKU_ARP, 3, &st) && st.n == 2u) {
+                uint32_t mask = scale_mask(&trk[MAKU_ARP]), root = (uint32_t)trk[MAKU_ARP].p[P_ROOT] % 12u, d = st.note[1] - st.note[0];
+                found++;
+                in_key &= (d == 3u || d == 4u) && ((mask >> ((st.note[1] + 120u - root) % 12u)) & 1u);
+            }
+        }
+        bad += check("  HARM 127: a third above the note, in the scale", found > 20u && in_key);
+    }
+    maku.vp[VB_CASC][1] = 127;
+    maku.vp[VB_CASC][2] = 0;
+    {
+        uint32_t tries, two = 0;
+        for (tries = 0; tries < 100u; tries++) {
+            step_t st;
+            memset(&st, 0, sizeof st);
+            if (maku_step(MAKU_ARP, 3, &st) && st.n == 3u)
+                two++;
+        }
+        bad += check("  HARM 0: only the octaves of SPAN (3 notes), no third", two > 20u);
+    }
     maku.hv = 0;
 
     /* DRIFT: the space it has added raises the sends of everything but the kick */
@@ -898,7 +923,7 @@ static int verbs2(void)
         for (k = 0; k < 12u; k++)
             held_m[k] = maku.m[k / 3u][k % 3u];
         song.g[G_CLOCK] = 0;
-        maku.hv = VBIT(VB_DRIFT);
+        maku.dr_tog = 1;
         for (k = 0; k < 20000u; k++)
             maku_drift();
         for (k = 0; k < 12u; k++) {
@@ -906,39 +931,49 @@ static int verbs2(void)
             moved += dm != 0;
             far += dm > 20 || dm < -20;
         }
-        bad += check("DRIFT held: the macros wander, never further than RANGE / 2 from the press", moved > 6u && !far);
+        bad += check("DRIFT held: the macros wander, never further than RANGE / 2 from the press", moved > 5u && !far);
+        bad += check("  the kick's DENSITY macro is never touched", maku.m[0][0] == held_m[0]);
         bad += check("  REACH 127: the space and the tempo wander too", maku.drs <= 20 && song.g[G_BPM] >= 40);
-        maku.hv = 0;
+        maku.dr_tog = 0;
         maku_drift();
         k = maku.m[1][1];
         for (moved = 0; moved < 5000u; moved++)
             maku_drift();
-        bad += check("  let go: it stops where it is", !maku.dr_on && maku.m[1][1] == k);
+        bad += check("  switched off: it stops where it is", !maku.dr_on && maku.m[1][1] == k);
         maku.vp[VB_DRIFT][2] = 0;
         maku.drs = 0;
     }
-    maku.va[VB_KEEP] = 4096;
-    d = 0; c = r = 0;
-    maku_boost(MAKU_ARP, &c, &d, &r);
-    bad += check("  KEEP's ECHO sends only the arp into the delay", d > 10000);
-    d = 0;
-    maku_boost(MAKU_DRA, &c, &d, &r);
-    maku.va[VB_KEEP] = 0;
-    bad += check("  .. not the drone", d == 0);
+    {                                                   /* a macro turned by hand while it is on is the new place to stay near */
+        uint32_t k, far = 0;
+        start(0);
+        maku.vp[VB_DRIFT][0] = 127; maku.vp[VB_DRIFT][1] = 20; maku.vp[VB_DRIFT][2] = 0;
+        maku.dr_tog = 1;
+        for (k = 0; k < 3000u; k++)
+            maku_drift();
+        maku_macro_set(1, 1, 110);
+        for (k = 0; k < 20000u; k++) {
+            maku_drift();
+            far |= (uint32_t)((int32_t)maku.m[1][1] < 100 || (int32_t)maku.m[1][1] > 120);
+        }
+        bad += check("  a macro turned by hand meanwhile: it wanders near the new value, not back to the old", !far);
+        maku.dr_tog = 0;
+        maku_drift();
+    }
 
-    /* TWIST: every track's macros further on while held, back when let go; the knob values stay */
+    /* LIFT: every track's TONE further on while held, back when let go; the knob values stay. EDGE: more distortion, THIN: the high-pass */
     start(0);
     l0 = trk[2].p[P_E7];
     m0 = maku.m[2][1];
-    maku.hv = VBIT(VB_TWIST);
+    maku.hv = VBIT(VB_LIFT);
     for (i = 0; i < 400u; i++)
         maku_block();
     d0 = (uint32_t)trk[2].p[P_E7];
-    bad += check("TWIST held: TONE of every track moves up, the macro's own value stays", (int32_t)d0 > l0 && maku.m[2][1] == m0);
+    bad += check("LIFT held: TONE of every track moves up, the macro's own value stays", (int32_t)d0 > l0 && maku.m[2][1] == m0);
+    bad += check("  EDGE: the voices' distortion rises (not the kick's)", trk[1].p[P_DIST] > 0 && trk[3].p[P_DIST] > 0 && trk[0].p[P_DIST] == 0);
     maku.hv = 0;
     for (i = 0; i < 900u; i++)
         maku_block();
-    bad += check("  let go: all back", trk[2].p[P_E7] == l0 && !maku.tw_q);
+    bad += check("  let go: all back", trk[2].p[P_E7] == l0 && !maku.tw_q && trk[1].p[P_DIST] == 0);
     /* SWELL and WOBBLE: attack and release longer, the filter LFO faster and deeper, put back when let go; a macro written meanwhile is the new base */
     start(0);
     {
@@ -947,7 +982,7 @@ static int verbs2(void)
         for (i = 0; i < 400u; i++)
             maku_block();
         bad += check("SWELL held: the attack and release of the three voices are longer (not the kick's)", trk[2].p[P_ATK] > a0 && trk[2].p[P_REL] > r0 && trk[1].p[P_ATK] > 10 && trk[0].p[P_ATK] == k0);
-        bad += check("WOBBLE held: the drone's filter LFO faster and deeper", trk[1].p[P_LRATE] > lr && trk[1].p[P_LD_FLT] > ld);
+        bad += check("WOBBLE held: the drone's filter LFO faster and deeper, and a pitch wobble", trk[1].p[P_LRATE] > lr && trk[1].p[P_LD_FLT] > ld && trk[1].p[P_LD_PIT] > 0);
         maku_macro_set(2, 2, 100);                      /* AIR moves the shimmer's attack while SWELL is on */
         for (i = 0; i < 4u; i++)
             maku_block();
@@ -956,16 +991,14 @@ static int verbs2(void)
             maku_block();
         bad += check("  let go: all back where they were; AIR's new attack stays", trk[1].p[P_LRATE] == lr && trk[1].p[P_LD_FLT] == ld && trk[3].p[P_REL] > 0 &&
                      trk[2].p[P_ATK] != a0 && trk[2].p[P_ATK] == 60 + ((127 - 60) * 100 + 63) / 127 && !maku.ovlive);
+        bad += check("  .. and the pitch wobble is gone", trk[1].p[P_LD_PIT] == 0);
         (void)r0;
     }
-    maku.va[VB_SWELL] = 4096;
-    maku.vp[VB_SWELL][2] = 127;
-    bad += check("  REV: the reverse swell is full", maku_swell_rvs(0) == 100);
-    maku.va[VB_SWELL] = 0;
     maku.va[VB_WOB] = 4096;
+    maku.vp[VB_WOB][1] = 127;
     c = d = r = 0;
     maku_boost(MAKU_DRA, &c, &d, &r);
-    bad += check("WOBBLE: CHORUS sends the voices into the chorus, not the kick", c > 10000 && !d && !r);
+    bad += check("WOBBLE: DEPTH also sends the voices into the chorus, not the kick", c > 10000 && !d && !r);
     c = 0;
     maku_boost(MAKU_KICK, &c, &d, &r);
     bad += check("  the kick's chorus stays", c == 0);

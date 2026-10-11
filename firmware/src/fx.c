@@ -30,12 +30,10 @@ static uint8_t fx_rvs;           /* REVERSE: its level, 0 = off (the macro of a 
 static int32_t maku_dive(void);
 static int32_t maku_sink(void);
 static void maku_boost(uint32_t i, int32_t *c, int32_t *d, int32_t *r);
-static int32_t maku_swell_rvs(int32_t v);
-/* REVERSE as played: the level, deepened towards full by the BREAK's dive (0 with MAKU off: fx_rvs exactly) */
+/* REVERSE as played: the level, deepened towards full by SINK's dive (0 with MAKU off: fx_rvs exactly) */
 static uint32_t rvs_level(void)
 {
     int32_t v = (int32_t)fx_rvs, dv = maku_dive();
-    v = maku_swell_rvs(v);                              /* (SWELL's REV) */
     return (uint32_t)(dv ? v + (((100 - v) * dv) >> 12) : v);
 }
 static int32_t wet_r[CTL];       /* the wet return, right (fx_buses: the left is its `wet`) */
@@ -58,6 +56,7 @@ static struct {
     int32_t sp_lp, sp_hp, sp_he, sp_size;   /* .. its loop low-pass, low cut (and its remainder), the loop
                                              * length (Q8, glides) */
     uint32_t sp_ph;                      /* .. the output tap's wobble */
+    int32_t rv_fast, rv_slow, rv_g;      /* SINK's leveller on the reverb send: the quick and the long-term level of the block, the gain (Q12) */
 } fx;
 
 /* SPRING (G_RTYPE 1): one spring of a spring tank, mono like the other buses, in the ROOM's own buffers (no
@@ -236,7 +235,7 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
     int32_t m[4] = {0, 0, 0, 0}, mf[4] = {0, 0, 0, 0};
     int32_t *outr = rev_rp, sk = maku_sink();
     if (sk)                                             /* PLAY held (SINK): the combs feed back towards 0.99, the tail swallows */
-        size += ((32400 - size) * sk) >> 12;
+        size += ((32620 - size) * sk) >> 12;
     fx.rv_ph += 2u * LFO_INC[18];                       /* ~0.5 Hz, per block */
     m[1] = ((osc_sine(fx.rv_ph) + 32768) * 9) >> 8;     /* 0 .. 8 samples, Q8 */
     m[3] = ((osc_sine(fx.rv_ph * 3u / 4u + 0x40000000u) + 32768) * 9) >> 8;
@@ -290,7 +289,7 @@ static __attribute__((noinline)) void rev_spring(const int32_t *rev_in, int32_t 
     int32_t g = 19661 + (int32_t)s * 85;                /* the loop's gain: 0.6 .. 0.93 */
     int32_t sk = maku_sink();
     if (sk)                                             /* PLAY held (SINK): towards 0.985 */
-        g += ((32300 - g) * sk) >> 12;
+        g += ((32500 - g) * sk) >> 12;
     int32_t kl = 26000 - song.g[G_RDAMP] * 160;         /* its low-pass: ~9 kHz .. ~1.3 kHz */
     int32_t len = (int32_t)(1323u + ((s * 1323u) >> 7)) << 8, L, L2, L3, f, w;
     int16_t *ln = rev_comb;
@@ -706,6 +705,30 @@ static __attribute__((noinline)) void track_insert(track_t *t, int32_t *b, uint3
 static void events_block(uint32_t n);                    /* seq.c */
 static int32_t maku_gain(uint32_t i);                    /* maku.c: the kick's dip of a track's level, Q12 */
 static int32_t maku_dive(void);                          /* maku.c: how deep the BREAK has dived, Q12 (0 with MAKU off) */
+/* SINK's leveller: while it dives the reverb's input is pulled towards its own long-term level (quiet parts up, loud ones down,
+ * as far as the dive and SINK say), so the wash stays even whatever the notes do. Off (no dive) it does not touch the bus */
+static void rev_level(int32_t *x, uint32_t n)
+{
+    int32_t sk = maku_sink(), g0 = fx.rv_g ? fx.rv_g : 4096, g1 = 4096, m = 0, i;
+    if (!sk && g0 == 4096) {
+        fx.rv_fast = fx.rv_slow = 0;
+        return;
+    }
+    for (i = 0; i < (int32_t)n; i++)
+        m += x[i] < 0 ? -x[i] : x[i];
+    m /= (int32_t)n;
+    fx.rv_fast += (m - fx.rv_fast) >> 3;                /* ~10 ms */
+    fx.rv_slow += (m - fx.rv_slow) >> 9;                /* ~0.7 s */
+    if (sk && fx.rv_fast > 16) {
+        g1 = (int32_t)(((int64_t)fx.rv_slow << 12) / fx.rv_fast);
+        g1 = g1 < 1024 ? 1024 : g1 > 16384 ? 16384 : g1;   /* x0.25 .. x4 */
+        g1 = 4096 + (((g1 - 4096) * sk) >> 12);
+    }
+    for (i = 0; i < (int32_t)n; i++)                    /* (the gain glides over the block) */
+        x[i] = (int32_t)(((int64_t)x[i] * (g0 + (g1 - g0) * (i + 1) / (int32_t)n)) >> 12);
+    fx.rv_g = g1;
+}
+
 static int32_t send_c[CTL], send_d[CTL], send_r[CTL], wet[CTL], mix_l[CTL], mix_r[CTL];
 
 /* one synth part into the dry mix and the sends; a part with no voice sounding costs
@@ -730,13 +753,18 @@ static void mix_part(track_t *t, uint32_t n)
         int32_t lvl = LEVEL_Q12[t->p[P_LEVEL] & 127], pan = t->p[P_PAN];
         lvl = (lvl * maku_gain((uint32_t)(t - trk))) >> 12;   /* (LEVEL_Q12 * Q12 fits 32 bits; x1.0 exact) */
         int32_t gl = 4096 - (pan > 0 ? pan * 64 : 0), gr = 4096 + (pan < 0 ? pan * 64 : 0);
+        int32_t dg = 4096 - (maku_dive() * 2500 >> 12);   /* SINK: the dry voice steps back, the wash carries it (the kick keeps its own) */
         int32_t c = t->p[P_CHOR] * 258, d = t->p[P_DLY] * 258, r = t->p[P_REV] * 258, pk = t->peak;
-        int32_t dv = (uint32_t)(t - trk) == 0u ? 0 : maku_dive();   /* BREAK: everything but the kick sinks into the reverb and delay */
+        int32_t dv = (uint32_t)(t - trk) == 0u ? 0 : maku_dive();
+        if ((uint32_t)(t - trk) == 0u)
+            dg = 4096;
+        gl = gl * dg >> 12;
+        gr = gr * dg >> 12;   /* BREAK: everything but the kick sinks into the reverb and delay */
         if (dv) {
-            d += (((int32_t)(127 * 258 * 6 / 10) - (d < 127 * 258 * 6 / 10 ? d : 127 * 258 * 6 / 10)) * dv) >> 12;
-            r += (((int32_t)(127 * 258 * 9 / 10) - (r < 127 * 258 * 9 / 10 ? r : 127 * 258 * 9 / 10)) * dv) >> 12;
+            d += (((int32_t)(127 * 258 * 8 / 10) - (d < 127 * 258 * 8 / 10 ? d : 127 * 258 * 8 / 10)) * dv) >> 12;
+            r += (((int32_t)(127 * 258) - (r < 127 * 258 ? r : 127 * 258)) * dv) >> 12;
         }
-        maku_boost((uint32_t)(t - trk), &c, &d, &r);   /* the held verbs (FOG, KEEP, CASCADE): more into the buses */
+        maku_boost((uint32_t)(t - trk), &c, &d, &r);   /* the held verbs (WOBBLE) and DRIFT's space: more into the buses */
         int32_t xmax = c > d ? c : d;
         xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);   /* sends: loud chords at a high LEVEL */
         track_dist(t, b, n);
@@ -796,6 +824,7 @@ static void mix_block(int32_t *out, uint32_t n)
         mix_part(&trk[i], n);
     if (perf)
         perf_pre(mix_l, mix_r, send_d, send_r, n);
+    rev_level(send_r, n);
     fx_buses(send_c, send_d, send_r, wet, n);
     if (perf) {
         perf_master(out, n);

@@ -1149,11 +1149,11 @@ static void maku_sound(uint32_t i, uint32_t eng, uint32_t pre)
     t->p[P_IB] = TP[P_IB].def;
     t->p[P_IC] = TP[P_IC].def;
     t->p[P_IMIX] = TP[P_IMIX].def;
-    if (i == MAKU_KICK) {                     /* a round, low, long kick: KICK ROUND, TONE down (a shallow sweep), DECY up, SNAP down (little drive) */
+    if (i == MAKU_KICK) {                     /* a thick, low, long kick: KICK PULSE, TONE down (the kick; up to 110 it fades into an ECG's beeps), DECY up, SNAP down (little drive) */
         t->p[P_E2] = 24;
         t->p[P_E3] = 110;
         t->p[P_E4] = 8;
-        t->p[P_E6] = 1;
+        t->p[P_E6] = 2;
     }
     if (i == MAKU_DRB)                        /* the shimmer fades in */
         t->p[P_ATK] = 90;
@@ -1164,20 +1164,20 @@ static void maku_sound(uint32_t i, uint32_t eng, uint32_t pre)
 static void maku_setup(void)
 {
     uint32_t i, j;
-    maku.kfade = 4096;                                /* (the BREAK's fade-in: a new world starts with the kick full) */
+    maku.kfade = 4096;                                /* (SINK's fade-in: a new world starts with the kick full) */
     maku.dive = 0;
-    memset(maku.vp, 0, sizeof maku.vp);               /* the verbs' parameters (PLAY: SINK WASH HUSH; GLO: -, SWING, DUCK; ROOT: -, -, REG) */
-    maku.vp[VB_PLAY][0] = 100;
-    maku.vp[VB_PLAY][1] = maku.vp[VB_PLAY][2] = 127;
+    memset(maku.vp, 0, sizeof maku.vp);               /* the verbs' parameters (SINK: SINK WASH HUSH; GLO: -, SWING, DUCK; ROOT: -, -, REG) */
+    maku.vp[VB_SINK][0] = 100;
+    maku.vp[VB_SINK][1] = maku.vp[VB_SINK][2] = 127;
     maku.vp[VB_GLO][2] = 64;
     maku.vp[VB_ROOT][2] = 1;
-    {                                                  /* KEEP LEN HOLD ECHO; SCRAMBLE ARP KICK SWING; CASCADE DENSE SPAN ECHO; DRIFT RATE RANGE REACH; TWIST DENS TONE WASH; SWELL ATTACK RELEASE REV; WOBBLE RATE DEPTH CHORUS */
-        static const uint8_t D[7][3] = {{40, 127, 60}, {80, 60, 50}, {110, 60, 70}, {60, 70, 64}, {40, 60, 50}, {80, 90, 40}, {70, 80, 70}};
-        memcpy(&maku.vp[VB_KEEP][0], D, sizeof D);
+    {                                                  /* SCRAMBLE ARP KICK SWING; CASCADE DENSE SPAN HARM; DRIFT RATE RANGE REACH; LIFT TONE EDGE THIN; SWELL ATTACK RELEASE STAY; WOBBLE RATE DEPTH PITCH */
+        static const uint8_t D[6][3] = {{80, 60, 50}, {110, 60, 48}, {60, 70, 64}, {40, 48, 64}, {80, 90, 64}, {70, 80, 40}};
+        memcpy(&maku.vp[VB_SCRAM][0], D, sizeof D);
     }
     for (i = 0; i < NTRK; i++)
         maku_sound(i, MAKU_R[i].eng, MAKU_R[i].pre);
-    trk[MAKU_DRA].p[P_LRATE] = 36;                    /* SWAY's slow LFO on the drone's filter */
+    trk[MAKU_DRA].p[P_LRATE] = 14;                    /* SWAY's very slow LFO on the drone's filter (~0.1 Hz: a 10 s turn) */
     for (i = 0; i < 4u; i++)
         for (j = 0; j < 3u; j++)
             maku_macro_set(i, j, 40u);
@@ -1185,8 +1185,9 @@ static void maku_setup(void)
     maku_macro_set(MAKU_ARP, 0, 0);
     song.g[G_BPM] = 72;
     maku.on = 1;
-    maku.hv = maku.verb = maku.brk = 0;                /* (the verbs held, KEEP's loop and the drones it replays) */
+    maku.hv = maku.verb = maku.brk = 0;                /* (the verbs held, and the drones' last steps SWELL replays) */
     memset(maku.va, 0, sizeof maku.va);
+    maku.dr_tog = maku.dr_moved = 0;                   /* (DRIFT is off in a new world) */
     maku.dr_on = 0;
     maku.dr_t = 0;
     maku.drs = 0;
@@ -1194,10 +1195,10 @@ static void maku_setup(void)
     maku.tw_q = 0;
     memset(maku.ov, 0, sizeof maku.ov);
     maku.ovlive = 0;
-    maku.kw = maku.kcount = maku.kn = maku.kp = maku.kact = maku.dvalid = 0;
-    memset(maku.kr, 0, sizeof maku.kr);
+    maku.dvalid = 0;
     memset(maku.pk_w, 0, sizeof maku.pk_w);
     maku.pk_av = 0;
+    maku.pk_new = 0;
     maku.dens = 0;
     maku.stay_a = maku.stay_b = 0;
     maku.run_left = 0;
@@ -1230,7 +1231,7 @@ static void maku_world(uint32_t seed)
         maku_voice_apply(MAKU_DRA, a);
         maku_voice_apply(MAKU_DRB, b);
         maku_voice_apply(MAKU_ARP, c);
-        trk[MAKU_DRA].p[P_LRATE] = 36;
+        trk[MAKU_DRA].p[P_LRATE] = 14;                   /* ~0.1 Hz */
     }
     {   /* the INSERT: a slow sweep on the drone and, less often, the shimmer (or none: the macros' MIX then does nothing).
          * RATE 15..45 is 0.1 .. 0.5 Hz (LFO_INC's table); the TONE macros carry the MIX (MAKU_MAC) */

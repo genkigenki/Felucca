@@ -297,7 +297,7 @@ static void ui_leds(void)
         led_put(nl, panel.btn[FAM_BTN[fam]], 1);
     if ((k = arp_led()) != 2u && (!ui.layer || layer_btn() != B_ARP))
         led_put(nl, panel.btn[B_ARP], FAM_BTN[fam] == B_ARP ? !k : (int)k);   /* (on ARP's page: dark flashes) */
-    if (!ui.layer && (perf_latched || perf_k[0] || perf_k[1] || perf_k[2] || perf_k[3]))
+    if (!ui.layer && !maku.on && (perf_latched || perf_k[0] || perf_k[1] || perf_k[2] || perf_k[3]))
         led_put(nl, panel.btn[B_FX], 1);                /* FX LATCH: lit while an effect or a macro is on */
     if (ui.layer)                                       /* the layer's button breathes while its map is up */
         led_put(nb, panel.btn[layer_btn()], 1);
@@ -324,7 +324,7 @@ static void ui_leds(void)
     }
     for (k = 0; k < NB; k++)
         led_put(nd, panel.btn[k], 1);
-    if (song.playing || seq_counting())                 /* playing: PLAY's green, its own LED dark in every mode */
+    if (maku.on ? maku.dr_tog : (song.playing || seq_counting()))   /* playing (MAKU: DRIFT is on): PLAY's green, its own LED dark in every mode */
         led_clear(nd, panel.btn[B_PLAY]);
     for (c = 0; c < FM1_NCOL; c++) {
         if (mode == LEDS_INV)                           /* INV: the active ones dark, the rest lit */
@@ -339,7 +339,7 @@ static void ui_leds(void)
         nl[c] &= (uint8_t)~nb[c];                       /* breathing: neither lit (INV's idle) nor the glow */
         nd[c] &= (uint8_t)~nb[c];
     }
-    if (song.playing || (seq_counting() && cin_pos < click_beat_len() / 4u))   /* counting in: green on each beat */
+    if (maku.on ? maku.dr_tog : (song.playing || (seq_counting() && cin_pos < click_beat_len() / 4u)))   /* counting in: green on each beat */
         nl[LED_PLAY_GREEN >> 3] |= (uint8_t)(1u << (LED_PLAY_GREEN & 7u));
     fm1_led_dim_level(mode == LEDS_DIM_LO);
     for (c = 0; c < FM1_NCOL; c++) {
@@ -1087,6 +1087,8 @@ static void maku_verb_turn(uint32_t v, uint32_t j, int32_t s, uint32_t enc)
         maku.vp[v][j] = (uint8_t)clamp((int32_t)maku.vp[v][j] + accel(enc, s, 127), 0, 127);
         if (v == VB_GLO)
             maku_apply();
+        if (v == VB_DRIFT)
+            maku.dr_moved = 1;                          /* (PLAY held and turned: letting go does not switch DRIFT) */
     }
     ui.force = 1;
 }
@@ -1119,17 +1121,19 @@ static void maku_knobs(void)
     }
 }
 
-/* AMBIENT.md: the buttons are verbs, held ones: SAVE keeps (KEEP), SEQ scrambles (SCRAMBLE), ARP cascades (CASCADE), FX drifts (DRIFT),
- * EDIT twists (TWIST), ENV swells (SWELL), LFO wobbles (WOBBLE), PLAY sinks. Each has three parameters on the screen while it is held
- * (maku.vp). REC does nothing: the keys played melt into the arp phrase at all times. HOME held: a new world. GLO and SCL keep their
- * layers (tempo, root). Called once a pass */
+/* AMBIENT.md, docs/VERBS_PLAN.md: the upper row's buttons are verbs of change, held: FX sinks (SINK), SCL cascades (CASCADE), ENV swells
+ * (SWELL), LFO wobbles (WOBBLE), EDIT lifts (LIFT), GLO scrambles (SCRAMBLE). Each has three parameters on the screen while it is held
+ * (maku.vp). The lower row keeps: ARP is the key and SEQ the tempo (the layers GLO and SCL of ui_layer.c, moved to those buttons), PLAY
+ * is DRIFT's switch (a tap; held, DRIFT's three parameters), its LED shows it; SAVE and REC do nothing (the keys played melt into the arp
+ * phrase at all times). HOME held: a new world. Called once a pass */
 static void maku_world_new(void);
 static void maku_buttons(uint32_t pressed, uint32_t notes)
 {
     static const struct { uint8_t b, v; } V[] = {
-        {B_SAVE, VB_KEEP}, {B_SEQ, VB_SCRAM}, {B_ARP, VB_CASC}, {B_FX, VB_DRIFT}, {B_EDIT, VB_TWIST}, {B_ENV, VB_SWELL}, {B_LFO, VB_WOB}, {B_PLAY, VB_PLAY},
+        {B_FX, VB_SINK}, {B_SCL, VB_CASC}, {B_ENV, VB_SWELL}, {B_LFO, VB_WOB}, {B_EDIT, VB_LIFT}, {B_GLO, VB_SCRAM}, {B_PLAY, VB_DRIFT},
     };
-    uint32_t i, k, nh = 0, fresh;
+    uint32_t i, k, nh = 0, fresh, thin;
+    int32_t m;
     for (i = 0; i < NELEM(V); i++)
         if ((fm1_in.buttons >> panel.btn[V[i].b]) & 1u)
             nh |= VBIT(V[i].v);
@@ -1137,6 +1141,10 @@ static void maku_buttons(uint32_t pressed, uint32_t notes)
     for (i = 0; i < NELEM(V); i++)                      /* the screen and the knobs go to the verb pressed last */
         if ((fresh >> V[i].v) & 1u)
             maku.verb = V[i].v;
+    if (fresh & VBIT(VB_DRIFT))
+        maku.dr_moved = 0;
+    else if ((maku.hv & VBIT(VB_DRIFT)) && !(nh & VBIT(VB_DRIFT)) && !maku.dr_moved)   /* PLAY tapped: DRIFT on / off */
+        maku.dr_tog ^= 1u;
     maku.hv = (uint16_t)nh;
     if (!((nh >> maku.verb) & 1u)) {
         maku.verb = VB_NONE;
@@ -1144,8 +1152,10 @@ static void maku_buttons(uint32_t pressed, uint32_t notes)
             if ((nh >> V[i].v) & 1u)
                 maku.verb = V[i].v;
     }
-    maku.brk = (uint8_t)((nh >> VB_PLAY) & 1u);
-    perf_k[0] = (int8_t)(-((int32_t)maku.drs * 40 / 127));  /* the space DRIFT added darkens the master's low-pass */
+    maku.brk = (uint8_t)((nh >> VB_SINK) & 1u);
+    thin = ((uint32_t)maku.vp[VB_LIFT][2] * (uint32_t)maku.va[VB_LIFT]) >> 12;   /* LIFT's THIN: the master's high-pass up; the space DRIFT added darkens its low-pass */
+    m = (int32_t)(thin * 60u / 127u) - (int32_t)maku.drs * 40 / 127;
+    perf_k[0] = (int8_t)clamp(m, -100, 100);
     for (k = 0; k < 27u; k++)                             /* the keys always melt into the field (not the kick's grid: its keys are steps) */
         if (((notes >> k) & 1u) && !maku_kick_grid())
             maku_pick(kb_map(TSEL, k));
@@ -1361,7 +1371,7 @@ static void ui_input(void)
         if (!lay)
             maku_buttons(pressed, notes);
         else
-            maku.hv = maku.verb = maku.brk = 0;         /* (GLO or SCL is up: no verb is held) */
+            maku.hv = maku.verb = maku.brk = 0;         /* (the tempo or the key (SEQ, ARP) is up: no verb is held) */
         pressed &= (1u << panel.btn[B_OCTDN]) | (1u << panel.btn[B_OCTUP]);
         ui.pg_down = 0;
     }
