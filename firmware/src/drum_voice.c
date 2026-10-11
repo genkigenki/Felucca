@@ -19,7 +19,7 @@
  *           speaker (energy above 150 Hz >= -12 dB at the defaults) without touching the fundamental
  *   PULSE   the MAKU pulse's kick, crossfaded by TONE between two voices: a thick, heavy kick (a long round body, a
  *           shallow sweep, strong 2nd and 3rd harmonics, a soft-clip DRIVE, a soft click) below TONE 40, and an ECG
- *           monitor's beeps (pip, pip, piii: a ~600 Hz sine, 45 + 45 + 170 ms at 0, 130 and 260 ms, with TUNE) from
+ *           monitor's beep (a ~600 Hz sine, one a hit: 35 ms, to 225 ms with the accent, so the hits are the pip, pip, piii; TUNE moves it) from
  *           TONE 110 up; the kick's body shortens from TONE 8 (long) to 40 (a tight cut); in between, both at once, the kick down and the beeps up (the drive stays on the kick)
  *   SNARE   two sines (f, 1.6 f) with a small downward glide under a short shell envelope, plus noise
  *           through a band-pass (TONE: its centre) under a spike and a body envelope and a little
@@ -141,7 +141,6 @@ static const struct {
 #define DV_PL_LO 40
 #define DV_PL_HI 110
 #define DV_PL_TUNE 1222                                      /* the beeps' pitch (p16: 674 Hz at TUNE 0; 600 Hz at the MAKU kick's TUNE) */
-#define DV_PL_LEN 18963u                                     /* the beeps' pattern in samples: 430 ms */
 #define DV_SEED 0x5EED1234
 #define DV_P16(hz_p16) pitch_inc(clamp((hz_p16), 0, 2047))
 /* the metal source's ratios (Q12). Hats: the six-square cluster of the classic analog hats (205.3, 304.4,
@@ -359,7 +358,8 @@ static void dv_setup_own(dv_coef_t *c, const dv_param_t *p)
         int32_t m = 256 - (clamp((int32_t)tn, 8, DV_PL_LO) - 8) * 206 / (DV_PL_LO - 8);   /* the kick's body, x1 at TONE 8
                                                           * down to x0.2 at 40: a long thick kick below, a tight cut above */
         c->hp = ge;                                      /* the beeps' share (Q15); the kick's is 1 - it */
-        c->kb[1] = DV_P16(DV_PL_TUNE + p16 - DV_DEF[t].p16);   /* the beeps' increment (follows TUNE) */
+        c->kb[1] = DV_P16(DV_PL_TUNE + p16 - DV_DEF[t].p16);   /* the beep's increment (follows TUNE) */
+        c->metal = (int16_t)(1544 + acc * 66);           /* its length: 35 ms, to 225 ms at full accent */
         c->span[1] = DV_P16(p16 + 96) - c->inc[0];       /* the sweep: half an octave, slow (tau 45 ms) ... */
         c->k[1] = dv_k(45000);
         c->kb[0] = dv_kb(tau * (uint32_t)m >> 8);
@@ -698,12 +698,12 @@ static __attribute__((noinline)) void dv_kick_run(const dv_coef_t *c, dv_voice_t
     v->live = v->q[0] > DV_QUIET;
 }
 
-/* PULSE: the kick (dv_kick_run) at 1 - the share, and the beeps at the share (c->hp): pip, pip, piii, a sine at c->kb[1]
- * (v->s[1] its phase, v->s[0] the sample in the pattern), each with a 3 ms rise and a 5 ms fall */
+/* PULSE: the kick (dv_kick_run) at 1 - the share, and a beep at the share (c->hp): a sine at c->kb[1] of c->metal samples
+ * (v->s[1] its phase, v->s[0] the sample in it), with a 3 ms rise and a 5 ms fall. One beep a hit: the sequence of hits
+ * is the pip, pip, piii (a soft hit: a short pip, an accented one: a long beep) */
 static __attribute__((noinline)) void dv_pulse_run(const dv_coef_t *c, dv_voice_t *v, int32_t *y, uint32_t n)
 {
-    static const uint16_t PIP[3][2] = {{0, 1985}, {5733, 1985}, {11466, 7497}};
-    int32_t ge = c->hp, gk = 32768 - ge, t = v->s[0];
+    int32_t ge = c->hp, gk = 32768 - ge, t = v->s[0], len = c->metal;
     uint32_t i, ph = (uint32_t)v->s[1];
     if (gk > 0) {
         dv_kick_run(c, v, y, n);
@@ -714,22 +714,18 @@ static __attribute__((noinline)) void dv_pulse_run(const dv_coef_t *c, dv_voice_
             y[i] = 0;
         v->live = 0;
     }
-    if (ge > 0 && (uint32_t)t < DV_PL_LEN + n) {
+    if (ge > 0 && t < len + (int32_t)n) {
         for (i = 0; i < n; i++, t++) {
-            uint32_t k;
-            int32_t e = 0;
-            for (k = 0; k < 3u; k++) {
-                int32_t l = t - PIP[k][0], up = l * 248, dn = (PIP[k][1] - l) * 149;
-                if (l >= 0 && l < PIP[k][1]) {
-                    e = up < dn ? up : dn;
-                    e = e > 32767 ? 32767 : e;
-                }
+            int32_t e = 0, up = t * 248, dn = (len - t) * 149;
+            if (t < len) {
+                e = up < dn ? up : dn;
+                e = e > 32767 ? 32767 : e;
             }
             ph += c->kb[1];
             e = (sine_i(ph) * e) >> 15;
             y[i] += (((e * 18000) >> 15) * ge) >> 15;
         }
-        v->live |= (uint32_t)t < DV_PL_LEN;
+        v->live |= t < len;
     }
     v->s[0] = t, v->s[1] = (int32_t)ph;
 }
