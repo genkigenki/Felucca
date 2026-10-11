@@ -1269,6 +1269,7 @@ static void gb_scene_load(uint32_t s)
         set_engine_of(t, p[0]);
         apply_preset_to(t, p[1]);             /* with its sends */
         t->engine = t->eng_req;
+        eng_mem_claim(t);                     /* (Felucca 1.5's engine memory; zeros already: no note can come before) */
         track_defaults_steps(t);              /* (a sound load never touches them) */
         if (p[2])
             load_pat16(t, PATTERNS[p[2] - 1u].note, PATTERNS[p[2] - 1u].flags);

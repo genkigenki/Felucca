@@ -289,6 +289,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "GURDY (GHOULBOX): the drone on DRN, the trompette's strokes, one wheel, corners, cost" "$OUT/gurdy_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
     run "regression: golden renders, health, voices, CPU budget" "$OUT/regress" tests/golden.txt tests/cpu_baseline.txt
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/union_test" tests/union_test.c -lm
+    run "engine memory (Felucca 1.5's, GHOULBOX): every switch between the engines with per-part state sounds as before (918 sequences)" \
+        "$OUT/union_test" tests/union_golden.txt
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/descdump" tests/descdump.c -lm
     echo "== parameter and engine tables as JSON (for the editor mock test)"
     "$OUT/descdump" > "$OUT/desc.json" || fail=1

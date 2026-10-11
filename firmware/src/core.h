@@ -222,6 +222,10 @@ typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c 
      * done() says so (once per control tick, before the render), not at the end of the ADSR's release */
     uint8_t ownenv;
     int (*done)(struct track *t, voice_t *v);
+    /* bytes of the part's engine memory (engines.c eng_mem, at most ENG_MEM_PART) the engine keeps its state
+     * in, 0 = none: a part plays one engine at a time, so they share one region; on a switch to the engine
+     * (after the old one's fade) the region is zeroed when another engine had it (eng_mem_claim; Felucca 1.5) */
+    uint16_t mem;
 } engine_t;
 
 /* ------------------------------------------------- tracks, the song --- */

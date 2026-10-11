@@ -9254,7 +9254,7 @@ static uint64_t qa_beat(uint32_t lanes, double *low)
     double lp = 0;
     for (p = 0; p < NPART; p++)
         memset(trk[p].v, 0, sizeof trk[p].v);
-    memset(drum_kit, 0, sizeof drum_kit);
+    memset(eng_mem, 0, sizeof eng_mem);
     *low = 0;
     for (s = 0; s < 16u; s++) {
         uint32_t hit = (s % 4u == 0u ? 1u : 0u) | (s % 8u == 4u ? 2u : 0u) | (s == 14u ? 4u : 0u) |
@@ -9440,7 +9440,7 @@ static int test_edit_quick_actions(void)
             uint64_t h = 1469598103934665603ull;
             for (k = 0; k < NPART; k++)
                 memset(trk[k].v, 0, sizeof trk[k].v);
-            memset(drum_kit, 0, sizeof drum_kit);
+            memset(eng_mem, 0, sizeof eng_mem);
             for (j = 0; j < 2u; j++)
                 trk_note_on(&trk[3], NOTE2[j], 100);
             for (j = 0; j < 64u; j++) {

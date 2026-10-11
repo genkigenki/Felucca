@@ -869,8 +869,8 @@ int main(int argc, char **argv)
               smp_set_at(SMP_USR_V0) == SMP_NONE && smp_usr_at(SMP_USR_V0) == 0u, "peak %u%s", u.peak, u.sine ? ", sine" : "");
         g = sine_run(8u, 8, 62);
         check("1.1: GRAIN SRC 8 plays PSALTERY's grains (its 3 zones, not the sine), as SAMPLE SET 8 does", !g.sine &&
-              g.peak > 2000u && gr_p[0].nz == 3u && str_eq(SMP_SETS[smp_set_at(8)].name, "PSALTERY") && !p.sine &&
-              p.peak > 2000u, "GRAIN peak %u%s, %u zones, SAMPLE peak %u", g.peak, g.sine ? " sine" : "", gr_p[0].nz, p.peak);
+              g.peak > 2000u && gr_of(&trk[0])->nz == 3u && str_eq(SMP_SETS[smp_set_at(8)].name, "PSALTERY") && !p.sine &&
+              p.peak > 2000u, "GRAIN peak %u%s, %u zones, SAMPLE peak %u", g.peak, g.sine ? " sine" : "", gr_of(&trk[0])->nz, p.peak);
     }
     printf("slice: %s\n", fails ? "FAILED" : "all checks ok");
     return fails != 0;

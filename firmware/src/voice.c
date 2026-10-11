@@ -481,6 +481,7 @@ static void engine_block(track_t *t)
             v->env = v->env_out = 0;
         }
         t->engine = eng_idx(t->eng_req);
+        eng_mem_claim(t);                               /* its state region, before the waiting notes */
         t->xf_on = 0;
         t->nmono = 0;
         t->mono_note = 0;
@@ -491,6 +492,7 @@ static void engine_block(track_t *t)
                 trk_note_on(t, t->xp_note[i], t->xp_vel[i]);
         }
     }
+    eng_mem_claim(t);                                   /* (an engine set directly: power-on, a test) */
     for (i = 0; i < 8u; i++)                            /* the engine's own values, for a later fade */
         t->pe_old[i] = t->p[P_E0 + i];
 }
