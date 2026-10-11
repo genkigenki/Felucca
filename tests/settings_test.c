@@ -13,6 +13,8 @@ static uint8_t fx_lowcut;
 static void fm1_led_key(unsigned k, int on) { (void)k; (void)on; }
 static int fm1_enc_take(unsigned k) { (void)k; return 0; }
 static void lcd_sync(void) {}
+static void lcd_power(uint32_t s) { (void)s; }   /* (MENU > SCREEN OFF: lcd.c) */
+static void lcd_wake_now(void) {}
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *p)
 { (void)x; (void)y; (void)w; (void)h; (void)p; }
 #include "../firmware/src/gfx.c"
@@ -38,11 +40,25 @@ int main(void)
         q = original; q.favorites.factory[15][30] = 0; q.favorites.factory[15][28] = GB_MIG_SERIAL;   /* chose ON since */
         assert(settings_import(&q, sizeof q) == 1 && !(favorites.factory[15][30] & GB_SERIAL_OFF));
         q = original; q.favorites.factory[15][30] = GB_SERIAL_OFF | 16u; q.favorites.factory[15][28] = 0;   /* OFF, BPM LOCK */
-        assert(settings_import(&q, sizeof q) == 1 && favorites.factory[15][30] == (GB_SERIAL_OFF | 16u));
+        assert(settings_import(&q, sizeof q) == 1 &&
+               (favorites.factory[15][30] & ~GB_RESTORE_OFF) == (GB_SERIAL_OFF | 16u));   /* (RESTORE: below) */
         memset(&favorites, 0, sizeof favorites);
         settings_fresh();                                                               /* a device never saved */
         assert((favorites.factory[15][30] & GB_SERIAL_OFF) && (favorites.factory[15][28] & GB_MIG_SERIAL));
         puts("settings: GHOULBOX USB SERIAL off once (unmarked ON -> OFF; marked ON kept; OFF kept; fresh OFF)");
+    }
+    {   /* GHOULBOX 1.5: RESTORE LAST off once (the SCENE plays at power-on), favorites.factory[15][28] bit 1 marks it */
+        persist_t q = original;
+        q.favorites.factory[15][30] = 0;  q.favorites.factory[15][28] = GB_MIG_SERIAL;   /* GHOULBOX 1.4: ON, unmarked */
+        assert(settings_import(&q, sizeof q) == 1 && (favorites.factory[15][30] & GB_RESTORE_OFF) &&
+               (favorites.factory[15][28] & GB_MIG_RESTORE) && (favorites.factory[15][28] & GB_MIG_SERIAL));
+        q = original; q.favorites.factory[15][30] = GB_SERIAL_OFF;                      /* chose ON since: kept */
+        q.favorites.factory[15][28] = GB_MIG_SERIAL | GB_MIG_RESTORE;
+        assert(settings_import(&q, sizeof q) == 1 && favorites.factory[15][30] == GB_SERIAL_OFF);
+        memset(&favorites, 0, sizeof favorites);
+        settings_fresh();                                                               /* a device never saved */
+        assert((favorites.factory[15][30] & GB_RESTORE_OFF) && (favorites.factory[15][28] & GB_MIG_RESTORE));
+        puts("settings: GHOULBOX RESTORE LAST off once (unmarked -> OFF; marked ON kept; fresh OFF)");
     }
     p = original;
     assert(settings_import(&p, sizeof p) == 1); settings_init();
@@ -154,7 +170,56 @@ int main(void)
         settings_leds = LEDS_INV;
         assert(settings_import(&p, 8 + sizeof(panel_t)) == 2 && settings_leds == LEDS_DIM);
     }
+#ifdef FELUCCA_FAVORITES
+    {   /* 1.1 CLICK / CLICK LEVEL / COUNT-IN (ui.c ui_rec_prefs, favorites.factory[15][12]: GHOULBOX's
+         * byte for them, Felucca's [15][28] holds GHOULBOX's marks): 0 in every older record
+         * (the defaults: OFF / MID / OFF); each field 0..2 kept, 3 (no value) back to 0, bits 6-7 kept; twice the same */
+        persist_t q;
+        uint32_t b;
+        p = original; p.magic = 0x50455233u;            /* PER3 (no favorites): 0 */
+        assert(settings_import(&p, sizeof p - sizeof p.favorites) == 2 && favorites.factory[15][12] == 0u);
+        for (b = 0; b < 256u; b++) {
+            uint32_t f, want = b;
+            for (f = 0; f < 3u; f++)
+                if (((b >> (2u * f)) & 3u) == 3u) want &= ~(3u << (2u * f));
+            p = original; p.favorites.factory[15][12] = (uint8_t)b;
+            assert(settings_import(&p, sizeof p) == 1 && favorites.factory[15][12] == want && p.favorites.factory[15][12] == want);
+            q = p; assert(settings_import(&q, sizeof q) == 1 && !memcmp(&q, &p, sizeof q));
+            settings_export(&q); assert(q.favorites.factory[15][12] == want);
+        }
+        p = original; assert(settings_import(&p, sizeof p) == 1);
+    }
+    {   /* 1.2 RESTORE LAST (ui.c PREF_RESTORE_OFF, bit 7 of MENU's flags, favorites.factory[15][30]): GHOULBOX: an
+         * older record (no GB_MIG_RESTORE mark) gets OFF once (Felucca: clear = ON); set = OFF, kept as saved with the
+         * other flags */
+        persist_t q;
+        p = original; p.magic = 0x50455233u;
+        assert(settings_import(&p, sizeof p - sizeof p.favorites) == 2 && (favorites.factory[15][30] & 128u));
+        p = original; p.favorites.factory[15][30] = 128u | 64u | 1u;
+        assert(settings_import(&p, sizeof p) == 1 && favorites.factory[15][30] == (128u | 64u | 1u));
+        q = p; settings_export(&q); assert(q.favorites.factory[15][30] == (128u | 64u | 1u));
+        p = original; assert(settings_import(&p, sizeof p) == 1);
+    }
+    {   /* 1.2 the FX layer's key map (ui_layer.c fx_keys, favorites.factory[15][14..23], 16 x 5 bits, 0 = the key's
+         * default): 0 in every older record; any bytes kept as saved (codes of a later firmware too), the bytes around
+         * them untouched; twice the same */
+        persist_t q;
+        uint32_t i;
+        p = original; p.magic = 0x50455233u;
+        assert(settings_import(&p, sizeof p - sizeof p.favorites) == 2);
+        for (i = 14; i < 24u; i++) assert(favorites.factory[15][i] == 0u);
+        p = original;
+        for (i = 14; i < 24u; i++) p.favorites.factory[15][i] = (uint8_t)(i * 37u + 5u);
+        assert(settings_import(&p, sizeof p) == 1);
+        for (i = 14; i < 24u; i++) assert(favorites.factory[15][i] == (uint8_t)(i * 37u + 5u));
+        assert(favorites.factory[15][13] == original.favorites.factory[15][13] && favorites.factory[15][24] == original.favorites.factory[15][24]);
+        memset(&q, 0, sizeof q); settings_export(&q); assert(!memcmp(&q.favorites, &p.favorites, sizeof q.favorites));
+        assert(settings_import(&q, sizeof q) == 1);
+        for (i = 14; i < 24u; i++) assert(favorites.factory[15][i] == (uint8_t)(i * 37u + 5u));
+        p = original; assert(settings_import(&p, sizeof p) == 1);
+    }
+#endif
     assert(settings_import(&p, 3) == 0 && settings_import(&p, -1) == 0);
     assert(settings_import(&p, sizeof p - 1) == 0);
-    puts("Settings: PER1/PER2/PER3 migration, palette ids, calibration, HOLD, LEDS and independent feature preservation passed.");
+    puts("Settings: PER1/PER2/PER3 migration, palette ids, calibration, HOLD, LEDS, CLICK / COUNT-IN, the FX key map and independent feature preservation passed.");
 }

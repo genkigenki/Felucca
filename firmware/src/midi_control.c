@@ -184,7 +184,8 @@ static void midi_silence_track(uint32_t track)
     track_t *t = &trk[track];
     uint32_t i;
     trk_all_off(t);
-    t->nheld = t->arp_phys = t->arp_note = t->rh_n = 0;
+    t->nheld = t->arp_phys = t->rh_n = 0;
+    arp_forget(t);
     t->seq_n = t->seq_hold = t->slide_glide = 0;
     for (i = 0; i < NVOICE; i++)
         if (t->v[i].active)
@@ -207,13 +208,16 @@ static int midi_track_held(uint32_t track)
 /* GHOULBOX: CCs that set a sound's controls on the channel's track (MIDI_CC_MAP). Here, in the audio interrupt,
  * the value is only noted; ui_input.c midi_cc_apply sets it in the main loop, as the editor's SET does (range, alias,
  * automation capture). MC_T a track parameter, MC_K a HOME knob (the engine's own), MC_G a global, MC_F the FX
- * layer's filter (master: below 64 low-pass, above high-pass) */
-enum { MC_T, MC_K, MC_G, MC_F };
+ * layer's filter (master: below 64 low-pass, above high-pass), MC_R the engine's resonance (MIDI_CC_RES).
+ * 1.5 (Felucca 1.1.5's map, #103): its CC5 GLIDE and CC71 resonance join; its CC74 (the engine's brightness) does not:
+ * here CC74 is the master filter, as since GHOULBOX 1.2 */
+enum { MC_T, MC_K, MC_G, MC_F, MC_R };
 static const struct { uint8_t cc, kind, id; } MIDI_CC_MAP[] = {
     {7, MC_T, P_LEVEL}, {10, MC_T, P_PAN}, {73, MC_T, P_ATK}, {75, MC_T, P_DEC}, {79, MC_T, P_SUS}, {72, MC_T, P_REL},
     {91, MC_T, P_REV}, {93, MC_T, P_CHOR}, {94, MC_T, P_DLY},
     {21, MC_K, 0}, {22, MC_K, 1}, {23, MC_K, 2}, {24, MC_K, 3},
     {85, MC_G, G_CRSH}, {86, MC_G, G_TAPE}, {74, MC_F, 0},
+    {5, MC_T, P_GLIDE}, {71, MC_R, 0},                  /* 1.5: Felucca's */
     /* 1.3: the distortion send, the LFO (76 77 78: GM2's vibrato rate, depth, delay), the effects' own settings */
     {92, MC_T, P_DIST}, {76, MC_T, P_LRATE}, {77, MC_T, P_LD_PIT}, {78, MC_T, P_LFADE}, {110, MC_T, P_LD_FLT},
     {111, MC_T, P_LD_AMP},
@@ -221,6 +225,11 @@ static const struct { uint8_t cc, kind, id; } MIDI_CC_MAP[] = {
     {107, MC_G, G_DMIX}, {108, MC_G, G_CRATE}, {109, MC_G, G_CDEPTH},
 };
 #define NMIDI_CC (sizeof MIDI_CC_MAP / sizeof MIDI_CC_MAP[0])
+/* per engine (ENGINES[] order): CC71's E index + 1, 0 = none (Felucca's MIDI_CC_ENG, its low nibble) */
+static const uint8_t MIDI_CC_RES[NENGINES] = {
+    6, 0, 0, 0, 0, 7, 7, 0,                             /* ANALOG RES, -, PHASE, LOFI, SAMPLE, VOICE Q, TRIO RES, WHEEL */
+    0, 0, 0, 4, 0, 0, 0,                                /* GRAIN, PHYS, DRUM, NOISE RES, FM6, SLICE, GURDY */
+};
 static volatile uint8_t midi_cc_q[NTRK][NMIDI_CC];       /* the latest value + 1 per track and CC, 0 = none pending */
 static void midi_cc_note(uint32_t ch, uint32_t cc, uint32_t value)
 {
@@ -255,7 +264,8 @@ static void midi_control(uint32_t ch, uint32_t cc, uint32_t value)
         for (i = 0; i < NTRK; i++)
             if ((mask & (1u << i)) && !midi_track_held(i)) {
                 trk_all_off(&trk[i]);
-                trk[i].nheld = trk[i].arp_phys = trk[i].arp_note = trk[i].rh_n = 0;
+                trk[i].nheld = trk[i].arp_phys = trk[i].rh_n = 0;
+                arp_forget(&trk[i]);
             }
         break;
     case 121:                                      /* Reset All Controllers, keep bend sensitivity */
@@ -285,19 +295,22 @@ static void midi_control(uint32_t ch, uint32_t cc, uint32_t value)
             midi_expression_channel(ch);
         }
         break;
-    default: break;
     }
 }
 
-/* ROUT CH1-4 listens to channels 1..4 only. A switch to it from SEL (events_block, before the queue) lets go
- * of what channels 5..16 hold: their notes released (also pedal-held ones), their pedal, bend, wheel and RPN
- * selection reset, so no note can hang on a channel that is no longer heard. Each part's bend then follows
- * its own channel (1..4), as CH1-4 routes it. */
-static void __attribute__((noinline)) midi_route_ch14(void)
+/* ROUT CH1-4 listens to channels 1..4 only (1.2: CH5-8, CH9-12, CH13-16 to their four). A switch to a block from
+ * SEL or another block (events_block, before the queue) lets go of what the other channels hold: their notes
+ * released (also pedal-held ones), their pedal, bend, wheel and RPN selection reset, so no note can hang on a
+ * channel that is no longer heard. Each part's bend then follows its own channel of the block. */
+static void __attribute__((noinline)) midi_route_block(void)
 {
     uint32_t ch, note;
-    for (ch = NPART; ch < 16u; ch++) {
+    for (ch = 0; ch < 16u; ch++) {
         midi_channel_t *c = midi_channel(ch);
+        if (midi_in_block(ch)) {
+            midi_expression(midi_track(ch), c);
+            continue;
+        }
         for (note = 0; note < 128u; note++)
             if (midi_notes[ch][note])
                 midi_release(ch, note);
@@ -305,17 +318,15 @@ static void __attribute__((noinline)) midi_route_ch14(void)
         c->bend = 0;
         c->rpn_msb = c->rpn_lsb = 127;
     }
-    for (ch = 0; ch < NPART; ch++)
-        midi_expression(&trk[ch], midi_channel(ch));
 }
 
 /* Keep the occasional controller/panic dispatch outside the hot rendering loop. Channel voice messages only
  * (realtime and clock are handled in events_block, SysEx never reaches here). With ROUT CH1-4 channels
- * 5..16 are ignored entirely: notes, bend, CCs (CC1/11/64, RPN, and the CC120/121/123 panic and reset),
+ * 5..16 are ignored entirely (with CH5-8 .. CH13-16 every channel outside the block): notes, bend, CCs (CC1/11/64, RPN, and the CC120/121/123 panic and reset),
  * channel aftertouch, so they stay free for other instruments. */
 static void __attribute__((noinline)) midi_event(uint32_t st, uint32_t ch, uint32_t d1, uint32_t d2)
 {
-    if (ch >= NPART && !song.g[G_ROUTE])
+    if (song.g[G_ROUTE] != 1 && !midi_in_block(ch))
         return;
     if (st == 0x90u || st == 0x80u)
         midi_note_event(ch, d1, st == 0x90u ? d2 : 0);

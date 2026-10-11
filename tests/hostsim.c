@@ -73,6 +73,8 @@ static void host_tracks_init(void)                /* as felucca_init: defaults, 
     uint32_t i, k;
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;
+    song.g[G_RTYPE] = 0;                          /* ROOM, the power-on reverb until 1.2: the renders (goldens) as
+                                                   * before, ROOM bit for bit; HALL, the default since: reverb_test.c */
     for (k = 0; k < NTRK; k++) {
         for (i = 0; i < P_E0; i++)
             trk[k].p[i] = TP[i].def;
@@ -388,7 +390,7 @@ static int steal_test(const char *dir)
     const uint32_t frames = 4u * FS;
     char path[512];
     FILE *w;
-    int32_t prev = 0, *L = calloc(frames, sizeof *L);
+    int32_t prev = 0, *L = calloc(frames + CTL, sizeof *L);   /* (the last block may run past frames) */
     uint32_t f, i, p, k, events[6], nev = 0, bad = 0, kills0;
     double worst = 0;
     snprintf(path, sizeof path, "%s/steal.wav", dir);
@@ -482,7 +484,7 @@ static int xfade_test(const char *dir)
     const uint8_t to[4] = {1, 2, 3, 4};
     char path[512];
     FILE *w;
-    int32_t *L = calloc(frames, sizeof *L);
+    int32_t *L = calloc(frames + CTL, sizeof *L);               /* (the last block may run past frames) */
     uint32_t f, i, k, bad = 0, late_ok = 0;
     double worst = 0;
     track_t *t = &trk[0];

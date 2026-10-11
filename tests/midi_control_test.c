@@ -19,6 +19,7 @@ static void queued(uint32_t st, uint32_t d1, uint32_t d2, uint32_t source)
 {
     midi_enqueue((st >= 0xF8u ? 0xFu : st >> 4) | st << 8 | d1 << 16 | d2 << 24, source);
     events_block(CTL);
+    midi_cc_apply();                                   /* (GHOULBOX: the main loop's half of the CC map, ui_input.c) */
 }
 static int gate_note(const track_t *t, uint32_t note)
 {
@@ -230,7 +231,7 @@ static int usb_burst_test(void)
     events_block(CTL);
     return bad;
 }
-/* GLO > SYSTEM ROUT (#68): CH1-4 listens to channels 1..4 only, channels 5..16 are free for other instruments
+/* MENU > MIDI > MIDI IN (ROUT; up to 1.1.5 GLO > SYSTEM, #68): CH1-4 listens to channels 1..4 only, channels 5..16 are free for other instruments
  * (notes, bend, CCs, aftertouch, panic and reset all ignored, from USB and TRS); SEL plays the selected track
  * from every channel; a switch to CH1-4 lets go of what channels 5..16 held */
 static int any_gate(void)
@@ -279,9 +280,154 @@ static int route_test(void)
     bad += check("channel 1's note-off still releases its note after the switch", !any_gate() && !midi_owners[2]);
     return bad;
 }
+/* 1.2 (Discussion #143): ROUT CH5-8, CH9-12, CH13-16: tracks 1..4 on those four channels (notes, bend, CCs, the CC map,
+ * panic), every other channel ignored, as CH1-4 does with 1..4; a switch between blocks lets go of the old block's
+ * notes; the clock (realtime) is not a channel's: it runs whatever ROUT says; the keys send on the block's channel */
+static uint32_t out_last(void) { return mo_w != mo_r ? midi_out_q[(mo_w - 1u) % MQ] : 0u; }
+static int route_block_test(void)
+{
+    static const char *const NAME[5] = {"CH1-4", "SEL", "CH5-8", "CH9-12", "CH13-16"};
+    int bad = 0, ok = 1; uint32_t r, ch, i;
+    ok = GP[G_ROUTE].max == 4 && GP[G_ROUTE].def == 0;
+    for (r = 0; r < 5u; r++) ok &= str_eq(GP[G_ROUTE].names[r], NAME[r]);
+    bad += check("ROUT: CH1-4 SEL (stored 0 1, as before), CH5-8 CH9-12 CH13-16 appended", ok);
+    for (r = 2; r <= 4u; r++) {
+        uint32_t b = (r - 1u) * 4u;
+        midi_test_reset(); song.sel = 2; song.g[G_ROUTE] = (int16_t)r;
+        trk[3].eng_req = trk[3].engine = 0u;               /* (a synth on track 4: its notes held as gates) */
+        events_block(CTL);
+        ok = midi_base() == (int32_t)b;
+        for (ch = 0; ch < 16u; ch++) {                     /* a note on every channel: only the block's play */
+            uint32_t n = 40u + ch;
+            queued(0x90 | ch, n, 100, 1 + (ch & 1u));
+            for (i = 0; i < NTRK; i++)
+                ok &= gate_note(&trk[i], n) == (ch >= b && ch < b + 4u && i == ch - b);
+        }
+        queued(0xE0 | (b + 1u), 127, 127, 1); queued(0xE0 | (b ? 0u : 4u), 127, 127, 1);
+        ok &= midi_bend_target[1] == 512 && !midi_bend_target[0] && !midi_bend_target[2];
+        queued(0xB0 | (b + 2u), 7, 5, 1); queued(0xB0 | (b + 2u) % 16u, 1, 44, 1);
+        queued(0xB0 | (b + 4u) % 16u, 7, 9, 1);           /* (the next block's first channel: ignored) */
+        ok &= trk[2].p[P_LEVEL] == 5 && trk[2].mw == 44 && trk[0].p[P_LEVEL] != 9 && trk[3].p[P_LEVEL] != 9;
+        queued(0xB0 | (b + 4u) % 16u, 123, 0, 1); queued(0xB0 | (b + 4u) % 16u, 120, 0, 1);
+        ok &= gate_note(&trk[0], 40u + b) && gate_note(&trk[3], 43u + b);
+        queued(0xB0 | (b + 3u), 123, 0, 1);
+        ok &= !gate_note(&trk[3], 43u + b) && gate_note(&trk[0], 40u + b);
+        bad += check(r == 2u ? "ROUT CH5-8: channels 5..8 play tracks 1..4 (notes, bend, CC map, CC1, panic); the rest ignored" :
+                     r == 3u ? "ROUT CH9-12: channels 9..12 play tracks 1..4; the rest ignored" :
+                               "ROUT CH13-16: channels 13..16 play tracks 1..4; the rest ignored", ok);
+    }
+    /* a switch between blocks: the old block's notes let go (pedal-held too), its bend reset */
+    midi_test_reset(); song.g[G_ROUTE] = 2; events_block(CTL);
+    queued(0x94, 60, 100, 1); queued(0xB5, 64, 127, 1); queued(0x95, 62, 100, 1); queued(0x85, 62, 0, 1); queued(0xE4, 127, 127, 1);
+    ok = gate_note(&trk[0], 60) && gate_note(&trk[1], 62) && midi_bend_target[0] == 512;
+    song.g[G_ROUTE] = 3; events_block(CTL);
+    ok &= !gate_note(&trk[0], 60) && !gate_note(&trk[1], 62) && !midi_owners[0] && !midi_owners[1] && !midi_ch[4].bend &&
+          !midi_ch[5].pedal && !midi_bend_target[0];
+    queued(0x98, 64, 100, 1);
+    ok &= gate_note(&trk[0], 64);
+    song.g[G_ROUTE] = 1; events_block(CTL);             /* -> SEL: nothing let go (every channel heard) */
+    ok &= gate_note(&trk[0], 64);
+    queued(0x88, 64, 0, 1);
+    ok &= !any_gate();
+    bad += check("ROUT CH5-8 -> CH9-12 lets go of channels 5..8 (pedal-held too, bend reset); -> SEL keeps notes", ok);
+    /* the clock is not routed: an external clock runs with ROUT CH13-16 as with CH1-4 */
+    clock_setup(1); song.g[G_ROUTE] = 4; events_block(CTL);
+    clock_packet(1, 0xFA, 2); clock_to(1, 2, 7);
+    ok = song.playing && trk[0].seq_idx == 1u;
+    clock_packet(1, 0xFC, 133);
+    ok &= !song.playing;
+    song.g[G_CLOCK] = 0; events_block(CTL);
+    bad += check("ROUT CH13-16: the USB clock (Start, pulses, Stop) runs the transport as ever", ok);
+    /* MIDI out: the keys send on the selected track's channel of the block (SEL, CH1-4: 1..4) */
+    usb.config = 1;
+    ok = 1;
+    for (r = 0; r <= 4u; r++) {
+        uint32_t want = (r >= 2u ? (r - 1u) * 4u : 0u) + 2u;
+        midi_test_reset(); song.g[G_ROUTE] = (int16_t)r; song.sel = 2; mo_r = mo_w; events_block(CTL);
+        fm1_in.notes = 1u << 7; events_block(CTL);
+        ok &= ((out_last() >> 8) & 0xFFu) == (0x90u | want);
+        fm1_in.notes = 0; events_block(CTL);
+        ok &= ((out_last() >> 8) & 0xFFu) == (0x80u | want);
+    }
+    usb.config = 0; mo_r = mo_w;
+    song.g[G_ROUTE] = 0; song.sel = 0; events_block(CTL);
+    bad += check("MIDI out: the keys of track 3 send on channel 3 (CH1-4, SEL), 7 (CH5-8), 11 (CH9-12), 15 (CH13-16)", ok);
+    return bad;
+}
+/* #103: the standard CC map, on the track the channel plays, as a knob turn (and as AUTOMATION records one).
+ * GHOULBOX: its own map (midi_control.c MIDI_CC_MAP) with Felucca's CC5 and CC71 in it; CC74 is the master filter
+ * (ui_test.c test_midi_cc), not the engine's brightness */
+static int cc_map_test(void)
+{
+    static const struct { uint8_t cc; uint8_t id; } COMMON[] = {
+        {5, P_GLIDE}, {7, P_LEVEL}, {72, P_REL}, {73, P_ATK}, {75, P_DEC}, {91, P_REV}, {93, P_CHOR}, {94, P_DLY},
+    };
+    int bad = 0, ok = 1; uint32_t i, e; int16_t before[P_COUNT];
+    midi_test_reset();
+    bad += check("power-on parts: ANALOG, FM6, LOFI, DRUM", trk[0].eng_req == 0u && trk[1].eng_req == ENGI_FM6 &&
+                 trk[2].eng_req == 3u && trk[3].eng_req == ENGI_DRUM);
+    for (i = 0; i < NELEM(COMMON); i++) {
+        queued(0xB0, COMMON[i].cc, 127, 1);
+        ok &= trk[0].p[COMMON[i].id] == TP[COMMON[i].id].max;
+        queued(0xB0, COMMON[i].cc, 0, 1);
+        ok &= trk[0].p[COMMON[i].id] == TP[COMMON[i].id].min;
+        queued(0xB0, COMMON[i].cc, 37, 1);
+        ok &= trk[0].p[COMMON[i].id] == 37;
+    }
+    bad += check("CC5 7 72 73 75 91 93 94: GLIDE LEVEL REL ATK DEC REV CHO DLY, 0..127 over their range", ok);
+    queued(0xB0, 10, 0, 1); ok = trk[0].p[P_PAN] == -64;
+    queued(0xB0, 10, 127, 1); ok &= trk[0].p[P_PAN] == 63;
+    queued(0xB0, 10, 64, 1); ok &= trk[0].p[P_PAN] == 0;
+    bad += check("CC10 PAN: 0 left, 64 centre, 127 right", ok);
+    memcpy(before, trk[0].p, sizeof before); queued(0xB0, 74, 127, 1);
+    ok = !memcmp(before, trk[0].p, sizeof before) && perf_k[0] == 100;
+    queued(0xB0, 74, 64, 1);
+    bad += check("CC74 (GHOULBOX): the master filter, no track parameter", ok && perf_k[0] == 0);
+    queued(0xB0, 71, 0, 1);
+    bad += check("CC71 on ANALOG: RES", trk[0].p[P_E5] == 0);
+    memcpy(before, trk[1].p, sizeof before); queued(0xB1, 71, 99, 1);
+    bad += check("CC71 on FM6 (no resonance): ignored", !memcmp(before, trk[1].p, sizeof before));
+    for (e = 0, ok = 1; e < NENGINES; e++) {   /* the table names a continuous EDIT value of every engine */
+        uint32_t n = MIDI_CC_RES[e];
+        const param_desc_t *d = n ? &ENGINES[e]->edit[n - 1u] : 0;
+        ok &= n <= 8u && (!d || (d->fmt != F_ENUM && d->max - d->min >= 24));
+    }
+    bad += check("every engine's CC71 target is a continuous EDIT value (or none)", ok);
+    trk[2].eng_req = trk[2].engine = 7u;               /* WHEEL: no resonance */
+    memcpy(before, trk[2].p, sizeof before); queued(0xB2, 71, 3, 1);
+    bad += check("CC71 on WHEEL: ignored", !memcmp(before, trk[2].p, sizeof before));
+    memcpy(before, trk[0].p, sizeof before);
+    queued(0xB0, 121, 0, 1);
+    bad += check("CC121 resets no mapped parameter (RP-015)", !memcmp(before, trk[0].p, sizeof before));
+    queued(0xB0, 20, 99, 1); queued(0xB0, 30, 99, 1); queued(0xB0, 95, 99, 1);   /* (76: GHOULBOX's LFO rate) */
+    bad += check("CCs outside the map change nothing", !memcmp(before, trk[0].p, sizeof before));
+    memcpy(before, trk[2].p, sizeof before);
+    queued(0xB4, 7, 5, 1); queued(0xB9, 71, 5, 2); queued(0xBF, 91, 5, 1);
+    ok = !memcmp(before, trk[2].p, sizeof before) && trk[0].p[P_LEVEL] != 5 && trk[3].p[P_LEVEL] != 5;
+    bad += check("ROUT CH1-4: mapped CCs on channels 5..16 reach no part", ok);
+    song.g[G_ROUTE] = 1; song.sel = 2; events_block(CTL);
+    queued(0xB9, 7, 5, 2);
+    bad += check("ROUT SEL: channel 10's CC7 sets the selected track's LEVEL", trk[2].p[P_LEVEL] == 5 && trk[0].p[P_LEVEL] != 5);
+    song.g[G_ROUTE] = 0; song.sel = 0; events_block(CTL);
+
+    /* AUTOMATION: the selected track armed and playing records the CC as a knob move; else it is the new base */
+    midi_test_reset();
+    song.rec = 1; seq_start(); events_block(CTL);
+    queued(0xB0, 71, 20, 1);
+    bad += check("armed and playing: CC71 records a motion event of RES on the selected track", motion.count == 1u &&
+                 motion.event[0].param == P_E5 && motion.event[0].value == 20 && (motion.event[0].place >> 6) == 0u);
+    queued(0xB1, 7, 20, 1);
+    bad += check("  another track (channel 2, not selected): not recorded", motion.count == 1u && trk[1].p[P_LEVEL] == 20);
+    seq_stop(); events_block(CTL);
+    bad += check("  stopped: the patch's own RES comes back", trk[0].p[P_E5] == ANALOG_PRESETS[trk[0].preset].e[5]);
+    song.rec = 0;
+    queued(0xB0, 71, 77, 1);
+    bad += check("not armed: the CC is the new value, no event", trk[0].p[P_E5] == 77 && motion.count == 1u);
+    return bad;
+}
 int main(void)
 {
     int bad = controls_test() + sustain_test() + ownership_test() + clock_test(1) + clock_test(2) + clock_arp_and_boundaries() +
-              arp_ext_stop_test() + usb_burst_test() + route_test();
+              arp_ext_stop_test() + usb_burst_test() + route_test() + route_block_test() + cc_map_test();
     printf("%s\n", bad ? "MIDI CONTROL/CLOCK TEST FAILED" : "MIDI control/clock integration tests passed"); return bad != 0;
 }

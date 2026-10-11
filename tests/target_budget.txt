@@ -38,8 +38,9 @@ dv_metal_mix 16
 slicer_track 632
 slice_render 453
 slc_rev 120
-fm1_alnk0_irq 37502
+fm1_alnk0_irq 41327
 fm1_timer5_irq 33387
+click_render 30
 mod_begin 158
 mod_voice 30
 mod_end 7
@@ -48,6 +49,8 @@ perf_mute 21
 perf_pre 27
 perf_block 814
 perf_master 36
+perf_flanger 368
+perf_phaser 448
 rev_room 218
 rev_spring 126
 rev_hall 345

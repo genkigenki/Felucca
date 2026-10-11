@@ -5,9 +5,18 @@
  * palette: UI_PAL_TAG + index; an old id (below 20, earlier firmware) is migrated on import.
  * bold: no longer used (one font weight); kept as it was saved, unless it holds the HOLD setting (panel.c).
  * zoom: no longer used (the large readout); kept as it was saved, unless it holds the LEDS setting (panel.c).
- * favorites.factory[15][29..31]: STYLE, MENU's flags, the layers seen (bytes no engine uses; 0 in older settings).
+ * favorites.factory[15][29..31]: STYLE, MENU's flags, the layers seen (bytes no engine uses; 0 in older settings = every
+ * one's default); [15][12]: CLICK / CLICK LEVEL / COUNT-IN (1.1; Felucca's [15][28]); [15][25]: SCREEN OFF (1.1.5; 0 =
+ * NEVER, the default; Felucca's [15][27]). GHOULBOX: [15][27] SCENE (1.3, ui.c ui_scene), [15][28] the one-time marks
+ * below; Felucca's two moved to bytes free in both, so a GHOULBOX setting keeps its meaning;
+ * [15][26]: MENU > DISPLAY > HOME (1.3; 0 = SCOPE, 1 TRACKS, ui.c ui_home_view);
+ * [15][24]: MENU's 1.2 flags SCOPE MIX, STEP PREVIEW ON, CHORD ENTRY ADD (bits 0-2, ui.c ui_prefs2; 0 = the defaults);
+ * [15][10]: MENU > ANIM IDLE (1.2, Discussion #135, ui.c ui_idle: bit 0; 0 = off, ANIM as its bit in MENU's flags says);
+ * [15][11]: PRESETS > LIST's category (1.2, Discussion #90, ui.c ui_lcat: 0 none = ALL / FAV as favorites.filter says);
+ * [15][14..23]: the FX layer's key map (1.2, ui_layer.c fx_keys: 16 white keys x 5 bits, perform.c perf_map_of; 0 = the
+ * key's default, an unknown code too: kept as saved, a later firmware's effect survives a round trip here).
  * MENU's flags (ui.c PREF_*) are append-only bits whose 0 is the default: BPM LOCK (16) is clear in every older setting
- * = unlocked, LARGE (32) = OFF, read as saved (nothing to migrate, so importing twice changes nothing). */
+ * = unlocked, LARGE (32) = OFF, RESTORE LAST OFF (128, 1.2) = ON, read as saved (nothing to migrate, so importing twice changes nothing). */
 typedef struct {
     uint32_t magic, palette, lowcut, zoom;
     panel_t panel;
@@ -23,6 +32,13 @@ typedef struct {
 #define GB_MIG_SERIAL 1u
 #ifdef PREF_SERIAL_OFF
 _Static_assert(GB_SERIAL_OFF == PREF_SERIAL_OFF, "settings_persist.c GB_SERIAL_OFF is ui.c's PREF_SERIAL_OFF");
+#endif
+/* GHOULBOX 1.5: RESTORE LAST OFF by default (Felucca's is ON), so the FM-1 starts with the SCENE MENU > SYSTEM picks;
+ * the same once-only way: settings without the mark get RESTORE LAST OFF, then keep what the owner chooses */
+#define GB_RESTORE_OFF 128u                         /* ui.c PREF_RESTORE_OFF */
+#define GB_MIG_RESTORE 2u
+#ifdef PREF_RESTORE_OFF
+_Static_assert(GB_RESTORE_OFF == PREF_RESTORE_OFF, "settings_persist.c GB_RESTORE_OFF is ui.c's PREF_RESTORE_OFF");
 #endif
 
 /* Normalize in place; 1 = current, 2 = migrated, 0 = invalid. */
@@ -45,8 +61,24 @@ static int settings_import(persist_t *p, int n)
         p->favorites.factory[15][30] |= GB_SERIAL_OFF;
         p->favorites.factory[15][28] |= GB_MIG_SERIAL;
     }
+    if (!(p->favorites.factory[15][28] & GB_MIG_RESTORE)) {   /* GHOULBOX 1.5: once (see above) */
+        p->favorites.factory[15][30] |= GB_RESTORE_OFF;
+        p->favorites.factory[15][28] |= GB_MIG_RESTORE;
+    }
     if (p->favorites.factory[15][29] > 1u)        /* STYLE (ui.c ui_style): 2, the retired PIXEL = LINE; unknown = FLAT */
         p->favorites.factory[15][29] = p->favorites.factory[15][29] == 2u ? 1u : 0u;
+    {   /* CLICK, CLICK LEVEL, COUNT-IN (ui.c ui_rec_prefs): two bits each, 3 is no value: the default (0) */
+        uint32_t b = p->favorites.factory[15][12], f;
+        for (f = 0; f < 3u; f++)
+            if (((b >> (2u * f)) & 3u) == 3u)
+                b &= ~(3u << (2u * f));
+        p->favorites.factory[15][12] = (uint8_t)b;
+    }
+    if (p->favorites.factory[15][25] > 7u)         /* SCREEN OFF (1.1.5, ui.c SCR_CODE): unknown = 0 (NEVER since 1.1.5.1) */
+        p->favorites.factory[15][25] = 0;
+    if (p->favorites.factory[15][11] > 8u)         /* PRESETS LIST's category (1.2, ui.c ui_lcat, CAT_*): unknown = none */
+        p->favorites.factory[15][11] = 0;
+    /* [15][26] HOME (1.3, ui.c ui_home_view): kept as saved; a value this firmware does not know draws SCOPE */
     p->magic = PERSIST_MAGIC;
     p->palette = palette_to_stored(palette_from_stored(p->palette));
     settings.magic = SETTINGS_MAGIC;
@@ -78,12 +110,13 @@ static int settings_import(persist_t *p, int n)
     return current ? 1 : 2;
 }
 
-/* GHOULBOX: a device with no saved settings starts with USB SERIAL OFF (marked: the owner's later choice holds) */
+/* GHOULBOX: a device with no saved settings starts with USB SERIAL OFF and RESTORE LAST OFF (marked: the owner's later
+ * choices hold) */
 static void settings_fresh(void)
 {
 #ifdef FELUCCA_FAVORITES
-    favorites.factory[15][30] |= GB_SERIAL_OFF;
-    favorites.factory[15][28] |= GB_MIG_SERIAL;
+    favorites.factory[15][30] |= GB_SERIAL_OFF | GB_RESTORE_OFF;
+    favorites.factory[15][28] |= GB_MIG_SERIAL | GB_MIG_RESTORE;
 #endif
 }
 

@@ -18,6 +18,8 @@
  * designed, +-12 semitones), TONE, DECY and SNAP (each lane's extra: the kick's drive, the snare's snappiness,
  * the clap's spread, the hats' noise, the toms' bend, the rim's drive, the bell's strike) move every lane from its designed value. ACC
  * is the accent at full velocity (velocity scales it), DRV a soft clip on every hit (x1..x4, level kept).
+ * Each lane has its LEVEL (P_LN0..P_LN7, EDIT > LANES / LANES 2, #97: square law, 100 % the kit as designed, the
+ * default, so every older sound plays as it did), on the voice amplitude after the knee (a quieter lane is cleaner).
  * A hit keeps the drum and the variant it was struck with; the knobs move it while it rings.
  *
  * Polyphony: a lane per drum and part, mono: a hit reuses its lane's voice even at another pitch, the 8 lanes ring
@@ -59,6 +61,11 @@ typedef struct {
 } drum_lane_t;
 
 static drum_lane_t drum_kit[NPART][DV_NLANE] __attribute__((section(".pool")));
+/* 1.4.1: each part's lanes muted (bit l: lane l), the EDIT layer's black keys 1..8 (ui_layer.c EQA_DRUM): a channel
+ * mute. The lane plays on as always (hits, keys, MIDI: its voice, the CPU, the choke) and drum_render drops its output,
+ * so unmuted it sounds as if it never was. Performance state: not saved, not recorded, no undo; a sound load into the
+ * track (ui.c load_begin) and a project load (project_restore_runtime) clear it, power-off too */
+static uint8_t drum_mute[NPART];
 
 /* 1..3 named as the kit they play: aliases, never shown or offered (EDITOR_PROTOCOL.md: retired values) */
 static const char *const N_DRUM_KIT[] = {"STD", "66", "10", "77", "80", "10", "66", "55", "77", "CRYPT"};
@@ -260,9 +267,18 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     drum_lane_t *L = drum_lane_of(t, v);
     dv_param_t k;
     int32_t y[CTL], mb[CTL], acc = clamp(p[P_E5] * v->vel * 4, 0, 65536), drv = p[P_E7], g = 0, mk = 0;   /* acc Q16 */
+    int32_t lv = clamp(p[P_LN0 + ((uint32_t)v->s[0] & (DV_NLANE - 1u))], 0, 127);
     uint32_t i, r;
+    vmod_t ml;                                           /* (only its amplitude ramp is read: voice_amp) */
     if (!L)
         return;
+    if (lv < 127) {                                      /* the lane's LEVEL (square law) on the block's amplitude
+                                                          * ramp, not per sample; 100 %: the ramp as it was */
+        int32_t gl = lv * lv * 2 + (lv * lv >> 6);       /* Q15, 127: 32508 (not used), 64: 8256 */
+        ml.amp0 = (m->amp0 >> 4) * gl >> 11;
+        ml.amp1 = (m->amp1 >> 4) * gl >> 11;
+        m = &ml;
+    }
     if (n > CTL)
         n = CTL;
     r = L->role;
@@ -282,6 +298,8 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     if (dv_uses_metal(L->c.type) && (L->v.live || L->v.trig))
         dv_metal_run(&L->mb, mb, n);
     dv_run(&L->c, &L->v, mb, y, n);
+    if ((drum_mute[(uint32_t)(t - trk) % NPART] >> ((uint32_t)v->s[0] & (DV_NLANE - 1u))) & 1u)
+        return;                                          /* (a muted lane rings on unheard) */
     if (drv > 0) {                                       /* DRV: x1..x4 into the soft clip, the level kept (Q12) */
         g = 4096 + drv * 3 * 4096 / 127;
         mk = (int32_t)((19661u << 15) / (uint32_t)softclip((19661 * g) >> 12));
