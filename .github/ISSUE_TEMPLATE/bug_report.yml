@@ -1,23 +1,23 @@
 name: Bug report
-description: Something in Felucca doesn't work as it should (one bug per issue)
+description: Something in MAKU doesn't work as it should (one bug per issue)
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Issues are for reproducible bugs only. Feature ideas go to [Discussions › Ideas](https://github.com/hugelton/Felucca/discussions/categories/ideas), questions to [Q&A](https://github.com/hugelton/Felucca/discussions/categories/q-a).
+        Use this form for reproducible bugs (one per issue). Ideas and questions: open a plain issue and say so in the title.
   - type: input
     id: version
     attributes:
-      label: Felucca version
-      description: Hold HOME > ABOUT on the FM-1
-      placeholder: "v1.0.2"
+      label: MAKU version
+      description: HOME + OCT- (settings menu) > ABOUT on the FM-1, or the file name of the package
+      placeholder: "v0.1.0"
     validations:
       required: true
   - type: input
     id: system
     attributes:
-      label: Computer, OS and browser (if the editor, installer or USB is involved)
+      label: Computer, OS and browser (if the installer or USB is involved)
       placeholder: "macOS 15.6, Chrome 140"
   - type: textarea
     id: steps
