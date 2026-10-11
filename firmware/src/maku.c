@@ -71,7 +71,7 @@ static struct {
     uint8_t frame_on, frame_root; /* a key change by fifths (maku_fifth) while an arp run plays: the run goes on in the old ROOT's
                                   * frame, with the new key signature, until it ends */
     uint8_t brk;                 /* FX is down: SINK */
-    uint8_t vp[VB_N][3];         /* the verbs' parameters, 0..127 (SINK: SINK WASH HUSH; GLO (tempo): - SWING DUCK; ROOT: - - REG 0..2;
+    uint8_t vp[VB_N][3];         /* the verbs' parameters, 0..127 (SINK: SINK WASH HUSH; SEQ (tempo): - SWING DUCK; ROOT: - - REG 0..2;
                                   * SCRAMBLE: ARP KICK SWING; CASCADE: DENSE SPAN HARM; DRIFT: RATE RANGE REACH;
                                   * LIFT: TONE EDGE THIN; SWELL: ATTACK RELEASE STAY; WOBBLE: RATE DEPTH PITCH) */
     int32_t dive;                /* SINK's dive, Q12: the rest sinks into reverb and reverse delay; it comes up slowly */
@@ -766,7 +766,7 @@ static __attribute__((noinline)) void maku_block(void)
         maku.ovlive = (uint8_t)(maku.va[VB_SWELL] || maku.va[VB_WOB] || maku.va[VB_LIFT] || maku.dive);
     }
     maku_apply();                                                  /* (SWING: SCRAMBLE's) */
-    if (maku.brk) {                                                /* SINK held: ~0.75 s down, the kick out in ~50 ms (HUSH: how far) */
+    if (maku.brk) {                                                /* SINK held: ~0.5 s down, the kick out in ~50 ms (HUSH: how far) */
         int32_t tgt = 4096 - (int32_t)maku.vp[VB_SINK][2] * 4096 / 127;
         maku.dive = maku.dive + 6 > 4096 ? 4096 : maku.dive + 6;
         maku.kfade = maku.kfade > tgt + 64 ? maku.kfade - 64 : tgt;
