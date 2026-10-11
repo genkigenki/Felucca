@@ -751,10 +751,11 @@ static __attribute__((noinline)) void maku_block(void)
         for (i = 0; i < 4u; i++)
             maku_macro_set(i, 1, maku.m[i][1]);
     }
-    if (maku.va[VB_SWELL] || maku.va[VB_WOB] || maku.va[VB_LIFT] || maku.ovlive) {   /* SWELL: longer attacks and releases; WOBBLE: the LFOs; LIFT: EDGE */
+    if (maku.va[VB_SWELL] || maku.va[VB_WOB] || maku.va[VB_LIFT] || maku.dive || maku.ovlive) {   /* SWELL: longer attacks and releases; WOBBLE: the LFOs; LIFT: EDGE; SINK: softer attacks */
         int32_t sa = ((int32_t)maku.vp[VB_SWELL][0] * maku.va[VB_SWELL]) >> 12, sr = ((int32_t)maku.vp[VB_SWELL][1] * maku.va[VB_SWELL]) >> 12;
         int32_t wr = ((int32_t)maku.vp[VB_WOB][0] * maku.va[VB_WOB] >> 12) * 40 / 127, wd = ((int32_t)maku.vp[VB_WOB][1] * maku.va[VB_WOB] >> 12) / 2;
         int32_t wp = ((int32_t)maku.vp[VB_WOB][2] * maku.va[VB_WOB] >> 12) / 6, le = ((int32_t)maku.vp[VB_LIFT][1] * maku.va[VB_LIFT] >> 12) / 2;
+        sa += maku_dive() * 40 >> 12;                              /* SINK: the notes lose their bite as it dives (up to +40 on ATK, WASH's share) */
         for (i = 1; i < 4u; i++) {
             maku_over((i - 1u) * 6u, i, P_ATK, sa);
             maku_over((i - 1u) * 6u + 1u, i, P_REL, sr);
@@ -763,7 +764,7 @@ static __attribute__((noinline)) void maku_block(void)
             maku_over((i - 1u) * 6u + 4u, i, P_LD_PIT, wp);
             maku_over((i - 1u) * 6u + 5u, i, P_DIST, le);
         }
-        maku.ovlive = (uint8_t)(maku.va[VB_SWELL] || maku.va[VB_WOB] || maku.va[VB_LIFT]);
+        maku.ovlive = (uint8_t)(maku.va[VB_SWELL] || maku.va[VB_WOB] || maku.va[VB_LIFT] || maku.dive);
     }
     maku_apply();                                                  /* (SWING: SCRAMBLE's) */
     if (maku.brk) {                                                /* SINK held: ~1.5 s down, the kick out in ~50 ms (HUSH: how far) */
