@@ -858,7 +858,7 @@ static __attribute__((noinline)) void seq_step(track_t *t, const step_t *s, uint
  * The step is read again: an edit to fewer parts (or another source in a song) ends the repeats */
 static __attribute__((noinline)) void seq_ratchet(track_t *t, uint32_t period)
 {
-    const step_t *s = &seq_steps(t)[t->seq_idx];
+    const step_t *s = maku.on ? &maku_cur[trk_index(t)] : &seq_steps(t)[t->seq_idx];   /* (MAKU: the step it made) */
     uint32_t hits = step_ratchet(s);
     if (t->rat_left >= hits) {
         t->rat_left = 0;
@@ -898,6 +898,7 @@ static void seq_tick(track_t *t, uint32_t n)
             if (maku.on) {                              /* MAKU: its own step instead of the stored one (an empty
                                                          * step is a rest: seq_step releases the track's notes) */
                 maku_step(trk_index(t), t->seq_idx, &ms);
+                maku_cur[trk_index(t)] = ms;            /* (SCRAMBLE's ratchets repeat it: seq_ratchet) */
                 s = &ms;
             }
             /* the chance first (the one roll, as seq_step made it): a step that does not play applies no lock; the

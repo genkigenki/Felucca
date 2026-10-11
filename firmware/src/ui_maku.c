@@ -71,15 +71,15 @@ static void mq_macro(uint32_t j, uint32_t f, uint32_t tempo)
 /* the verbs that hold three parameters (maku.c VB_*): their names, as printed on the button where there is one */
 static const struct { const char *title, *name[3]; } MAKU_VB[VB_N] = {
     {"", {"", "", ""}},
-    {"SINK", {"SINK", "WASH", "HUSH"}},                 /* FX: the reverb feeds back, the sends rise, the kick steps out */
+    {"SINK", {"RISE BEATS", "HOLD BEATS", "FADE BEATS"}},                 /* FX: the reverb feeds back, the sends rise, the kick steps out */
     {"TEMPO", {"BPM", "SWING", "DUCK"}},                /* SEQ (the layer GLO) */
     {"KEY", {"ROOT", "SCALE", "REG"}},                  /* ARP (the layer SCL) */
-    {"SCRAMBLE", {"ARP", "KICK", "SWING"}},             /* GLO */
-    {"CASCADE", {"DENSE", "SPAN", "HARM"}},             /* SCL: the arp plays every step, octaves and a third above */
+    {"SCRAMBLE", {"RISE BEATS", "HOLD BEATS", "FADE BEATS"}},             /* GLO: the arp jumps and stutters, the kick's ghosts, a beat left out, swing */
+    {"CASCADE", {"RISE BEATS", "HOLD BEATS", "FADE BEATS"}},              /* SCL: the arp plays every step, octaves and a third above */
     {"DRIFT", {"RATE", "RANGE", "REACH"}},              /* PLAY (a tap switches it; its LED): the macros (from REACH 43 the space, from 86 the tempo) wander */
-    {"LIFT", {"TONE", "EDGE", "THIN"}},                 /* EDIT: brighter tone, a harder edge, a thinner master */
-    {"SWELL", {"ATTACK", "RELEASE", "STAY"}},           /* ENV: longer attacks and releases, the chords stay */
-    {"WOBBLE", {"RATE", "DEPTH", "PITCH"}},             /* LFO: the filter LFO faster and deeper (and chorus), a pitch wobble */
+    {"LIFT", {"RISE BEATS", "HOLD BEATS", "FADE BEATS"}},                 /* EDIT: brighter tone, a harder edge, a thinner master */
+    {"SWELL", {"RISE BEATS", "HOLD BEATS", "FADE BEATS"}},                /* ENV: the chords strike again, longer attacks and releases, the chords stay */
+    {"WOBBLE", {"RISE BEATS", "HOLD BEATS", "FADE BEATS"}},               /* LFO: the filter LFO faster and deeper (and chorus), a pitch wobble */
 };
 static const char *const MAKU_REG[3] = {"LOW", "MID", "HIGH"};
 
@@ -87,6 +87,20 @@ static const char *const MAKU_REG[3] = {"LOW", "MID", "HIGH"};
 static int32_t maku_vb_value(uint32_t v, uint32_t j, char *b)
 {
     int32_t g = maku.vp[v][j], i;
+    if (maku_timed(v)) {                                /* RISE HOLD FADE: in beats (the bars follow the tempo) */
+        uint32_t u = maku_units(v, j), t10 = u * 10u / 16u;     /* (1/16 beats; tenths of a beat) */
+        if (!u)
+            str_cpy(b, "0", 8);
+        else if (t10 < 100u) {
+            fmt_int(b, (int32_t)(t10 / 10u));
+            i = (int32_t)str_len(b);
+            b[i] = '.';
+            b[i + 1] = (char)('0' + t10 % 10u);
+            b[i + 2] = 0;
+        } else
+            fmt_int(b, (int32_t)(t10 / 10u));
+        return maku.vt[v][j];
+    }
     if (v == VB_GLO && j == 0u) {
         fmt_int(b, song.g[G_BPM]);
         return (song.g[G_BPM] - 40) * 127 / 200;
@@ -193,7 +207,7 @@ static void maku_draw(void)
     uint32_t j, f = song.sel < 4u ? song.sel : 0u, v = ui.layer == LAYER_GLO ? VB_GLO : ui.layer == LAYER_SCL ? VB_ROOT : (uint32_t)maku.verb, s;
     s = f * 977u + v * 13u + (uint32_t)maku.dr_tog * 5u + (uint32_t)song.g[G_BPM] * 31u + (uint32_t)(ui.hot_t != 0u) * 7u + ui.hot_col;
     for (j = 0; j < 3u; j++)
-        s = s * 31u + maku.m[f][j] + (v ? (uint32_t)maku.vp[v][j] * 7u : 0u);
+        s = s * 31u + maku.m[f][j] + (v ? (uint32_t)(maku_timed(v) ? maku.vt[v][j] : maku.vp[v][j]) * 7u : 0u);
     s = s * 31u + (uint32_t)trk[MAKU_DRA].p[P_ROOT] * 17u + (uint32_t)trk[MAKU_DRA].p[P_SCALE];
     s = s * 31u + (uint32_t)maku_kick_mask() + (song.playing ? trk[MAKU_KICK].seq_idx % 16u + 1u : 0u) * 4099u +
         maku_kick_ghosts() * 7u;
