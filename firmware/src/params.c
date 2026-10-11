@@ -21,6 +21,8 @@ static const char *const N_QUANT[] = {"OFF", "SNAP", "WHITE", "SEQ"};
 /* chord keys (chord.c): OFF, the diatonic triad / seventh of the track's ROOT and SCALE on the key, fixed shapes */
 static const char *const N_CHRD[] = {"OFF", "DIA3", "DIA7", "MAJ", "MIN", "DOM7", "MAJ7", "MIN7", "SUS4", "POW"};
 static const char *const N_VOIC[] = {"CLOSE", "OPEN", "INV1", "INV2", "+OCT"};   /* VC_CLOSE .. VC_BASS */
+/* GHOULBOX: TEMP (dsp.c TEMPER), append-only: EQUAL as before, Pythagorean, quarter-comma meantone, 5-limit just */
+static const char *const N_TEMP[] = {"EQUAL", "PYTH", "MEAN", "JUST"};
 static const char *const N_VOICE[] = {"POLY", "MONO", "LEG", "UNI"};   /* V_POLY .. V_UNISON */
 static const char *const N_GLMODE[] = {"RATE", "TIME"};
 static const char *const N_PRIO[] = {"LAST", "LOW", "HIGH"};
@@ -125,6 +127,14 @@ static const param_desc_t TP[P_COUNT] = {
     [P_LPOL] = PE("POL", N_LPOL, 0),
     [P_SQNT] = PE("QNTZ", N_ONOFF, 1),            /* ON: every step on its start, as before 1.2 */
     [P_SPRD] = PD("SPRD", F_PCT, 0, 127, 0),      /* #148: 0 = every voice on PAN, as before (fx.c mix_spread) */
+    [P_ITYPE] = PD("-", F_INT, 0, 8, 0),          /* GHOULBOX: Felucca 1.5's, reserved: its ranges and defaults */
+    [P_IA] = PD("-", F_INT, 0, 127, 64),
+    [P_IB] = PD("-", F_INT, 0, 127, 96),
+    [P_IC] = PD("-", F_INT, 0, 127, 96),
+    [P_IMIX] = PD("-", F_INT, 0, 127, 127),
+    [P_FTYPE] = PD("-", F_INT, 0, 2, 0),
+    [P_ESYNC] = PD("-", F_INT, 0, 1, 0),
+    [P_TEMP] = PE("TEMP", N_TEMP, 0),             /* GHOULBOX: EQUAL = every note as before */
 };
 
 static const param_desc_t GP[G_COUNT] = {
@@ -406,7 +416,8 @@ static const page_t PAGES[] = {
     {"CHORUS", FAM_FX, SC_GLOBAL, GR_NONE, {G_CRATE, G_CDEPTH, 0xFF, 0xFF}},
     {"TAPE", FAM_FX, SC_GLOBAL, GR_NONE, {G_TAPE, G_CRSH, 0xFF, 0xFF}},             /* GHOULBOX (tape.c) */
     {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},
-    {"CHORD", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, 0xFF, 0xFF}},   /* SCL again: the chord keys (chord.c) */
+    {"CHORD", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, P_TEMP, 0xFF}},   /* SCL again: the chord keys (chord.c);
+                                                                              * GHOULBOX: KNOB 3 TEMP */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
     {"LANES", FAM_EDIT, SC_TRACK, GR_NONE, {P_LN0, P_LN1, P_LN2, P_LN3}},   /* DRUM only: the lane levels */

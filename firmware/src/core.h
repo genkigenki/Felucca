@@ -75,6 +75,9 @@ enum {                          /* per-track parameters */
     P_LSYNC, P_LTRIG, P_LPOL,                  /* 1.2 (#154): LFO SYNC (OFF, a note value), TRIG (NOTE, FREE), POL (BI, UNI) */
     P_SQNT,                                    /* 1.2 (#162): QUANTIZE, the steps' recorded / nudged timing (ON: none) */
     P_SPRD,                                    /* (#148): SPREAD, the voices of a POLY / UNISON track around PAN (fx.c) */
+    P_ITYPE, P_IA, P_IB, P_IC, P_IMIX,         /* GHOULBOX: Felucca 1.5's ids, reserved (nothing reads them): its INSERT, */
+    P_FTYPE, P_ESYNC,                          /* ANALOG's filter TYPE and ENV SYNC, so a merge keeps their stored meaning */
+    P_TEMP,                                    /* GHOULBOX: TEMP, the track's temperament from ROOT (dsp.c temper) */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,
     P_COUNT
 };
@@ -154,6 +157,7 @@ typedef struct {
     uint8_t note, vel, gate, active;
     uint8_t stage;               /* env: 0 off, 1 attack, 2 decay/sustain, 3 release */
     uint8_t side;                /* SPREAD (fx.c mix_spread): 0 left of PAN, 1 right; set as the voice starts */
+    int8_t tfine;                /* GHOULBOX: TEMP's rest below 1/16 semitone (pitch16 has the whole steps), 1/4096 */
     int32_t env;                 /* Q24 */
     int32_t env_out;             /* last control-rate amplitude, Q15 */
     int32_t pitch16, pitch_cur;  /* 1/16 semitone, with glide */
@@ -173,7 +177,7 @@ typedef struct {                 /* per-voice control-rate modulation, computed 
     int32_t cutoff;              /* 0..127 << 8 */
     int32_t shape;               /* 0..127 << 8 */
     int32_t envq15;              /* env value (for engines that use it as a mod source) */
-    int32_t fine;                /* the residual below 1/16 semitone in inc: unison detune, TUNE, bend (1/4096) */
+    int32_t fine;                /* the residual below 1/16 semitone in inc: unison detune, TEMP, TUNE, bend (1/4096) */
 } vmod_t;
 
 typedef struct {

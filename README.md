@@ -447,6 +447,14 @@ Drum kits and incoming MIDI keep their own note mapping.
 Press **SCL** again for the **CHORD** page: CHRD picks the chord keys (OFF, the scale's triads or
 sevenths, or a fixed shape) and VOIC the voicing.
 
+KNOB 3 there is **TEMP**, the track's temperament, tuned from its ROOT: **EQUAL** (the default, every
+note as before), **PYTH** (Pythagorean: pure fifths, bright thirds), **MEAN** (quarter-comma meantone:
+pure major thirds, the organ of a stone chapel) or **JUST** (5-limit just intonation, the minor seventh
+16:9: in a minor key the i, iv and ♭VI chords ring pure, and ♭VII's fifth). PYTH and MEAN put their one sour fifth
+between the sharp fourth and the flat second, out of the minor and dungeon scales' way. Every pitched
+engine follows it, and so do GURDY's drones; DRUM and SLICE don't. A sound load keeps it, as it keeps
+ROOT and SCL.
+
 ## Layout
 
 | Path | What |

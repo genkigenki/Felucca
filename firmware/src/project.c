@@ -61,7 +61,11 @@
  *     chain is 4 + 16 x 5 = 84 bytes (FUN6..FUN9: 36, rows {slot, repeat}, chain_v9_t; they load as sections with the
  *     four tracks on the row's slot, song_chain.c chain_from_v9: the same song).
  * 68 + 4 x (104 + 2 + 576) + chain + motion = 3268; the patches at PROJ_FM6_OFF (3312): 44 spare, room for 11 more
- * track parameters. FUN9 / FUN8 / FUN7 load as before (their 64 records of 4 bytes read by proj_motion_v9, every
+ * track parameters. GHOULBOX took eight of them (no format change, FUN10 as it was): Felucca 1.5's seven ids, reserved
+ * at its defaults (P_ITYPE .. P_ESYNC, 96..102: a merge of 1.5 keeps their meaning), and TEMP (P_TEMP, 103), before
+ * the engine values (P_COUNT 112, P_E0 104; 12 spare, room for 3). A FUN10 of 1.2 .. 1.4.1 (104) or of Felucca 1.5
+ * (111) loads by count: TEMP EQUAL, the seven at their defaults. Firmware before refuses a FUN10 of 112 (np >
+ * P_COUNT): it shows EMPTY there. FUN9 / FUN8 / FUN7 load as before (their 64 records of 4 bytes read by proj_motion_v9, every
  * step's nudge 0: the timing they always had; parameters mapped by count, the four new ones at their defaults:
  * SYNC OFF, TRIG NOTE, POL BI, QUANTIZE ON, SPREAD 0, which play as before 1.2), and so do FUN6..FUN1. Firmware before 1.2
  * refuses a FUN10 everywhere (its size and magic are no format it knows): a slot holding one shows EMPTY there (the
@@ -90,7 +94,7 @@
  *
  * Built on the Mac too (tests/project_test.c, -DPROJ_HOST): the part above the #ifndef
  * PROJ_HOST needs core.h, params.c (TP) and engines.c. */
-#define PROJ_MAGIC 0x46554E41u                 /* "FUNA" (FUN10): 104 parameters, 128 motion records, the steps' nudge */
+#define PROJ_MAGIC 0x46554E41u                 /* "FUNA" (FUN10): 104 (GHOULBOX: 112) parameters, 128 motion records, nudges */
 #define PROJ_MAGIC_V9 0x46554E39u              /* "FUN9": FUN8, 64 bytes longer (the DRUM lane levels, 99 parameters) */
 #define PROJ_MAGIC_V8 0x46554E38u              /* "FUN8": FUN7 + the tracks' FM6 patches */
 #define PROJ_MAGIC_V7 0x46554E37u              /* "FUN7": serialized (byte params, packed steps), chain, motion */

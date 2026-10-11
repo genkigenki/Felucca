@@ -238,7 +238,8 @@ static void gr_spawn(gr_part_t *P, const track_t *t, uint32_t vi, uint32_t zl, u
     /* rate: the note against the zone's root, PITCH, the random detune (RAND^2, up to +-1 oct) */
     amt = p[P_E6] * p[P_E6] * 192 / (127 * 127);
     d16 = m->pitch16 - z->root16 + p[P_E4] * 16 + (((int32_t)(r1 & 0xFFFFu) - 32768) * amt >> 15);
-    step = (pow2_q16(clamp(d16, -1536, 576)) >> 8) * (z->rate >> 8);
+    step = pow2_q16(clamp(d16, -1536, 576));
+    step = ((step + (uint32_t)((int32_t)(step >> 12) * t->v[vi].tfine)) >> 8) * (z->rate >> 8);   /* GHOULBOX: + TEMP */
     step = step > GR_STEP_MAX ? GR_STEP_MAX : step < 256u ? 256u : step;
     rev = ((r1 >> 16) & 255u) < (uint32_t)p[P_E6];  /* RAND 127: half of them */
     span = (len * step) >> 16;                      /* source samples the grain reads */
@@ -396,7 +397,7 @@ static void grain_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
         n = CTL;
     if (zl == GR_SINE) {                            /* no data: a plain sine at the note's pitch + PTCH, TONE */
         lp = 4000 + ((clamp((p[P_E7] << 8) + m->cutoff, 0, 127 << 8) * 28767) >> 15);
-        smp_sine(out, n, m, p[P_E4] * 16, lp, &v->ph[0], &v->s[2]);
+        smp_sine(out, n, m, p[P_E4] * 16, v->tfine, lp, &v->ph[0], &v->s[2]);
         return;
     }
     if (zl < 0 || zl >= P->nz || P->src != (uint32_t)p[P_E0] % SMP_NALL + 1u) {

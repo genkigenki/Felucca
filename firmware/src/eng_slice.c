@@ -558,7 +558,7 @@ static void slice_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     int16_t *rb = slc_rb(t, v);
     slc_dec_t d;
     if ((pk & 7u) == SLC_SINE && v->s[6] != 2) {        /* no material: the sine at the key's pitch + PTCH */
-        smp_sine(out, n, m, p[P_E3] * 16, lp, &v->ph[0], &v->s[7]);
+        smp_sine(out, n, m, p[P_E3] * 16, v->tfine, lp, &v->ph[0], &v->s[7]);
         return;
     }
     if (!s) {                                           /* ended, or its slot was erased */

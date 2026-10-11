@@ -505,7 +505,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <tr><td>CHORUS</td><td>CRT (rate) · CDP (depth)</td></tr>
   <tr><td>TAPE</td><td>TAPE · CRSH</td></tr>
   <tr><td rowspan="2"><span class="k">SCL</span></td><td>SCL</td><td>ROOT · SCL · QNT (OFF, SNAP, WHITE, SEQ) · TRN (transpose)</td></tr>
-  <tr><td>CHORD</td><td>CHRD (OFF, DIA3, DIA7, MAJ, MIN, DOM7, MAJ7, MIN7, SUS4, POW) · VOIC (CLOSE, OPEN, INV1, INV2, +OCT)</td></tr>
+  <tr><td>CHORD</td><td>CHRD (OFF, DIA3, DIA7, MAJ, MIN, DOM7, MAJ7, MIN7, SUS4, POW) · VOIC (CLOSE, OPEN, INV1, INV2, +OCT) · TEMP (EQUAL, PYTH, MEAN, JUST)</td></tr>
   <tr><td rowspan="3"><span class="k">EDIT</span></td><td>EDIT 1 · EDIT 2</td><td>The engine's eight controls, four per page (chapter 15)</td></tr>
   <tr><td>VOICE</td><td>VCE · GLD · GLMOD · PRIO</td></tr>
   <tr><td>VOICE 2</td><td>ALLOC · DTUNE · PAN · MUTE</td></tr>
@@ -829,6 +829,16 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 </table>
 <h3>One finger, whole chords</h3>
 <p>On <span class="k">SCL</span> › CHORD, set CHRD to <b>DIA3</b>: each key plays the triad of the scale that starts on it (DIA7 adds a fourth note for a richer sound). In WHITE mode with ROOT D, one finger on the C key plays D minor, on A plays B♭, and so on. VOIC spreads the notes: OPEN for a wide, airy pad, +OCT to double the bass an octave down.</p>
+<h3>Old tunings</h3>
+<p>A modern keyboard is tuned in <b>equal temperament</b>: every step the same size, so every key sounds equally (slightly) out of tune. Medieval and Renaissance players tuned to pure ratios instead, and their chords shimmer less and ring more. On <span class="k">SCL</span> › CHORD, <b>TEMP</b> (KNOB 3) tunes the track from its ROOT:</p>
+<table>
+  <tr><th>TEMP</th><th>Sound</th></tr>
+  <tr><td>EQUAL</td><td>The default: every note as on any synth</td></tr>
+  <tr><td>PYTH (Pythagorean)</td><td>Pure fifths, sharp bright thirds: drones, plainchant, open fifths</td></tr>
+  <tr><td>MEAN (meantone)</td><td>Pure major thirds, soft and sweet: a chapel organ, slow chords</td></tr>
+  <tr><td>JUST (just intonation)</td><td>Pure chords: in a minor key, i, iv and ♭VI ring still</td></tr>
+</table>
+<p>Set ROOT to your key first: the tuning is built from it. Chords on far-away notes (the sharp fourth, the flat second) can sound sour; that is the price of the pure ones. GURDY's drones follow TEMP too, so a hurdy-gurdy in PYTH buzzes a pure fifth.</p>
 <h3>Melody tips</h3>
 <ul>
   <li>Start and end on the root. Lean on the notes of the current chord on its strong beats.</li>
