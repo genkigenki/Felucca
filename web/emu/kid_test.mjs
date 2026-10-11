@@ -41,7 +41,7 @@ const shot = (name) => {
   fs.writeFileSync(`${outDir}/kid_${name}.ppm`, Buffer.concat([Buffer.from("P6 240 240 255\n"), b]));
 };
 const WHITE = 0xFFFF;
-const NF = 69;                                                               // the friends (kid_art.h KID_N)
+const NF = 73;                                                               // the friends (kid_art.h KID_N)
 const KID_Y = (step) => 54 - 3 * step;
 const FXB = [B.FX, B.SCL, B.ENV, B.LFO, B.EDIT, B.GLO];
 
@@ -441,7 +441,8 @@ check("PLAY again stops it", ex.web_playing() === 0);
   render(400);
   peak = 0; render(1200);
   shot("guess");
-  check(`GUESS: a friend sings a note by itself (peak ${peak.toFixed(3)}) and the band asks`, peak > 0.05);
+  check(`GUESS: a friend sings a note by itself (peak ${peak.toFixed(3)}) and the band asks`, peak > 0.02);   // (which friend
+                                                  // this is depends on how many there are; a vowel peaks low)
   const t = ex.web_kid_guess();
   const wrong = t === 7 ? 14 : 7;
   ex.web_keys(1 << wrong); render(150); ex.web_keys(0); render(200);

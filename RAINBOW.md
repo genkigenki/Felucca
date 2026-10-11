@@ -12,7 +12,7 @@ at the next power-on.
 | Control | What happens |
 | --- | --- |
 | Keys | Play the friend's sound. The note's letter shows big in the band at the bottom, in its own color, and the friend hops. A music staff drops in at the top and writes the note (see below). |
-| PRESETS | Next or previous friend (69 of them, each with its own picture, sound, home sky and favorite beat). |
+| PRESETS | Next or previous friend (73 of them, each with its own picture, sound, home sky and favorite beat). |
 | ALGORITHM | How the keys play, one step per turn (below): 1 FRIEND, 3 FRIENDS, STRUM, ACCORDION, GUESS, FOLLOW, CHORDS. |
 | SELECT | The beat slower or faster (SLOW, WALK, FAST). |
 | KNOB 1 | Big and small. Low notes make a big friend, high notes a small one. OCT- and OCT+ do the same. |
@@ -141,6 +141,9 @@ LOOK-ALIKES OFF, and each of them is replaced by an original stand-in with the s
 | Spider Mom | Rainbow Mom (a mom with a rainbow headband) |
 | Spider Grandma | Green Granny (silver curls, round glasses, a green cardigan) |
 | Fairy Monster | Pixie (a leaf hat and lilac wings) |
+| Grouch | Alley Cat (smiling out of a can) |
+| Tiger Cub | Lion Cub |
+| Raccoon | Squirrel (with an acorn) |
 
 Turn **PRESETS right** the same way to bring the originals back. The choice is kept when the FM-1 is switched off (the top bit of the
 VOLUME's byte). Songs in WRITE are untouched; their notes just show the stand-ins. The list is `STAND_INS` in
@@ -190,6 +193,12 @@ with pigtails, little wings and a star wand, who moved in next door on the stree
 vine with heart-shaped leaves and purple trumpet flowers; PHYS's MARIMBA). Spider Grandma and Fairy Monster are
 look-alikes, with Green Granny and Pixie as their stand-ins.
 
+And her third: Grouch (a grumpy green monster in a trash can, lid on his head; TRIO's FAT BASS with a growl; he lives in
+the street's can now, and Slimy moved into a window), Tiger Cub (in a red zip-up sweater; FM6's TINE EP piano and the TRAIN
+beat, for the trolley), Raccoon (with a box of treasures he collected; PHASE's WIRE, under the stars) and Goldenrod
+(Nebraska's state flower: golden plumes on tall stems; ANALOG's STRINGS and HOEDOWN, for the prairie). Grouch, Tiger Cub and
+Raccoon are look-alikes, with Alley Cat, Lion Cub and Squirrel as their stand-ins.
+
 Each one uses one of Felucca's own factory sounds (listed in `firmware/src/kid.c`, `KID_SOUND`), with its
 level set so they all play at about the same loudness. Each also has a home sky and a favorite beat
 (Ghost and Slimy: SPOOKY, a ghost-hunting funk; Frog and Axolotl: REGGAE; Butterfly and Rainbow: LULLABY). Scissors
@@ -206,7 +215,7 @@ repository and its website are public.
 
 ## Where it lives
 
-- `tools/gen_kid_art.py`: the 69 pictures, drawn from shapes on a 48 x 48 grid and outlined
+- `tools/gen_kid_art.py`: the 73 pictures, drawn from shapes on a 48 x 48 grid and outlined
   automatically. `python3 tools/gen_kid_art.py /tmp/kid_art.h --png /tmp/sheet.png` writes a contact
   sheet to look at. The build runs it (`tools/build.py` generate).
 - `firmware/src/kid.c`: everything else (sounds, knobs, buttons, the screen). It takes over the main

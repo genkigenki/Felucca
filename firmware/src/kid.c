@@ -187,6 +187,10 @@ static const kid_sound_t KID_SOUND[KID_N] = {
     {12, "BRASS", 104, KS_BUBBLES, KB_MARCH},         /* KING AXOLOTL: a fanfare */
     {6, "RING BELL", 116, KS_STREET, KB_DISCO},       /* FAIRY MONSTER: a magic ringing bell (a look-alike: PIXIE) */
     {9, "MARIMBA", 127, KS_FLOWERS, KB_REGGAE},       /* MORNING GLORY: a wooden marimba */
+    {6, "FAT BASS", 107, KS_STREET, KB_HIPHOP, 0, 0, 40},   /* GROUCH: a grumpy, growly bass (a look-alike: ALLEY CAT) */
+    {12, "TINE EP", 95, KS_LEAVES, KB_TRAIN},        /* TIGER CUB: an electric piano, and a trolley's beat (a look-alike: LION CUB) */
+    {2, "WIRE", 100, KS_STARS, KB_DISCO},             /* RACCOON: a plucky wire, out at night (a look-alike: SQUIRREL) */
+    {0, "STRINGS", 93, KS_LEAVES, KB_HOEDOWN},       /* GOLDENROD: prairie strings (Nebraska's state flower) */
 };
 
 /* the beats: drums on track 4 (DRUM), a bass line on track 2, 16 steps of 1/16. Drums: a string per lane
@@ -2137,7 +2141,7 @@ static uint16_t kid_band_px(int32_t x, int32_t y)
 
 /* the street (her idea: a street like a famous one on children's TV, and all the monster friends): two brick
  * houses, one with a stoop, a lamp post and a trash can on the sidewalk, and the monsters at home in the windows, on
- * the stoop and in the can (Fairy Monster, from her second batch, next door). The friend she plays is out on the
+ * the stoop and Grouch in the can (Fairy Monster and Slimy next door). The friend she plays is out on the
  * sidewalk, so its spot is empty. At night the windows and the lamp light up */
 static int32_t kid_street_who(uint32_t fr, int32_t x, int32_t y, int32_t x0, int32_t y0, int32_t sz)
 {
@@ -2149,7 +2153,7 @@ static int32_t kid_street_who(uint32_t fr, int32_t x, int32_t y, int32_t x0, int
 static int32_t kid_street_px(int32_t x, int32_t y)
 {
     static const int16_t WIN[6][3] = {   /* windows: left, top, who (a friend, -1 none) */
-        {8, 62, 10}, {44, 62, -1}, {80, 62, 22}, {132, 84, -1}, {168, 84, 67}, {200, 84, 9}};   /* (67 FAIRY MONSTER) */
+        {8, 62, 10}, {44, 62, -1}, {80, 62, 22}, {132, 84, 23}, {168, 84, 67}, {200, 84, 9}};   /* (23 SLIMY, 67 FAIRY MONSTER) */
     uint32_t t = kf.t, nt = kid.night * 20u, i;
     int32_t c, bob = KID_SIN[(t / 70u) & 31u] * 2 / 127, lit = kid.night >= 4u;
     uint16_t dusk = RGB(24, 20, 56);
@@ -2165,17 +2169,18 @@ static int32_t kid_street_px(int32_t x, int32_t y)
             return kid_mix(RGB(40, 84, 62), dusk, nt);
         return lit ? RGB(255, 236, 150) : RGB(220, 232, 236);
     }
-    if (x >= 174 && x <= 198 && y >= 150 && y < 182) {           /* the trash can, ridged */
-        if (y < 154)
+    if (kid_art(69) != kid_art(kid.fr)) {                        /* GROUCH in his can (his picture has it), bobbing */
+        if (x >= 166 && x < 206 && y >= 140 && (c = kid_street_who(69, x, y, 167, 146 + (bob > 0), 36)) >= 0)
+            return c;
+    } else if (x >= 174 && x <= 198 && y >= 154 && y < 182) {    /* .. or, while she plays him, his can, empty */
+        if (y < 158)
             return kid_mix(RGB(118, 124, 132), dusk, nt);
         return kid_mix((x - 174) % 5 == 0 ? RGB(128, 134, 142) : RGB(168, 174, 180), dusk, nt);
-    }
-    if (y >= 120 + bob && y < 125 + bob && x >= 171 && x <= 201)   /* .. its lid, held up by who is inside */
-        return kid_mix(y == 120 + bob ? RGB(186, 192, 198) : RGB(140, 146, 154), dusk, nt);
-    if (y >= 117 + bob && y < 120 + bob && x >= 183 && x <= 189)
+    } else if (y >= 150 && y < 154 && x >= 171 && x <= 201) {    /* .. its lid on */
+        return kid_mix(y == 150 ? RGB(186, 192, 198) : RGB(140, 146, 154), dusk, nt);
+    } else if (y >= 147 && y < 150 && x >= 183 && x <= 189) {
         return kid_mix(RGB(118, 124, 132), dusk, nt);
-    if (x >= 173 && x < 199 && y >= 125 && y < 150 && (c = kid_street_who(23, x, y, 173, 125 + bob, 26)) >= 0)
-        return c;                                                 /* (SLIMY, peeking out) */
+    }
     if ((c = kid_street_who(7, x, y, 21, 126, 26)) >= 0)          /* GOOBERT in the doorway, GOO on the steps */
         return c;
     if ((c = kid_street_who(6, x, y, 50, 147 + (bob > 0), 22)) >= 0)

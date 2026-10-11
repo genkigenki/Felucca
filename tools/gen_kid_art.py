@@ -1518,6 +1518,134 @@ def pixie():                                                     # Fairy Monster
     return p.done()
 
 
+# her third batch (her ideas): Grouch, Tiger Cub, Raccoon and Goldenrod
+def trash_can(p, y0=27):                                         # a ridged silver can, its rim at y0
+    p.rect(10, y0 + 3, 38, 45, "silver")
+    for x in range(13, 37, 5):
+        p.line([(x, y0 + 4), (x, 44)], "grey", 1)
+    p.rect(8, y0, 40, y0 + 3, "grey")
+
+
+def grouch():                                                    # a grumpy green furry monster in a can, its lid on his head
+    p = Pic()
+    for x, y in ((12, 18), (36, 18), (14, 26), (34, 26), (18, 10), (30, 10)):   # fur
+        p.ell(x, y, 4, 4, "green")
+    p.ball(24, 19, 12, 11, "green", "dgreen")
+    p.poly([(9, 8), (30, 2), (39, 6), (16, 11)], "grey")         # the lid, tipped up on his head
+    p.rect(22, 2, 26, 4, "silver")
+    p.line([(13, 13), (24, 17), (35, 13)], "dbrown", 3)          # one big, cross eyebrow
+    p.ell(19, 19, 3, 3, "white"); p.ell(29, 19, 3, 3, "white")
+    p.ell(19, 20, 1, 2, "black"); p.ell(29, 20, 1, 2, "black")
+    p.line([(18, 26), (20, 24), (28, 24), (30, 26)], "black", 1)   # a frown
+    trash_can(p)
+    p.ell(11, 28, 3, 2, "green"); p.ell(37, 28, 3, 2, "green")   # hands on the rim
+    return p.done()
+
+
+def tigercub():                                                  # a tiger cub in a red zip-up sweater
+    p = Pic()
+    p.ball(24, 39, 13, 8, "red", "dred")                         # the sweater
+    p.line([(24, 32), (24, 46)], "gold", 1)                      # its zip
+    p.ell(11, 41, 3, 3, "orange"); p.ell(37, 41, 3, 3, "orange")   # paws
+    p.ell(12, 8, 5, 5, "orange"); p.ell(36, 8, 5, 5, "orange")   # round ears
+    p.ell(12, 8, 2, 2, "lpink"); p.ell(36, 8, 2, 2, "lpink")
+    p.ball(24, 19, 15, 13, "orange", "dorange")                  # head
+    for x0, y0, x1, y1 in ((21, 7, 22, 11), (26, 7, 27, 11), (9, 17, 13, 18), (35, 17, 39, 18), (9, 21, 12, 22), (36, 21, 39, 22)):
+        p.rect(x0, y0, x1, y1, "black")                          # stripes
+    p.ell(24, 25, 7, 5, "cream")                                 # muzzle
+    p.eye(18, 18, 3); p.eye(30, 18, 3)
+    p.ell(24, 23, 2, 1, "hpink")
+    p.smile(24, 27, 3)
+    return p.done()
+
+
+def raccoon():                                                   # a raccoon with his collection, a box of treasures
+    p = Pic()
+    for i, c in enumerate(["grey", "black", "grey", "black", "grey"]):   # a ringed tail
+        p.ell(40, 40 - i * 4, 4, 3, c)
+    p.ball(24, 37, 12, 9, "grey", "dgrey")                       # body
+    p.poly([(9, 12), (12, 2), (18, 8)], "grey"); p.poly([(39, 12), (36, 2), (30, 8)], "grey")   # ears
+    p.ball(24, 17, 14, 11, "grey", "dgrey")                      # head
+    p.poly([(9, 15), (24, 18), (39, 15), (36, 22), (24, 21), (12, 22)], "black")   # the mask
+    p.ell(18, 18, 2, 2, "white"); p.ell(30, 18, 2, 2, "white")
+    p.px(18, 18, "black"); p.px(30, 18, "black")
+    p.ell(24, 24, 6, 4, "white")                                 # muzzle
+    p.ell(24, 22, 2, 1, "black")
+    p.smile(24, 25, 2)
+    p.rect(13, 34, 33, 45, "tan"); p.rect(13, 34, 33, 35, "dtan")   # his box of treasures
+    for x, y, c in ((16, 32, "blue"), (20, 31, "red"), (25, 32, "yellow"), (30, 31, "green"), (18, 33, "purple"), (27, 33, "pink")):
+        p.ell(x, y, 2, 2, c)
+    p.ell(11, 38, 3, 2, "dgrey"); p.ell(35, 38, 3, 2, "dgrey")   # paws holding it
+    return p.done()
+
+
+def goldenrod():                                                 # goldenrod (Nebraska's state flower): golden plumes on tall stems
+    import math
+    p = Pic()
+    for x0, x1, top in ((24, 24, 14), (24, 12, 22), (24, 37, 20)):   # three stems
+        p.line([(x0, 46), (x1, top)], "dgreen", 2)
+    for x, y, d in ((20, 36, -1), (29, 32, 1), (17, 26, -1), (30, 24, 1)):   # long, narrow leaves
+        p.poly([(x, y), (x + 9 * d, y - 4), (x + 1 * d, y + 2)], "green")
+    def plume(cx, cy, w, h):                                     # an arching spray of little yellow flowers
+        for i in range(0, 40):
+            a = i * 2.39996
+            r = math.sqrt(i / 40)
+            x, y = cx + w * r * math.cos(a), cy + h * r * math.sin(a)
+            p.ell(x, y, 1, 1, "yellow" if i % 3 else "gold")
+    plume(12, 18, 6, 6); plume(37, 16, 6, 6)
+    p.ball(24, 11, 10, 9, "yellow", "gold")                      # the big plume, with a face
+    for x, y in ((17, 5), (22, 3), (28, 3), (32, 7), (15, 10), (33, 12)):
+        p.ell(x, y, 2, 2, "gold")
+    p.eye(20, 11, 2); p.eye(28, 11, 2)
+    p.smile(24, 15, 2)
+    p.cheek(16, 14); p.cheek(32, 14)
+    return p.done()
+
+
+def alleycat():                                                  # Grouch's stand-in: a grey alley cat, smiling out of a can
+    p = Pic()
+    p.poly([(11, 13), (13, 2), (20, 9)], "grey"); p.poly([(37, 13), (35, 2), (28, 9)], "grey")
+    p.poly([(13, 10), (14, 5), (17, 8)], "lpink"); p.poly([(35, 10), (34, 5), (31, 8)], "lpink")
+    p.ball(24, 18, 13, 11, "grey", "dgrey")
+    p.eye(19, 17, 3); p.eye(29, 17, 3)
+    p.poly([(22, 21), (26, 21), (24, 23)], "hpink")
+    p.smile(24, 24, 2)
+    for y in (21, 24):
+        p.line([(6, y - 1), (13, y)], "dgrey", 1); p.line([(35, y), (42, y - 1)], "dgrey", 1)
+    trash_can(p)
+    p.ell(11, 28, 3, 2, "grey"); p.ell(37, 28, 3, 2, "grey")
+    return p.done()
+
+
+def lioncub():                                                   # Tiger Cub's stand-in: a lion cub with a fluffy mane
+    p = Pic()
+    p.ball(24, 39, 12, 8, "gold", "dyellow")
+    for i in range(10):                                          # the mane
+        import math
+        a = i * math.pi / 5
+        p.ell(24 + 15 * math.cos(a), 20 + 13 * math.sin(a), 5, 5, "dorange")
+    p.ball(24, 20, 13, 12, "gold", "dyellow")
+    p.ell(24, 26, 6, 4, "cream")
+    p.eye(19, 19, 3); p.eye(29, 19, 3)
+    p.ell(24, 24, 2, 1, "dbrown")
+    p.smile(24, 28, 2)
+    return p.done()
+
+
+def squirrel():                                                  # Raccoon's stand-in: a squirrel with an acorn
+    p = Pic()
+    p.ball(36, 24, 9, 16, "orange", "dorange")                   # a big bushy tail
+    p.ball(22, 36, 10, 9, "orange", "dorange")
+    p.ell(22, 38, 6, 6, "cream")
+    p.poly([(14, 10), (15, 3), (19, 9)], "orange"); p.poly([(26, 9), (29, 3), (30, 10)], "orange")
+    p.ball(22, 18, 11, 10, "orange", "dorange")
+    p.eye(18, 17, 3); p.eye(26, 17, 3)
+    p.ell(22, 22, 1, 1, "dbrown")
+    p.smile(22, 24, 2)
+    p.ell(22, 33, 3, 3, "brown"); p.rect(19, 30, 25, 31, "dbrown")   # the acorn
+    return p.done()
+
+
 STAND_INS = {                    # the look-alike's name: the stand-in's name and picture
     "BLUE PUP": ("SPOTTY PUP", spottypup),
     "RED PUP": ("FOX", fox),
@@ -1533,6 +1661,9 @@ STAND_INS = {                    # the look-alike's name: the stand-in's name an
     "SPIDER MOM": ("RAINBOW MOM", rainbowmom),
     "SPIDER GRANDMA": ("GREEN GRANNY", greengranny),
     "FAIRY MONSTER": ("PIXIE", pixie),
+    "GROUCH": ("ALLEY CAT", alleycat),
+    "TIGER CUB": ("LION CUB", lioncub),
+    "RACCOON": ("SQUIRREL", squirrel),
 }
 
 ICONS = [icon_one, icon_choir, icon_strum, icon_accordion, icon_guess, icon_follow, icon_chords]
@@ -1609,6 +1740,10 @@ FRIENDS = [
     ("KING AXOLOTL", kingaxolotl),
     ("FAIRY MONSTER", fairymonster),
     ("MORNING GLORY", morningglory),
+    ("GROUCH", grouch),
+    ("TIGER CUB", tigercub),
+    ("RACCOON", raccoon),
+    ("GOLDENROD", goldenrod),
 ]
 
 
