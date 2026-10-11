@@ -30,12 +30,14 @@ static void panel_setup(void) {}
 
 static uint8_t nor[0x100000], flash_ok = 1;
 static int erase_error, fail_after = -1;
-static uint32_t erases, as_erases;               /* (as_erases: the autosave's two sectors, 0xE5000 / 0xE6000) */
+/* erases / as_erases count the SAVES (a commit record programmed: storage.c writes it last), not the sector erases: a save
+ * into a sector that reads blank skips its erase (storage.c st_blank, st_tidy), so the erases are counted on their own
+ * (real_erases) where a test is about them. as_erases: the autosave's two sectors, 0xE5000 / 0xE6000 */
+static uint32_t erases, as_erases, real_erases;
 static int st_read(uint32_t off, void *dst, uint32_t n) { memcpy(dst, nor + off, n); return 0; }
 static int st_erase(uint32_t off)
 {
-    erases++;
-    as_erases += off >= 0xE5000u && off < 0xE7000u;
+    real_erases++;
     if (erase_error) return -8;
     memset(nor + off, 0xFF, 4096);
     return 0;
@@ -44,9 +46,14 @@ static int st_prog(uint32_t off, const void *src, uint32_t n)
 {
     const uint8_t *s = src;
     uint32_t i;
+    if (erase_error) return -8;                      /* (a failing part fails its programs too: a save into a blank sector has no erase to fail) */
     if (fail_after == 0) return -9;
     if (fail_after > 0) fail_after--;
     for (i = 0; i < n; i++) nor[off + i] &= s[i];
+    if ((off & 0xFFFu) == 0u && n == 32u) {          /* the commit record: the save is done */
+        erases++;
+        as_erases += off >= 0xE5000u && off < 0xE7000u;
+    }
     return 0;
 }
 static uint32_t irq_save(void) { return 0; }
@@ -87,7 +94,7 @@ static void reset(void)
     flash_ok = 1;
     erase_error = 0;
     fail_after = -1;
-    up_gen = erases = 0;
+    up_gen = erases = real_erases = 0;
     irq_start_race = irq_races = 0;
 }
 
@@ -442,7 +449,7 @@ static int fav_test(void)
 {
     int bad = 0;
     maku_fav_t keep[MAKU_FAV_MAX];
-    uint32_t e0, a0, n;
+    uint32_t e0, a0, r0, n;
     reset();
     flash_ok = 1;                                   /* (persist_boot would ask the part's id: the stub says none) */
     maku_fav_boot();
@@ -451,34 +458,41 @@ static int fav_test(void)
     memcpy(keep, maku_fav.e, sizeof keep);
     e0 = erases;
     a0 = as_erases;
-    bad += check("  REC: the ring written with one sector erase, in the autosave's pair", maku_fav_store() == 0 &&
-                 erases == e0 + 1u && as_erases == a0 + 1u);
+    r0 = real_erases;
+    bad += check("  REC from empty flash: the ring written into the autosave's pair, no sector erase (nothing to stop the audio)",
+                 maku_fav_store() == 0 && erases == e0 + 1u && as_erases == a0 + 1u && real_erases == r0);
     maku_fav.n = 0;
     maku_fav_boot();
     bad += check("  power-on: the five likes back, as they were", maku_fav.n == 5u && !memcmp(keep, maku_fav.e, 5u * sizeof keep[0]));
-    bad += check("  .. and the power-on wrote nothing", erases == e0 + 1u);
+    bad += check("  .. and the power-on wrote and erased nothing (no stale copy yet)", erases == e0 + 1u && real_erases == r0);
     bad += check("  not an autosave: the autosave's loader finds none there", st_load(OBJ_AUTOSAVE, &proj_wire, sizeof proj_wire) < 0);
     fav_fill(16, 2);
     memcpy(keep, maku_fav.e, sizeof keep);
-    bad += check("  a second REC goes to the other sector (A / B by turns)", maku_fav_store() == 0 && erases == e0 + 2u &&
-                 nor[0xE5000u] != 0xFFu && nor[0xE6000u] != 0xFFu);
+    bad += check("  a second REC goes to the other sector (A / B by turns), blank too: no erase", maku_fav_store() == 0 &&
+                 erases == e0 + 2u && real_erases == r0 && nor[0xE5000u] != 0xFFu && nor[0xE6000u] != 0xFFu);
     {
         uint32_t i;
         for (i = 0; i < 300u; i++)                       /* new worlds, likes or not: no flash */
             maku_world_pref(i * 7919u + 1u);
-        bad += check("  300 new worlds from the likes: no flash write", erases == e0 + 2u);
+        bad += check("  300 new worlds from the likes: no flash write", erases == e0 + 2u && real_erases == r0);
+    }
+    {   /* the newer copy rots before any power-on tidied the stale one: the older still loads */
+        static uint8_t keep_nor[0x2000];
+        uint32_t cur = st_sector(OBJ_MAKUFAV, nor[0xE6000u + 8] != 0xFFu && ((st_hdr_t *)(nor + 0xE6000u))->seq == 2u ? 1u : 0u);
+        memcpy(keep_nor, nor + 0xE5000u, sizeof keep_nor);
+        nor[cur + ST_PAYLOAD_OFF + 40u] ^= 0x10u;        /* the newer copy rots */
+        maku_fav.n = 0;
+        maku_fav_boot();
+        bad += check("  the newer copy damaged: the one before it loads (5 likes)", maku_fav.n == 5u);
+        memcpy(nor + 0xE5000u, keep_nor, sizeof keep_nor);
+        r0 = real_erases;
     }
     maku_fav.n = 0;
     maku_fav_boot();
     n = maku_fav.n;
     bad += check("  .. power-on: the newer ring (16 likes)", n == 16u && !memcmp(keep, maku_fav.e, sizeof keep));
-    {
-        uint32_t cur = st_sector(OBJ_MAKUFAV, nor[0xE6000u + 8] != 0xFFu && ((st_hdr_t *)(nor + 0xE6000u))->seq == 2u ? 1u : 0u);
-        nor[cur + ST_PAYLOAD_OFF + 40u] ^= 0x10u;        /* the newer copy rots */
-        maku_fav.n = 0;
-        maku_fav_boot();
-        bad += check("  the newer copy damaged: the one before it loads (5 likes)", maku_fav.n == 5u);
-    }
+    bad += check("  .. and the power-on erased the stale older copy (the audio has not started), the newer is intact",
+                 real_erases == r0 + 1u && (nor[0xE5000u] == 0xFFu) != (nor[0xE6000u] == 0xFFu) && st_load(OBJ_MAKUFAV, &proj_wire, sizeof proj_wire) > 0);
     nor[0xE5000u + ST_PAYLOAD_OFF + 41u] ^= 0x10u;
     nor[0xE6000u + ST_PAYLOAD_OFF + 41u] ^= 0x10u;
     maku_fav.n = 7;
@@ -508,10 +522,42 @@ static int fav_test(void)
     bad += check("  a failed write is reported (the likes stay in RAM)", maku_fav_store() != 0 && maku_fav.n == 4u);
     erase_error = 0;
     maku_fav.n = 0;
-    bad += check("  the clearing is written too (an empty ring)", maku_fav_store() == 0 && erases == e0 + 2u);
+    bad += check("  the clearing is written too (an empty ring)", maku_fav_store() == 0 && erases == e0 + 1u);
     fav_fill(2, 5);
     maku_fav_boot();
     bad += check("  .. and power-on finds it empty", maku_fav.n == 0u);
+    maku_fav.n = 0;
+    /* the erase ahead of the press (storage.c st_tidy, maku_fav_tidy): a REC stops the audio only if it has to erase */
+    reset();
+    flash_ok = 1;
+    maku_fav_stale = 0;
+    fav_fill(3, 6);
+    bad += check("  REC, REC: two blank sectors, no erase at all", maku_fav_store() == 0 && maku_fav_store() == 0 && real_erases == 0u);
+    bad += check("  .. the stale copy is known (maku_fav_stale)", maku_fav_stale == 1u);
+    maku_fav_tidy();
+    bad += check("  a new world's tidy: the stale copy erased (one erase), the newer intact", real_erases == 1u && maku_fav_stale == 0u &&
+                 st_load(OBJ_MAKUFAV, &proj_wire, sizeof proj_wire) > 0);
+    maku_fav_tidy();
+    bad += check("  .. and a second tidy does nothing", real_erases == 1u);
+    bad += check("  the next REC writes into the tidied sector: no erase", maku_fav_store() == 0 && real_erases == 1u);
+    bad += check("  REC again before any new world: the stale copy is erased on the press (one erase, the dip)",
+                 maku_fav_store() == 0 && real_erases == 2u);
+    {   /* a copy that is not a MAKU ring (the autosave's, the pair is shared) is not touched by the tidy */
+        uint8_t b[16] = {1, 2, 3};
+        reset();
+        flash_ok = 1;
+        maku_fav_stale = 0;
+        fav_fill(2, 7);
+        maku_fav_store();
+        maku_fav_store();                                /* B is current, A stale */
+        st_save_to(OBJ_AUTOSAVE, b, sizeof b, 0);        /* .. then A holds an autosave (erased first: not blank) */
+        r0 = real_erases;
+        maku_fav_stale = 1;
+        maku_fav_tidy();
+        bad += check("  a copy that is another object's (an autosave) is left alone by the tidy", real_erases == r0 &&
+                     st_load(OBJ_AUTOSAVE, b, sizeof b) == (int)sizeof b);
+    }
+    maku_fav_stale = 0;
     maku_fav.n = 0;
     return bad;
 }

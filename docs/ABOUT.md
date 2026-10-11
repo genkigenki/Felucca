@@ -28,7 +28,7 @@ DJ イベントの転換や幕間に、ささっとつないで、とりあえ�
 - 起動時ランダムの範囲を、耳で詰める。
 - 4つの音量を同時に上げたとき、音同士が避け合う動き（ダッキングの拡張）。
 - キックのゴーストを LED で暗く見せる。
-- いいねの定数（16件・増え方・変異率）を、使ってみて決める。REC の書き込み（約40 ms の途切れ）の許容を実機で確かめる。
+- いいねの定数（16件・増え方・変異率）を、使ってみて決める。REC を続けて押したときの凹み（約40 ms をフェードで包む）の許容を実機で確かめる。
 - 使わない音源の削除（フラッシュが約28 KB空く。テストの整理が先）。
 - 実機での CPU 負荷の測定。
 
@@ -58,7 +58,7 @@ A machine for DJ-event interludes: plug it in and get some sound, fast. **The mo
 - Tune the boot-randomness ranges by ear.
 - Let the parts duck each other when all four volumes are up.
 - Show the kick's ghost notes dimly on the LEDs.
-- Settle the likes' constants (16, growth rate, mutation rate) by use; check on hardware that the ~40 ms gap of a REC write is acceptable.
+- Settle the likes' constants (16, growth rate, mutation rate) by use; check on hardware that the dip of a second REC before any new world (~40 ms inside a fade) is acceptable.
 - Remove the unused engines (about 28 KB of flash; the tests need tidying first).
 - Measure the CPU load on the device.
 

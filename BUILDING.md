@@ -1,4 +1,4 @@
-# Building Felucca
+# Building MAKU
 
 The build makes three files in `build/`:
 
@@ -89,6 +89,14 @@ keeps the flash's storage sectors (projects, user presets, settings) in the brow
 MIDI out, the editor, updates), TRS MIDI and the user sample slots. A build of it is on the site:
 <https://hugelton.github.io/Felucca/webapp/try/>.
 
+Each build records the commit it was made from (`build/build.json`, `build/emu/build.json`; `-dirty` when the
+sources had uncommitted changes), and the emulator page shows it after the version. To check that the emulator
+on GitHub Pages (<https://okumurari2.github.io/maku/>) matches the local build:
+
+```
+python3 tools/check_emu.py      # MATCH (exit 0) or DIFFERENT (exit 1), with each build's commit
+```
+
 ## Tests
 
 ```
@@ -113,9 +121,6 @@ does the same for the cost files.
 
 ## Install
 
-Use the web installer in Chrome or Edge:
-<https://hugelton.github.io/Felucca/webapp/installer/>. It installs the released package.
-
 From the command line (needs `pip3 install mido python-rtmidi`):
 
 ```
@@ -123,8 +128,12 @@ python3 tools/fm1_install.py build/felucca.fwsc
 python3 tools/fm1_install.py --info          # identity of the connected FM-1
 ```
 
-Or, to install your own build from the web installer, make a local copy of the site and open it from `localhost`
-(Web MIDI needs a secure context):
+For a release, use `build/maku-X.Y.fwsc` (`./build.sh --release X.Y`). Felucca's own web installer
+(<https://hugelton.github.io/Felucca/webapp/installer/>) installs Felucca's release, not MAKU. A browser installer that
+takes any FM-1 `.fwsc` (Chrome / Edge), such as the [FM-1 Firmware Hub](https://fm1.designburgapps.com), can write
+your package; Web MIDI needs a secure context.
+
+Or, to try your own build in a local copy of Felucca's web installer, open it from `localhost`:
 
 ```
 python3 web/make_site.py build/felucca.fwsc dev /tmp/felucca-site
@@ -134,3 +143,10 @@ cd /tmp/felucca-site && python3 -m http.server 8000
 
 Installing firmware is at your own risk. If an install fails and the FM-1 no longer
 starts, recovery needs [FM-1-transporter](https://github.com/kurogedelic/FM-1-transporter).
+
+## Releasing
+
+1. `./build.sh --release 0.1` (identity `FM-1_901`, version string `v0.1`); check `build/release-0.1/`.
+2. Tag `v0.1` and create a GitHub release: the body is `docs/RELEASE_0.1.md`; attach everything in `build/release-0.1/`
+   (the `.fwsc`, the app `.bin`, `SHA256SUMS`, the attribution and licence files).
+3. Then list it on the FM-1 Firmware Hub ([docs/HUB_SUBMISSION.md](docs/HUB_SUBMISSION.md)).

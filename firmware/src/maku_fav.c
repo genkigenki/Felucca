@@ -6,10 +6,11 @@
  *
  *   the ring   MAKU_FAV_MAX worlds, oldest first; a like more pushes the oldest out.
  *   a like     what maku_world decides, no more: the seed, the floor / haze / voice (by the catalog's stable ids,
- *              maku_voices.c), ROOT, SCALE, BPM, the 12 macros and the two INSERTs (type, RATE, DEPTH, FDBK).
+ *              maku_voices.c), ROOT, SCALE, BPM, the 12 macros, the two INSERTs (type, RATE, DEPTH, FDBK) and the
+ *              floor's and the haze's pitch levels (PM_*; a like kept before them has 0 there: WARP, it sounds as it did).
  *   a world    with N likes, one of them in MAKU_FAV_STEP * N % of the worlds (at most MAKU_FAV_CAP %), the newer the
  *              likelier (weights 1 .. N, oldest to newest); each of its parts (the three voices, ROOT, SCALE, every
- *              macro) is drawn anew with MAKU_MUT_P % (from the catalog's weights and the macros' own ranges, as a new
+ *              macro, the pitch levels) is drawn anew with MAKU_MUT_P % (from the catalog's weights and the macros' own ranges, as a new
  *              world would). No likes: maku_world, exactly as before.
  *   the flash  only when REC is pressed (a like or the clearing): project.c maku_fav_store, its own storage object.
  *              The blob has its own magic, version and checksum; a broken or foreign one starts the ring empty; a like
@@ -27,7 +28,7 @@
 #define MAKU_FAV_ESZ 32u             /* bytes a like in the blob */
 #define MAKU_FAV_HEAD 8u             /* magic, version, count, entry size */
 #define MAKU_FAV_BYTES (MAKU_FAV_HEAD + MAKU_FAV_MAX * MAKU_FAV_ESZ + 4u)   /* .. and the checksum */
-#define MAKU_FAV_NEL 17u             /* the parts a like's world can change: 3 voices, ROOT, SCALE, 12 macros */
+#define MAKU_FAV_NEL 18u             /* the parts a like's world can change: 3 voices, ROOT, SCALE, 12 macros, the pitch levels */
 
 typedef struct {
     uint32_t seed;                   /* the world's seed (what it was drawn from; a like's own world keeps the seed it was made with) */
@@ -35,15 +36,20 @@ typedef struct {
     uint8_t root, scale, bpm;
     uint8_t m[12];                   /* the macros, track by track (SELECT PRESETS ALGORITHM) */
     uint8_t it[2], ia[2], ib[2], ic[2];   /* the INSERT of the floor and the haze: type, RATE, DEPTH, FDBK */
+    uint8_t pm;                      /* the pitch levels: the floor's | the haze's << 2 (in a byte the blob had spare: 0 before them) */
 } maku_fav_t;
 
 static struct {
     maku_fav_t e[MAKU_FAV_MAX];      /* oldest first */
     uint8_t n;
-    uint8_t liked;                   /* the world now has been liked (REC's LED) */
+    uint8_t liked;                   /* the world now has been liked */
 } maku_fav __attribute__((section(".pool")));
 
+/* REC's LED in MAKU: lit only while "LIKED n/16" (or "LIKED, NOT SAVED") is up */
+static int maku_fav_lit(void) { return maku_fav.liked && ui.msg_t && !memcmp(ui.msg, "LIKED", 5); }
+
 static int maku_fav_store(void);     /* project.c: the ring to flash (0 = written) */
+static void maku_fav_tidy(void);     /* project.c: the other copy erased ahead of the next REC */
 
 /* the share of the worlds (percent) drawn from n likes */
 static uint32_t maku_fav_rate(uint32_t n)
@@ -67,7 +73,7 @@ static int maku_fav_valid(const maku_fav_t *e)
     for (k = 0; k < 2u; k++)
         if (e->it[k] > (uint32_t)TP[P_ITYPE].max || e->ia[k] > 127u || e->ib[k] > 127u || e->ic[k] > 127u)
             return 0;
-    return 1;
+    return e->pm < 16u && (e->pm & 3u) < PM_N && (e->pm >> 2) < PM_N;
 }
 
 /* the world now as a like; 0 if there is none to keep (no voices yet) */
@@ -97,6 +103,7 @@ static int maku_fav_capture(maku_fav_t *e)
         e->ib[k] = (uint8_t)t->p[P_IB];
         e->ic[k] = (uint8_t)t->p[P_IC];
     }
+    e->pm = (uint8_t)(maku.pm[MAKU_DRA] | maku.pm[MAKU_DRB] << 2);
     return maku_fav_valid(e);
 }
 
@@ -121,6 +128,8 @@ static void maku_fav_apply(const maku_fav_t *e, uint32_t seed)
     for (i = 0; i < 3u; i++)
         maku_voice_apply(1u + i, maku_voice_row(1u + i, e->v[i]));
     trk[MAKU_DRA].p[P_LRATE] = 14;                     /* ~0.1 Hz (maku_world) */
+    maku.pm[MAKU_DRA] = (uint8_t)(e->pm & 3u);           /* (before the macros: they are bounded by them) */
+    maku.pm[MAKU_DRB] = (uint8_t)(e->pm >> 2);
     for (i = 0; i < 2u; i++) {
         track_t *t = &trk[MAKU_DRA + i];
         t->p[P_ITYPE] = e->it[i];
@@ -159,7 +168,7 @@ static void maku_fav_revoice(maku_fav_t *e, uint32_t k)
 }
 
 /* each part of like e drawn anew with MAKU_MUT_P %; bit i of the result: part i changed (0..2 the voices, 3 ROOT,
- * 4 SCALE, 5.. the macros) */
+ * 4 SCALE, 5..16 the macros, 17 the pitch levels: both drawn as a new world's) */
 static uint32_t maku_fav_mutate(maku_fav_t *e)
 {
     uint32_t k, t, v, did = 0;
@@ -179,6 +188,14 @@ static uint32_t maku_fav_mutate(maku_fav_t *e)
                 v = MAKU_CALM[rng() % sizeof MAKU_CALM];
             did |= (uint32_t)(v != e->scale) << k;
             e->scale = (uint8_t)v;
+        } else if (k == 17u) {
+            uint8_t a, b;
+            for (t = 0, v = e->pm; t < 8u && v == e->pm; t++) {
+                maku_pm_draw(&a, &b);
+                v = a | (uint32_t)b << 2;
+            }
+            did |= (uint32_t)(v != e->pm) << k;
+            e->pm = (uint8_t)v;
         } else {
             uint32_t m = k - 5u;
             for (t = 0, v = e->m[m]; t < 8u && v == e->m[m]; t++)
@@ -267,6 +284,7 @@ static void maku_fav_pack(uint8_t *b)
             o[26 + k] = e->ib[k];
             o[28 + k] = e->ic[k];
         }
+        o[30] = e->pm;
     }
     maku_put32(b + MAKU_FAV_BYTES - 4u, maku_fav_sum(b, MAKU_FAV_BYTES - 4u));
 }
@@ -297,6 +315,7 @@ static uint32_t maku_fav_unpack(const uint8_t *b, int n)
             e->ib[k] = o[26 + k];
             e->ic[k] = o[28 + k];
         }
+        e->pm = o[30];
         if (maku_fav_valid(e))
             maku_fav.n++;
     }

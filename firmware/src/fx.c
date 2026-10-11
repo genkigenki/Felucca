@@ -234,7 +234,7 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
     int32_t size = 25000 + song.g[G_RSIZE] * 50, damp = 32767 - song.g[G_RDAMP] * 200;
     int32_t m[4] = {0, 0, 0, 0}, mf[4] = {0, 0, 0, 0};
     int32_t *outr = rev_rp, sk = maku_sink();
-    if (sk)                                             /* PLAY held (SINK): the combs feed back towards 0.99, the tail swallows */
+    if (sk)                                             /* FX held (SINK): the combs feed back towards 0.995, the tail swallows */
         size += ((32620 - size) * sk) >> 12;
     fx.rv_ph += 2u * LFO_INC[18];                       /* ~0.5 Hz, per block */
     m[1] = ((osc_sine(fx.rv_ph) + 32768) * 9) >> 8;     /* 0 .. 8 samples, Q8 */
@@ -288,7 +288,7 @@ static __attribute__((noinline)) void rev_spring(const int32_t *rev_in, int32_t 
     uint32_t i, k, s = (uint32_t)song.g[G_RSIZE];
     int32_t g = 19661 + (int32_t)s * 85;                /* the loop's gain: 0.6 .. 0.93 */
     int32_t sk = maku_sink();
-    if (sk)                                             /* PLAY held (SINK): towards 0.985 */
+    if (sk)                                             /* FX held (SINK): towards 0.99 */
         g += ((32500 - g) * sk) >> 12;
     int32_t kl = 26000 - song.g[G_RDAMP] * 160;         /* its low-pass: ~9 kHz .. ~1.3 kHz */
     int32_t len = (int32_t)(1323u + ((s * 1323u) >> 7)) << 8, L, L2, L3, f, w;

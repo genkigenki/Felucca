@@ -86,23 +86,26 @@ static uint32_t hold_to_stored(uint32_t old, uint32_t i)
 }
 static int hold_stored_ok(uint32_t v) { return v <= 1u || (v & ~3u) == HOLD_TAG; }
 
-/* LEDS (menu): OFF, DIM LO, DIM HI, INV. DIM HI (the default), the idle buttons and keys glow dim (~1/30) and the
+/* MANNER:leds-auto. LEDS (menu): OFF, DIM LO, AUTO, DIM HI, INV. DIM HI, the idle buttons and keys glow dim (~1/30) and the
  * active ones are lit (#35); DIM LO the same, darker (~1/60, hal/fm1_input.h FM1_LED_DIM_LO_NS); OFF no glow,
  * the active ones lit (as 1.0); INV the idle ones lit and the active ones dark, as the stock firmware (ui_input.c
- * ui_leds). Saved in the settings record's retired zoom field as LEDS_TAG | mode, the modes append-only: DIM 0
- * (now DIM HI) and INV 1 keep their values, OFF 2 and DIM LO 3 are new; any other value there (0 or 1 from older
- * firmware) is DIM HI. LEDS_MENU: the menu's order, darkest first */
+ * ui_leds). AUTO (the default): DIM LO on the battery, DIM HI while a USB host is connected (ui_input.c leds_eff): the
+ * glow is lit all the time, and this unit runs on a small battery. Saved in the settings record's retired zoom field:
+ * LEDS_TAG | mode for DIM HI 0 (new: it is a choice now), INV 1, OFF 2 and DIM LO 3, the modes append-only; AUTO is
+ * the bare 0 (and 1, and any other value there from older firmware, which is how an old setting becomes AUTO; firmware
+ * before AUTO reads that 0 as DIM HI and TAG | 0 as DIM HI too). LEDS_MENU: the menu's order, darkest first */
 #define LEDS_TAG 0x4C454400u                    /* "LED" */
-enum { LEDS_DIM, LEDS_INV, LEDS_OFF, LEDS_DIM_LO, LEDS_COUNT };
-static const uint8_t LEDS_MENU[LEDS_COUNT] = {LEDS_OFF, LEDS_DIM_LO, LEDS_DIM, LEDS_INV};
-static const char *const LEDS_NAME[LEDS_COUNT] = {"DIM HI", "INV", "OFF", "DIM LO"};
-static uint8_t settings_leds = LEDS_DIM;
-static uint32_t leds_from_stored(uint32_t v) { return (v & ~3u) == LEDS_TAG && (v & 3u) < LEDS_COUNT ? v & 3u : LEDS_DIM; }
+enum { LEDS_DIM, LEDS_INV, LEDS_OFF, LEDS_DIM_LO, LEDS_AUTO, LEDS_COUNT };
+#define LEDS_STORED 4u                          /* the modes with a stored form of their own (TAG | 0..3) */
+static const uint8_t LEDS_MENU[LEDS_COUNT] = {LEDS_OFF, LEDS_DIM_LO, LEDS_AUTO, LEDS_DIM, LEDS_INV};
+static const char *const LEDS_NAME[LEDS_COUNT] = {"DIM HI", "INV", "OFF", "DIM LO", "AUTO"};
+static uint8_t settings_leds = LEDS_AUTO;
+static uint32_t leds_from_stored(uint32_t v) { return (v & ~3u) == LEDS_TAG && (v & 3u) < LEDS_STORED ? v & 3u : LEDS_AUTO; }
 static uint32_t leds_to_stored(uint32_t old, uint32_t m)
 {
-    return m != LEDS_DIM && m < LEDS_COUNT ? LEDS_TAG | m : old > 1u ? 0u : old;
+    return m != LEDS_AUTO && m < LEDS_STORED ? LEDS_TAG | m : old > 1u ? 0u : old;
 }
-static int leds_stored_ok(uint32_t v) { return v <= 1u || ((v & ~3u) == LEDS_TAG && (v & 3u) < LEDS_COUNT); }
+static int leds_stored_ok(uint32_t v) { return v <= 1u || ((v & ~3u) == LEDS_TAG && (v & 3u) < LEDS_STORED); }
 /* the menu's next / previous mode (KNOB 1 stops at the ends, OCT+ (s 0) cycles) */
 static uint32_t leds_step(uint32_t m, int32_t s)
 {

@@ -25,16 +25,23 @@ static void audio_silence(void)                 /* IRQs off: the DMA would loop 
     for (i = 0; i < sizeof abuf / sizeof abuf[0]; i++)
         abuf[i] = 0;
 }
+/* MANNER:erase-dip. The erase is the long one (~40 ms with the interrupts off: the audio stops, the XIP flash cannot be read). With the
+ * audio running it is wrapped in the SOFT gain (audio.c): faded out and played to silence before, brought back after,
+ * so the stop is a short dip, not a click at both edges. Before audio_init (power-on) there is nothing to fade */
 static int st_erase(uint32_t off)
 {
     uint32_t took, f;
-    int rc;
+    int rc, live = audio_live;
     if (!FL_STORE_OK(off, 0x1000u))
         return -8;
+    if (live)
+        soft_down_wait();
     f = irq_save();
     audio_silence();
     rc = FL_FAR(fl_erase4k_ram)(off, &took);
     irq_restore(f);
+    if (live)
+        soft_up();
     return rc;
 }
 static int st_prog(uint32_t off, const void *src, uint32_t n)

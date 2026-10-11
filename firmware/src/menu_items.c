@@ -105,7 +105,7 @@ static const menu_flag_t *menu_flag(uint32_t row)
     return 0;
 }
 
-/* a row's value as 0..menu_n(row) - 1 in the order the menu steps it (LEDS: OFF DIM LO DIM HI INV, LEDS_MENU) */
+/* a row's value as 0..menu_n(row) - 1 in the order the menu steps it (LEDS: OFF DIM LO AUTO DIM HI INV, LEDS_MENU) */
 static uint32_t menu_n(uint32_t row)
 {
     return row == MI_COLOR ? NPALETTES : row == MI_LOWCUT || (row >= MI_CLICK && row <= MI_COUNTIN) ? 3u :

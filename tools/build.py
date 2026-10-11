@@ -15,6 +15,7 @@ macOS (or with JIELI_DOCKER=1) each tool runs in a linux/amd64 container.
 """
 import argparse
 import hashlib
+import json
 import os
 import platform
 import re
@@ -31,6 +32,7 @@ OUT = SRC / "build"
 GEN = OUT / "gen"
 LDR = OUT / "loader"
 sys.path.insert(0, str(SRC / "tools"))
+import build_id  # noqa: E402
 import fm1pkg_make  # noqa: E402
 import lz4blk  # noqa: E402
 
@@ -359,7 +361,9 @@ def main():
         shutil.copy(att, OUT / "ATTRIBUTION.txt")
     print(f"app      {OUT / 'felucca.bin'}  {len(img)} B")
     print(f"loader   {LDR / 'ota.bin'}  {len(ota)} B")
-    print(f"package  {OUT / name}  {len(pkg)} B, identity {PRODUCT}")
+    bid = build_id.build_id(VERSION)
+    (OUT / "build.json").write_text(json.dumps(bid) + "\n")
+    print(f"package  {OUT / name}  {len(pkg)} B, identity {PRODUCT}, {build_id.label(bid)}")
     if a.release:                   # what a release carries: the package, the app and every licence they need
         rel = OUT / f"release-{a.release}"
         shutil.rmtree(rel, ignore_errors=True)

@@ -279,12 +279,18 @@ static uint32_t key_leds(uint32_t *br)                 /* (*br: a layer's keys t
  * rest: the root's keys lit, the scale's at the mid level, the others glowing; the keys held and playing as ever
  * (lit, INV dark). Each picture is built off-line and copied one byte per column, the
  * glow first: an LED going from lit to dim never has a dark frame */
+/* MANNER:leds-auto. LEDS AUTO (the default, panel.c): DIM LO on the battery, DIM HI while a USB host is connected (it powers the unit; a
+ * plain charger shows no host, so it counts as the battery). The other modes are themselves */
+static uint32_t leds_eff(void)
+{
+    return settings_leds != LEDS_AUTO ? settings_leds : usb.config && !usb.suspended ? LEDS_DIM : LEDS_DIM_LO;
+}
 static void ui_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, nd[FM1_NCOL] = {0}, own[FM1_NCOL] = {0}, og[FM1_NCOL] = {0}, nb[FM1_NCOL] = {0};
     uint8_t nm[FM1_NCOL] = {0}, sg[FM1_NCOL] = {0}, sm[FM1_NCOL] = {0};
     uint32_t k, c, g, br, beat, sc, sr = 0;
-    uint32_t fam = cur_fam(), mode = settings_leds;
+    uint32_t fam = cur_fam(), mode = leds_eff();
     int keys_map = keys_own();
     static uint8_t ready;
     if (fm1_led_anim_on())                              /* the power-on sweep has them (main.c boot_leds) */
@@ -301,7 +307,7 @@ static void ui_leds(void)
         led_put(nl, panel.btn[B_FX], 1);                /* FX LATCH: lit while an effect or a macro is on */
     if (ui.layer)                                       /* the layer's button breathes while its map is up */
         led_put(nb, panel.btn[layer_btn()], 1);
-    led_put(nl, panel.btn[B_REC], (song.rec != 0u && ui.layer != LAYER_REC) || (maku.on && maku_fav.liked));   /* (its layer: it breathes; MAKU: this world is a like) */
+    led_put(nl, panel.btn[B_REC], (song.rec != 0u && ui.layer != LAYER_REC) || (maku.on && maku_fav_lit()));   /* (its layer: it breathes; MAKU: while "LIKED" is up) */
     k = oct_leds();
     led_put(nl, panel.btn[B_OCTDN], (int)(k & 1u));
     led_put(nl, panel.btn[B_OCTUP], (int)((k >> 1) & 1u));
@@ -1033,11 +1039,37 @@ static void sample_notice(void)
     }
 }
 
+/* MANNER:battery. BATTERY: nothing on the screen while it is fine (no icon: the top left stays "now"). On the battery (not while a USB
+ * host powers us) at 1 bar of 3 or less: "BATTERY LOW", at 0 "BATTERY EMPTY", in the message place, for ~2 s. Only
+ * once the level has held for 5 s (the small speaker's peaks sag the cell), again at once when it drops a bar, and
+ * every 2 minutes while it lasts. It waits for another message to end, and for the first reading (the emulator has
+ * none: batt_raw stays 0) */
+static void battery_notice(void)
+{
+    static uint32_t since, next;                        /* when the level began to be low (| 1; 0: it is not), the next reminder */
+    static int32_t said = 3;                            /* the level last announced (3: none yet) */
+    int32_t lv = batt_level();
+    if (!song.batt_raw || batt_shown() == 4 || lv > 1) {
+        since = 0;
+        said = 3;
+        return;
+    }
+    if (!since)
+        since = fm1_ms | 1u;
+    if ((int32_t)(fm1_ms - since) < 5000 || ui.msg_t || (lv >= said && (int32_t)(fm1_ms - next) < 0))
+        return;
+    ui_message(lv ? "BATTERY LOW" : "BATTERY EMPTY");
+    ui.msg_t = 120;
+    said = lv;
+    next = fm1_ms + 120000u;
+}
+
 /* messages of things that happened elsewhere (a load, the editor, MIDI in): after this frame's own */
 static void ui_notices(void)
 {
     static uint32_t midi_t, midi_last;
     sample_notice();
+    battery_notice();                                   /* MANNER:battery */
     if (motion_full) { motion_full = 0; ui_message("AUTOMATION FULL"); }
     if (midi_hint) {                                    /* MIDI notes into a track that is not selected */
         uint32_t h = midi_hint;
@@ -1090,7 +1122,6 @@ static void maku_verb_turn(uint32_t v, uint32_t j, int32_t s, uint32_t enc)
         if (v == VB_DRIFT)
             maku.dr_moved = 1;                          /* (PLAY held and turned: letting go does not switch DRIFT) */
     }
-    ui.force = 1;
 }
 static void maku_knobs(void)
 {
@@ -1099,11 +1130,14 @@ static void maku_knobs(void)
     for (k = 0; k < 4u; k++) {
         if ((s = panel_enc(EN_K1 + k)) == 0)
             continue;
-        track_select(k);
+        {
+            uint8_t force = ui.force;
+            track_select(k);
+            ui.force = force;                           /* (the quadrants repaint opaque on f: no whole-screen fill) */
+        }
         trk[k].p[P_LEVEL] = (int16_t)clamp(trk[k].p[P_LEVEL] + accel(EN_K1 + k, s, 127), 0, 127);
         ui.hot_col = (uint8_t)k;
         ui.hot_t = 40;
-        ui.force = 1;
     }
     for (j = 0; j < 3u; j++) {
         uint32_t f = song.sel < 4u ? song.sel : 0u, e = j == 0u ? EN_SELECT : j == 1u ? EN_PRESET : EN_ALGO;
@@ -1116,7 +1150,6 @@ static void maku_knobs(void)
             maku_macro_set(f, j, (uint32_t)clamp((int32_t)maku.m[f][j] + accel(e, s, 127), 0, 127));
             fmt_int(b, maku.m[f][j]);
             ui_say(MAKU_MAC[f][j].name, b);
-            ui.force = 1;
         }
     }
 }

@@ -268,10 +268,116 @@ static void boot_keys(void)
           ref > 100.0 && fabs(quiet - ref) < 1e-9 && silent == 0.0);
 }
 
+/* SOFT (audio.c): the power-on swell and the dip around a flash erase. The gain sits after the mix, so a run with it and
+ * a run without render the same notes: block by block the faded one is the unity one times a gain that moves smoothly,
+ * and once the gain is back at unity the two are bit for bit the same */
+#define SOFT_BLOCKS 1500u
+static int32_t soft_ref[SOFT_BLOCKS][64], soft_out[SOFT_BLOCKS][64];
+static uint32_t soft_gs[SOFT_BLOCKS];                    /* the gain after each block */
+static void soft_run(int32_t dst[][64], uint32_t from, uint32_t to)
+{
+    uint32_t b;
+    for (b = from; b < to; b++) {
+        audio_block(dst[b], 32);
+        soft_gs[b] = soft_g;
+    }
+}
+static void soft_setup(void)
+{
+    fresh();
+    lim_env = LIM_T; dc_l = dc_r = dce_l = dce_r = 0;
+    trk[0].p[P_VOICE] = V_POLY;
+    trk[0].p[P_DIST] = trk[0].p[P_CHOR] = trk[0].p[P_DLY] = trk[0].p[P_REV] = 0;
+    trk_note_on(&trk[0], 48, 110); trk_note_on(&trk[0], 55, 110); trk_note_on(&trk[0], 64, 110);
+    song.master_q12 = 4096;
+    fx_usb_fixed = 0;
+}
+static double soft_ratio(uint32_t b)                    /* faded rms / unity rms of block b */
+{
+    double u = block_rms(soft_ref[b], 32);
+    return u > 0 ? block_rms(soft_out[b], 32) / u : 1.0;
+}
+static void soft_gain(void)
+{
+    uint32_t b, i, full = 0, ok_mono = 1, ok_step = 1;
+    double prev;
+    soft_g = soft_tgt = SOFT_ONE;
+    soft_setup();
+    soft_run(soft_ref, 0, SOFT_BLOCKS);                  /* the reference: unity all the way */
+    check("SOFT: unity is the default (soft_g, soft_tgt), and unity touches nothing (the runs above are bit exact)",
+          soft_g == SOFT_ONE && soft_tgt == SOFT_ONE);
+
+    soft_setup();
+    soft_fade_in();                                      /* power-on */
+    soft_run(soft_out, 0, SOFT_BLOCKS);
+    check("SOFT: power-on swell: the first sample is silent (starts at zero, no step into the world)",
+          soft_out[0][0] == 0 && soft_out[0][1] == 0 && soft_ratio(0) < 0.01);
+    prev = 0;
+    for (b = 1; b < SOFT_BLOCKS; b++) {
+        double r = soft_ratio(b);
+        if (r + 0.02 < prev) ok_mono = 0;                 /* never louder, then quieter, on the way up */
+        if (r - prev > 0.05) ok_step = 0;                 /* ~0.8 s over 1103 blocks: a block moves it by a hair */
+        prev = r;
+        if (!full && soft_gs[b] == SOFT_ONE) full = b;
+    }
+    check("SOFT: power-on swell: rises smoothly (no louder-then-quieter, no block-to-block jump)", ok_mono && ok_step);
+    check("SOFT: power-on swell: unity after ~0.8 s (1050..1150 blocks of 32 at 44.1 kHz)", full >= 1050u && full <= 1150u);
+    check("SOFT: .. squared curve: a quarter of the way in it is still under a tenth of the level",
+          soft_ratio(full / 4u) < 0.10 && soft_ratio(full / 2u) > 0.2 && soft_ratio(full / 2u) < 0.3);
+    {
+        uint32_t same = 1;
+        for (b = full + 2u; b < SOFT_BLOCKS; b++)
+            if (memcmp(soft_out[b], soft_ref[b], sizeof soft_out[b])) same = 0;
+        check("SOFT: after the swell the output is the unity run bit for bit", same && full + 2u < SOFT_BLOCKS);
+    }
+
+    /* the dip around an erase: down in 10 ms, silent, then up in 25 ms */
+    soft_g = soft_tgt = SOFT_ONE;
+    soft_setup();
+    soft_run(soft_out, 0, 100);
+    soft_set(0, SOFT_OUT_MS);
+    soft_run(soft_out, 100, 130);                        /* 30 blocks = 21.8 ms */
+    {
+        uint32_t zero_from = 0, tail_zero = 1, smooth = 1;
+        prev = 1.0;
+        for (b = 100; b < 130u; b++) {
+            double r = soft_ratio(b);
+            if (prev - r > 0.3) smooth = 0;               /* 10 ms is 14 blocks: a block takes a fraction */
+            prev = r;
+        }
+        for (b = 100; b < 130u; b++) {
+            uint32_t z = 1;
+            for (i = 0; i < 64u; i++) z &= soft_out[b][i] == 0;
+            if (z && !zero_from) zero_from = b;
+        }
+        for (b = zero_from; zero_from && b < 130u; b++)
+            for (i = 0; i < 64u; i++) tail_zero &= soft_out[b][i] == 0;
+        check("SOFT: down in ~10 ms (13..17 blocks to silence), smooth, then exactly zero",
+              soft_g == 0u && zero_from >= 100u + 12u && zero_from <= 100u + 17u && tail_zero && smooth);
+    }
+    soft_up();
+    soft_run(soft_out, 130, 230);                        /* 100 blocks: the 25 ms of the way back is 35 */
+    {
+        uint32_t back = 0, same = 1;
+        for (b = 130; b < 230u; b++)
+            if (!back && soft_gs[b] == SOFT_ONE) back = b;
+        for (b = back + 2u; b < 230u; b++)
+            if (memcmp(soft_out[b], soft_ref[b], sizeof soft_out[b])) {
+                /* (the DSP did not stop in this run: the same notes, the same blocks) */
+                same = 0;
+            }
+        check("SOFT: back up in ~25 ms (30..40 blocks), then the unity output bit for bit",
+              back >= 130u + 30u && back <= 130u + 40u && same);
+    }
+    soft_g = soft_tgt = SOFT_ONE;
+    soft_step = SOFT_ONE;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     usb_level();
+    soft_gain();
     boot_keys();
     overload(); dma();
     printf(bad ? "audio: %d FAILED\n" : "audio: all passed\n", bad);
