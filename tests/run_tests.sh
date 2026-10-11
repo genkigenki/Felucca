@@ -179,8 +179,16 @@ EOF
     run "USB descriptors: CDC $t_cdc (presented $t_on), UAC $t_uac (48 kHz $t_48), layout $t_lay" "$OUT/usb_desc_test"
 done
 
-[ -f build/felucca.fwsc ] || { echo "run ./build.sh first"; exit 1; }
+# HOST_ONLY=1 (CI, GHOULBOX: .github/workflows/host-tests.yml): no JieLi toolchain, only `tools/build.py --gen-only`
+# (build/gen): the tests of the firmware image itself (the update entry and loader, the target cost) are skipped
+IMAGE=1
+if [ ! -f build/felucca.fwsc ]; then
+    [ "${HOST_ONLY:-0}" = 1 ] || { echo "run ./build.sh first"; exit 1; }
+    IMAGE=0
+    echo "== HOST_ONLY: no firmware image (build/felucca.fwsc): the update entry, loader and target cost tests skipped"
+fi
 
+if [ $IMAGE = 1 ]; then
 $CC -DOWN_PKG=1 -o "$OUT/ota_test" tests/ota_test.c
 run "M-UPGRADE entry (own loader)" "$OUT/ota_test" build/felucca.fwsc
 
@@ -188,6 +196,7 @@ head -c 200000 build/felucca.bin > "$OUT/old_app.bin"
 python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
 $CC -o "$OUT/ldr_test" tests/ldr_test.c
 run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+fi
 
 if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/hostsim" tests/hostsim.c -lm
@@ -362,10 +371,12 @@ else
     A="$OUT/asan"
     SCC="${CC%% *} $SAN -Ibuild/gen -Ifirmware/src"
     export ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}"
+    if [ $IMAGE = 1 ]; then
     $SCC -o "$A/ldr_test" tests/ldr_test.c
     run "ASan/UBSan: update loader (other app -> this build)" "$A/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
     $SCC -DOWN_PKG=1 -o "$A/ota_test" tests/ota_test.c
     run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" build/felucca.fwsc
+    fi
     for t in editor_test project_test backup_test robust_test fun10_test fm6bank_test; do
         $SCC -o "$A/$t" tests/$t.c -lm
         run "ASan/UBSan: $t" "$A/$t"
@@ -378,8 +389,10 @@ else
     run "ASan/UBSan fuzz: user sample slot headers -> scan -> SAMPLE / GRAIN / SLICE (1000, seed 17)" "$A/fuzz_smp" 1000 17
 fi
 
+if [ $IMAGE = 1 ]; then
 run "regression: target cost of the render loops (pi32v2 disassembly)" python3 tests/target_budget.py \
     build/felucca.dis tests/target_budget.txt
+fi
 
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 
