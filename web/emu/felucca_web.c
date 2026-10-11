@@ -259,7 +259,7 @@ static void web_power_on(void)
     boot_leds();                          /* main.c: the power-on LED sweep, from the scan's start */
     maku_setup();                         /* main.c: always on, a new random world every visit (AMBIENT.md) */
     maku_world(web_seed);
-    transport_req = 1;                    /* always on: the sequencer runs from power-on (PLAY is the BREAK verb now) */
+    transport_req = 1;                    /* always on: the sequencer runs from power-on (PLAY is DRIFT's switch now) */
     web_boot_ms = fm1_ms + 430u;         /* main.c: 30 + 400 ms before the first frame */
     web_booted = 1;
 }
@@ -498,7 +498,7 @@ EXPORT int32_t *web_snapshot(void)
     o[k++] = (int32_t)perf_held;                /* the effects held now (PF_*) */
     o[k++] = (int32_t)maku.hv;                  /* the verbs held now (bit VB_*: maku.c) */
     o[k++] = (int32_t)(fm1_ms - web_world_ms);  /* ms since this world began */
-    o[k++] = 0;
+    o[k++] = maku.dr_tog;                       /* DRIFT is on (PLAY's tap) */
     for (i = 0; i < 4u; i++)
         for (j = 0; j < 3u; j++)
             o[k++] = maku.m[i][j];
