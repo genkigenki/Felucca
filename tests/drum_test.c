@@ -548,6 +548,56 @@ static void choke(void)
     fails += !ok;
 }
 
+/* 5b. KICK PULSE: TONE crossfades a thick kick (below 40) into an ECG's beeps (pip, pip, piii: 0 / 130 / 260 ms,
+ * 45 / 45 / 170 ms, ~1 kHz) from 110 up: the beeps are there and clean at 127, the kick alone at 0, in between the
+ * kick falls and the beeps rise (no step), nothing at full scale, the voice stops */
+static void pulse(void)
+{
+    static buf_t P;
+    dv_param_t p;
+    uint32_t tn, bad = 0, ms = FS / 1000u;
+    double prev_k = 1e9, prev_e = -1e9, f;
+    char why[300] = "";
+    dv_default(&p, DVT_PULSE);
+    for (tn = 0; tn <= 127; tn += 1) {
+        double k, e;
+        p.tone = (uint8_t)tn;
+        render(&p, FS * 2u, 0, &P);
+        k = rms_db(&P, 190 * ms, 250 * ms);                 /* between the pips: only the kick's tail */
+        e = rms_db(&P, 280 * ms, 400 * ms);                 /* the long pip */
+        if (tn >= 40 && tn <= 110 && (k > prev_k + 0.5 || e < prev_e - 0.5))
+            snprintf(why + strlen(why), sizeof why - strlen(why), " TONE %u: tail %.1f (was %.1f) beeps %.1f (was %.1f);", tn, k, prev_k, e, prev_e);
+        if (tn == 0 || tn == 127) {
+            printf("drum_test: PULSE TONE %3u: tail %.1f dB, long pip %.1f dB, peak %d, over %u\n", tn, k, e, P.peak, P.over);
+            if (tn == 0 && (e - k > -0.0 || P.peak < 6000))
+                snprintf(why + strlen(why), sizeof why - strlen(why), " TONE 0 is not the kick (pip %.1f, tail %.1f, peak %d);", e, k, P.peak);
+            if (tn == 127) {
+                double gap = rms_db(&P, 60 * ms, 120 * ms), pip = rms_db(&P, 140 * ms, 170 * ms);
+                f = pitch(&P, 280 * ms, 400 * ms, 300, 3000);
+                if (pip - gap < 30 || fabs(1200 * log2(f / 987.8)) > 30 || e < -30 || P.stop < 380 * ms || P.stop > FS)
+                    snprintf(why + strlen(why), sizeof why - strlen(why), " TONE 127: pip %.1f gap %.1f at %.1f Hz, stop %u;", pip, gap, f, P.stop);
+                if (rms_db(&P, 460 * ms, 800 * ms) > -60)
+                    snprintf(why + strlen(why), sizeof why - strlen(why), " TONE 127: not silent after the pattern;");
+            }
+        }
+        if (P.over || P.peak > 31000)
+            snprintf(why + strlen(why), sizeof why - strlen(why), " TONE %u: peak %d, %u at full scale;", tn, P.peak, P.over);
+        prev_k = k, prev_e = e;
+    }
+    p.tone = 127, p.level = 127, p.accent = 127, p.extra = 127, p.decay = 0, p.tune = 160;
+    render(&p, FS, 0, &P);
+    if (P.over)
+        snprintf(why + strlen(why), sizeof why - strlen(why), " corner: %u at full scale;", P.over);
+    if (why[0]) {
+        printf("drum_test: PULSE FAIL:%s\n", why);
+        bad = 1;
+    }
+    if (bad)
+        fails++;
+    else
+        printf("drum_test: PULSE: the kick at TONE 0, the beeps at 127 (987 Hz), a smooth crossfade in between\n");
+}
+
 static void kick_speaker(void)
 {
     uint32_t t, bad = 0;
@@ -1366,6 +1416,7 @@ int main(int argc, char **argv)
     retrigger();
     choke();
     kick_speaker();
+    pulse();
     keys();
     kits();
     kit_keys();

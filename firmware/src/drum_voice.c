@@ -17,6 +17,10 @@
  *           softer, lower click, a longer body.
  *           The sweep through 100..400 Hz, the harmonics and the drive keep the kick audible on a small
  *           speaker (energy above 150 Hz >= -12 dB at the defaults) without touching the fundamental
+ *   PULSE   the MAKU pulse's kick, crossfaded by TONE between two voices: a thick, heavy kick (a long round body, a
+ *           shallow sweep, strong 2nd and 3rd harmonics, a soft-clip DRIVE, a soft click) below TONE 40, and an ECG
+ *           monitor's beeps (pip, pip, piii: a ~1 kHz sine, 45 + 45 + 170 ms at 0, 130 and 260 ms, with TUNE) from
+ *           TONE 110 up; in between, both at once, the kick down and the beeps up (the drive stays on the kick)
  *   SNARE   two sines (f, 1.6 f) with a small downward glide under a short shell envelope, plus noise
  *           through a band-pass (TONE: its centre) under a spike and a body envelope and a little
  *           high-passed noise on the spike; soft-clipped. Extra: SNAPPY (the noise level)
@@ -65,7 +69,8 @@
 enum { DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_RIM, DV_BELL, DV_NLANE };
 enum {
     DVT_PUNCH, DVT_ROUND, DVT_SNARE, DVT_CLAP, DVT_HATC, DVT_HATO, DVT_TOM, DVT_CONGA, DVT_RIM, DVT_CLAVE,
-    DVT_BELL, DVT_CYM, DVT_COUNT
+    DVT_BELL, DVT_CYM, DVT_COUNT,
+    DVT_PULSE = DVT_COUNT, DVT_NTYPE                     /* (PULSE: KICK's third, outside the per-voice tables of the tests) */
 };
 /* a lane of a model kit as a type: the kit (1..DV_NKIT) in the high 4 bits, the lane in the low 3 (Felucca's own
  * types: 0 above). Its run (the DVT_* it plays through) is the kit's (DV_KIT) */
@@ -116,7 +121,7 @@ static const struct {
     uint16_t tau0;
     uint8_t oct16, def[3];
     uint16_t gain;
-} DV_DEF[DVT_COUNT] = {
+} DV_DEF[DVT_NTYPE] = {
     {502, 403, 664, 100, 75, {64, 64, 32}, 3225},        /* PUNCH  50 Hz (35..90), tau 10..250 ms */
     {533, 403, 664, 200, 69, {64, 64, 56}, 3222},        /* ROUND  56 Hz, tau 20..400 ms */
     {856, 744, 958, 300, 37, {64, 64, 80}, 4080},        /* SNARE  180 Hz (120..260), noise tau 30..150 ms */
@@ -130,7 +135,13 @@ static const struct {
     {1585, 1382, 1715, 30, 32, {64, 64, 64}, 5608},      /* CLAVE  2.5 kHz (1.2..4), tau 3..12 ms */
     {1161, 969, 1353, 300, 59, {64, 64, 64}, 2785},      /* BELL   540 Hz (270..1080), tail tau 30..400 ms */
     {1078, 886, 1270, 3000, 53, {64, 64, 64}, 7583},     /* CYM    metal 400 Hz, ring tau 0.3..3 s */
+    {533, 403, 664, 200, 69, {64, 64, 56}, 3222},        /* PULSE  56 Hz, tau 20..400 ms (the ROUND body); the beeps ~1 kHz */
 };
+/* PULSE: TONE below DV_PL_LO is the kick alone, DV_PL_HI and above the beeps alone */
+#define DV_PL_LO 40
+#define DV_PL_HI 110
+#define DV_PL_TUNE 1328                                      /* the beeps' pitch (p16: 83 = B5, 987 Hz) */
+#define DV_PL_LEN 18963u                                     /* the beeps' pattern in samples: 430 ms */
 #define DV_SEED 0x5EED1234
 #define DV_P16(hz_p16) pitch_inc(clamp((hz_p16), 0, 2047))
 /* the metal source's ratios (Q12). Hats: the six-square cluster of the classic analog hats (205.3, 304.4,
@@ -330,7 +341,7 @@ static int32_t dv_lin(uint32_t v, int32_t lo, int32_t hi) { return lo + (int32_t
 
 static void dv_setup_own(dv_coef_t *c, const dv_param_t *p)
 {
-    uint32_t t = p->type < DVT_COUNT ? p->type : 0u, d = p->decay, tn = p->tone, x = p->extra;
+    uint32_t t = p->type < DVT_NTYPE ? p->type : 0u, d = p->decay, tn = p->tone, x = p->extra;
     int32_t p16 = clamp(DV_DEF[t].p16 + p->tune, DV_DEF[t].lo, DV_DEF[t].hi), acc = p->accent;
     uint32_t tau = dv_tau(t, d), i;
     for (i = 0; i < sizeof *c / 4u; i++)
@@ -343,6 +354,24 @@ static void dv_setup_own(dv_coef_t *c, const dv_param_t *p)
     c->out = (int32_t)(DV_DEF[t].gain * (uint32_t)p->level / 127u);
     c->out += (c->out * acc * 75) >> 14;                 /* 1 + 0.585 a */
     switch (t) {
+    case DVT_PULSE: {
+        int32_t ge = clamp(((int32_t)tn - DV_PL_LO) * 32768 / (DV_PL_HI - DV_PL_LO), 0, 32768), g;
+        c->hp = ge;                                      /* the beeps' share (Q15); the kick's is 1 - it */
+        c->kb[1] = DV_P16(DV_PL_TUNE + p16 - DV_DEF[t].p16);   /* the beeps' increment (follows TUNE) */
+        c->span[1] = DV_P16(p16 + 96) - c->inc[0];       /* the sweep: half an octave, slow (tau 45 ms) ... */
+        c->k[1] = dv_k(45000);
+        c->kb[0] = dv_kb(tau);
+        c->g[0] = 6500;                                  /* ... and strong 2nd and 3rd harmonics (a small speaker) */
+        c->g[1] = 9800;
+        c->inc[1] = DV_P16(1523);                        /* a soft click: 2 kHz, two cycles */
+        c->inc[2] = c->inc[1] >> 1;
+        c->click = (uint16_t)(0xFFFFFFFFu / c->inc[2]);
+        c->g[2] = 4000 + acc * 24;
+        g = 4096 + (int32_t)x * 3 * 4096 / 127;
+        c->g[3] = g;
+        c->g[4] = (int32_t)((19661u << 15) / (uint32_t)softclip((19661 * g) >> 12));
+        break;
+    }
     case DVT_PUNCH:
     case DVT_ROUND: {
         int32_t punch = t == DVT_PUNCH, b = punch ? (int32_t)tn * 576 / 127 : (int32_t)tn * 192 / 127;   /* stage 2:
@@ -667,6 +696,42 @@ static __attribute__((noinline)) void dv_kick_run(const dv_coef_t *c, dv_voice_t
     v->live = v->q[0] > DV_QUIET;
 }
 
+/* PULSE: the kick (dv_kick_run) at 1 - the share, and the beeps at the share (c->hp): pip, pip, piii, a sine at c->kb[1]
+ * (v->s[1] its phase, v->s[0] the sample in the pattern), each with a 3 ms rise and a 5 ms fall */
+static __attribute__((noinline)) void dv_pulse_run(const dv_coef_t *c, dv_voice_t *v, int32_t *y, uint32_t n)
+{
+    static const uint16_t PIP[3][2] = {{0, 1985}, {5733, 1985}, {11466, 7497}};
+    int32_t ge = c->hp, gk = 32768 - ge, t = v->s[0];
+    uint32_t i, ph = (uint32_t)v->s[1];
+    if (gk > 0) {
+        dv_kick_run(c, v, y, n);
+        for (i = 0; i < n; i++)
+            y[i] = (y[i] * gk) >> 15;
+    } else {
+        for (i = 0; i < n; i++)
+            y[i] = 0;
+        v->live = 0;
+    }
+    if (ge > 0 && (uint32_t)t < DV_PL_LEN + n) {
+        for (i = 0; i < n; i++, t++) {
+            uint32_t k;
+            int32_t e = 0;
+            for (k = 0; k < 3u; k++) {
+                int32_t l = t - PIP[k][0], up = l * 248, dn = (PIP[k][1] - l) * 149;
+                if (l >= 0 && l < PIP[k][1]) {
+                    e = up < dn ? up : dn;
+                    e = e > 32767 ? 32767 : e;
+                }
+            }
+            ph += c->kb[1];
+            e = (sine_i(ph) * e) >> 15;
+            y[i] += (((e * 18000) >> 15) * ge) >> 15;
+        }
+        v->live |= (uint32_t)t < DV_PL_LEN;
+    }
+    v->s[0] = t, v->s[1] = (int32_t)ph;
+}
+
 static __attribute__((noinline)) void dv_snare_run(const dv_coef_t *c, dv_voice_t *v, int32_t *y, uint32_t n)
 {
     uint32_t i, p0 = v->ph[0], p1 = v->ph[1], eg = v->e[0], es = v->e[1], ek = v->e[2], gs = c->span[0] >> 16;
@@ -853,6 +918,7 @@ static void dv_strike(const dv_coef_t *c, dv_voice_t *v)
     v->e[0] = v->e[1] = v->e[2] = 65536u;
     v->q[0] = 1 << 30;
     switch (c->type) {
+    case DVT_PULSE:
     case DVT_PUNCH:
     case DVT_ROUND:
         v->cnt = c->hold;
@@ -901,6 +967,9 @@ static void dv_run(const dv_coef_t *c, dv_voice_t *v, const int32_t *metal, int3
         metal = y;                                       /* (the runs read a sample before they write it) */
     }
     switch (c->type) {
+    case DVT_PULSE:
+        dv_pulse_run(c, v, y, n);
+        break;
     case DVT_PUNCH:
     case DVT_ROUND:
         dv_kick_run(c, v, y, n);
@@ -936,7 +1005,7 @@ static void dv_run(const dv_coef_t *c, dv_voice_t *v, const int32_t *metal, int3
 /* the run a type plays through (DVT_*): itself, or its model kit's lane's */
 static uint32_t dv_run_type(uint32_t type)
 {
-    return DV_KITOF(type) - 1u < DV_NKIT ? DV_KIT[DV_KITOF(type) - 1u][type & 7u].run : type < DVT_COUNT ? type : 0u;
+    return DV_KITOF(type) - 1u < DV_NKIT ? DV_KIT[DV_KITOF(type) - 1u][type & 7u].run : type < DVT_NTYPE ? type : 0u;
 }
 
 /* the designed parameters of a type (LEVEL 100, no accent); a model kit's lane: 64 each */
