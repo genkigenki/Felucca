@@ -128,6 +128,7 @@ it, which does not extend to the MAKU logo; see
 Free software: [GPL-3.0-only](LICENSE), the Hügelton Sample Pack included. The bundled fonts and the
 ported DSP keep their own licences ([LICENSES/](LICENSES/)); details in [LICENSING.md](LICENSING.md).
 
-M-VAVE and FM-1 are trademarks of their respective owners. Felucca is not affiliated with or endorsed by them.
+M-VAVE and FM-1 are trademarks of their respective owners. Neither MAKU nor Felucca is affiliated with or endorsed by them.
 
-Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
+Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments (Felucca, the original work)
+Copyright (C) 2026 okumurari (@okumurari2) (MAKU: the changes made to Felucca, see the git history)

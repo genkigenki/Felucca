@@ -1,11 +1,12 @@
-# Felucca licensing
+# MAKU licensing
 
-Felucca is free software, licensed under the GNU General Public License, version 3 only
+MAKU is a modified version of Felucca. Both are free software, licensed under the GNU General Public License, version 3 only
 (`GPL-3.0-only`, full text in `LICENSE`). That covers the code and its own assets. A few
 bundled or ported parts keep their own licences; they are listed below, and their licence
 texts are in `LICENSES/`.
 
-Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
+Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments (Felucca, the original work)
+Copyright (C) 2026 okumurari (@okumurari2) (MAKU: the changes made to Felucca, see the git history)
 
 ## What is GPL-3.0-only
 
