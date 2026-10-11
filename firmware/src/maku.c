@@ -56,7 +56,7 @@ static struct {
     uint8_t dr_tog;              /* DRIFT is on (PLAY's tap toggles it; PLAY's LED shows it) */
     uint8_t dr_moved;            /* PLAY was held and a knob turned: letting go does not toggle */
     uint8_t dr_on;               /* DRIFT is on and has taken its anchors */
-    uint16_t dr_t;               /* DRIFT's clock: a step of the walk every 512 */
+    uint16_t dr_t;               /* DRIFT's clock: a step of the walk every 64 (small, frequent steps: the numbers glide) */
     uint8_t drs;                 /* the space DRIFT has added (0..127): the sends rise and the master's low-pass closes; it stays when switched off */
     int16_t dra[16];             /* DRIFT's anchors, taken at the switch-on: the 12 macros, BPM, TEMPO's SWING and DUCK, drs */
     int16_t drw[16];             /* .. and what it last left there: a value found changed since was moved by hand, and is the new anchor */
@@ -709,11 +709,13 @@ static void maku_drift(void)
         maku.dr_t = 0;
     }
     maku.dr_t = (uint16_t)(maku.dr_t + 1u + maku.vp[VB_DRIFT][0] / 8u);
-    if (maku.dr_t < 512u)
+    if (maku.dr_t < 64u)
         return;
-    maku.dr_t = (uint16_t)(maku.dr_t - 512u);
+    maku.dr_t = (uint16_t)(maku.dr_t - 64u);
     span = maku.vp[VB_DRIFT][1] / 2;
     for (k = 0; k < 16u; k++) {
+        if (k == 0u)                                    /* the kick's DENSITY (macro 0 of track 0) is never drifted */
+            continue;
         if (k >= 12u && k < 15u && reach < 86)
             continue;
         if (k == 15u && reach < 43)

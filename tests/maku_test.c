@@ -940,7 +940,8 @@ static int verbs2(void)
             moved += dm != 0;
             far += dm > 20 || dm < -20;
         }
-        bad += check("DRIFT held: the macros wander, never further than RANGE / 2 from the press", moved > 6u && !far);
+        bad += check("DRIFT held: the macros wander, never further than RANGE / 2 from the press", moved > 5u && !far);
+        bad += check("  the kick's DENSITY macro is never touched", maku.m[0][0] == held_m[0]);
         bad += check("  REACH 127: the space and the tempo wander too", maku.drs <= 20 && song.g[G_BPM] >= 40);
         maku.dr_tog = 0;
         maku_drift();
