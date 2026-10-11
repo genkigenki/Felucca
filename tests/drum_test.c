@@ -555,7 +555,7 @@ static void pulse(void)
     static buf_t P;
     dv_param_t p;
     uint32_t tn, bad = 0, ms = FS / 1000u;
-    double prev_e = -1e9, f;
+    double prev_e = -1e9, f, hi2[2] = {0, 0}, fq[2] = {0, 0};
     char why[300] = "";
     dv_default(&p, DVT_PULSE);
     p.accent = 127;
@@ -570,7 +570,7 @@ static void pulse(void)
             printf("drum_test: PULSE TONE %3u: 80..200 ms %.1f dB, peak %d, over %u, stop %u\n", tn, e, P.peak, P.over, P.stop);
             if (tn == 127) {
                 f = pitch(&P, 10 * ms, 45 * ms, 300, 3000);
-                if (fabs(1200 * log2(f / 674.0)) > 30 || e < -30 || P.stop < 45 * ms || P.stop > 70 * ms)
+                if (fabs(1200 * log2(f / (674.0 * pow(2.0, 4.0 / 12)))) > 30 || e < -30 || P.stop < 45 * ms || P.stop > 70 * ms)
                     snprintf(why + strlen(why), sizeof why - strlen(why), " TONE 127: %.1f dB at %.1f Hz, stop %u;", e, f, P.stop);
                 if (rms_db(&P, 100 * ms, FS) > -60)
                     snprintf(why + strlen(why), sizeof why - strlen(why), " TONE 127: not silent after the beep;");
@@ -580,8 +580,15 @@ static void pulse(void)
         }
         if (P.over || P.peak > 31000)
             snprintf(why + strlen(why), sizeof why - strlen(why), " TONE %u: peak %d, %u at full scale;", tn, P.peak, P.over);
+        if (tn == 100 || tn == 127) {                       /* the climb: pitch and the octave above */
+            double fb = pitch(&P, 10 * ms, 45 * ms, 300, 3000);
+            hi2[tn == 127] = dtft(&P, 10 * ms, 45 * ms, 2 * fb) / (dtft(&P, 10 * ms, 45 * ms, fb) + 1e-9);
+            fq[tn == 127] = fb;
+        }
         prev_e = e;
     }
+    if (fabs(1200 * log2(fq[0] / 674.0)) > 30 || hi2[1] < 0.3 || hi2[0] > 0.1)
+        snprintf(why + strlen(why), sizeof why - strlen(why), " climb: %.1f -> %.1f Hz, the octave %.2f -> %.2f of the base;", fq[0], fq[1], hi2[0], hi2[1]);
     p.tone = 127, p.level = 127, p.accent = 127, p.extra = 127, p.decay = 0, p.tune = 160;
     render(&p, FS, 0, &P);
     if (P.over)
@@ -593,7 +600,7 @@ static void pulse(void)
     if (bad)
         fails++;
     else
-        printf("drum_test: PULSE: the kick at TONE 0, the beep at 127 (674 Hz, a 50 ms pip), a smooth crossfade in between\n");
+        printf("drum_test: PULSE: the kick at TONE 0, the beep at 127 (849 Hz and its octave, a 50 ms pip), a smooth crossfade in between\n");
 }
 
 static void kick_speaker(void)
