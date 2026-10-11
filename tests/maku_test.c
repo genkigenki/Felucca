@@ -7,7 +7,7 @@
  *   DRONES    57 and 13 steps (the arp 29), chords of 3 / 1 and 2 notes, six chords before the first repeats, the two never fall on the same step all the way round.
  *   SCALE     every drone and arp note is in the scale, for all roots and scales; nothing from the arp below DENSITY 16.
  *   ARP       runs of consecutive table places, then a jump; the table comes back when DENSITY goes down (tidy).
- *   FOLLOW    the kick's TUNE follows ROOT; a ROOT / SCALE edit on any track becomes all four's.
+ *   FOLLOW    the kick's TUNE does not follow ROOT; a ROOT / SCALE edit on any track becomes all four's.
  *   COST      a bar of the four tracks at DENSITY 127 costs a bounded number of note-ons.
  * Built and run by tests/run_tests.sh. */
 #define UI_TEST_NO_MAIN 1
@@ -263,22 +263,13 @@ static int follow(void)
     uint32_t root;
     start(0);
     maku_block();
-    bad += check("FOLLOW: root C: the kick's TUNE is 2 semitones under the design (53)", trk[0].p[P_E1] == 53);
+    bad += check("FOLLOW: the kick's TUNE is 2 semitones under the design (53)", trk[0].p[P_E1] == 53);
     for (root = 0; root < 12u; root++) {
         trk[1].p[P_ROOT] = (int16_t)root;
         maku_block();
-        ok &= trk[0].p[P_E1] >= 53 - 33 && trk[0].p[P_E1] <= 53 + 33;
+        ok &= trk[0].p[P_E1] == 53;
     }
-    bad += check("  every root keeps the kick within +-6 semitones of its root pitch (TUNE 20..86)", ok);
-    trk[1].p[P_ROOT] = 7;
-    maku_block();
-    {
-        int16_t g = trk[0].p[P_E1];
-        trk[1].p[P_ROOT] = 0;
-        maku_block();
-        bad += check("  G (7) folds down a fourth: TUNE below the design; back to C: 53 again",
-                     g < 53 && trk[0].p[P_E1] == 53);
-    }
+    bad += check("  and stays there for every root", ok);
     trk[2].p[P_ROOT] = 9;                             /* an edit on another track's SCL page */
     trk[2].p[P_SCALE] = 3;
     maku_block();
@@ -656,8 +647,8 @@ static int fifths(void)
     maku_block();
     down_for(B_OCTUP, 3);
     let_go(B_OCTUP);
-    bad += check("FIFTHS: C major, OCT+: G major on all four tracks, the kick follows, the keys' octave untouched",
-                 trk[1].p[P_ROOT] == 7 && trk[0].p[P_ROOT] == 7 && trk[3].p[P_ROOT] == 7 && song.octave == 0 && trk[0].p[P_E1] < 53);
+    bad += check("FIFTHS: C major, OCT+: G major on all four tracks, the keys' octave untouched",
+                 trk[1].p[P_ROOT] == 7 && trk[0].p[P_ROOT] == 7 && trk[3].p[P_ROOT] == 7 && song.octave == 0 && trk[0].p[P_E1] == 53);
     down_for(B_OCTDN, 3);
     let_go(B_OCTDN);
     down_for(B_OCTDN, 3);

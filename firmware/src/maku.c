@@ -4,7 +4,7 @@
  * Included by seq.c after the scale helpers; the ISR calls maku_step() instead of reading a track's stored step.
  *
  *   track 1  KICK   16 steps, the time axis. DENSITY thins it out: nothing -> once a bar (a hint) -> every 2 beats
- *                   (a pulse) -> every beat. The kick's pitch follows the ROOT (DRUM TUNE).
+ *                   (a pulse) -> every beat. The kick's pitch stays put (it does not follow the ROOT).
  *   track 2  DRONE  57 steps: a chord every 19 steps, open voicings (root + 5th + octave, sus2, sus4, a wide minor
  *                   10th), six of them in turn so the harmony drifts slowly instead of looping.
  *   track 3  SHIMMER 13 steps: a high note, then a dyad (a note and its 5th) 7 steps later, from a six-note cycle;
@@ -619,15 +619,12 @@ static void maku_set_density(uint32_t d)
     maku_apply();
 }
 
-/* the kick follows the root: TUNE moves it +-12 semitones (E1 64 = as designed), folded to -6..+5, and sits MAKU_KICK_LOW
- * (2 semitones) under it: a lower, rounder kick */
+/* the kick does not follow the root: its TUNE stays MAKU_KICK_LOW (2 semitones) under the design (E1 64): a lower, rounder kick */
 #define MAKU_KICK_LOW 11
 static void maku_follow(void)
 {
-    int32_t s = trk[MAKU_DRA].p[P_ROOT];
     uint32_t i;
-    s = s >= 6 ? s - 12 : s;
-    trk[MAKU_KICK].p[P_E1] = (int16_t)(64 - MAKU_KICK_LOW + (s * 32 + (s < 0 ? -3 : 3)) / 6);
+    trk[MAKU_KICK].p[P_E1] = 64 - MAKU_KICK_LOW;
     for (i = 0; i < NTRK; i++) {
         trk[i].p[P_ROOT] = trk[MAKU_DRA].p[P_ROOT];
         trk[i].p[P_SCALE] = trk[MAKU_DRA].p[P_SCALE];
