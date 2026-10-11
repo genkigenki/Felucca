@@ -31,6 +31,7 @@ C = dict(
     dlime=(112, 180, 40), lgreen=(214, 252, 170), purple=(150, 88, 226), dpurple=(104, 56, 180),
     lpurple=(204, 164, 255), brown=(150, 92, 46), dbrown=(84, 50, 32), tan=(226, 176, 112), dtan=(186, 128, 70),
     silver=(214, 220, 236), dwhite=(204, 212, 238), sky=(150, 206, 255), glass=(212, 236, 255),
+    mint=(110, 230, 196), dmint=(52, 176, 148),
 )
 
 
@@ -1334,6 +1335,189 @@ def alien():                                                     # a little gree
     return p.done()
 
 
+# her second batch (her ideas): Spider Grandma, Night Light (after her night light), Green Queen, King Axolotl,
+# Fairy Monster and Morning Glory
+def web_face(p, cx, cy, rx, ry, colour):                         # a web hero's mask in one colour, its web and big eyes
+    import math
+    m = Pic()
+    sx, sy = rx / 17.5, ry / 20.5
+    q = lambda pts: [(cx + (x - 24) * sx, cy + (y - 24) * sy) for x, y in pts]
+    m.rect(0, 0, 47, 47, colour)
+    for a in range(0, 360, 45):
+        m.line([(cx, cy), (cx + (rx + 4) * math.cos(math.radians(a)), cy + (ry + 4) * math.sin(math.radians(a)))], "black", 1)
+    for r in (0.45, 0.85):
+        m.d.ellipse([cx - rx * r + OFF, cy - ry * r + OFF, cx + rx * r + OFF, cy + ry * r + OFF], outline=C["black"] + (255,))
+    m.poly(q([(7, 15), (21, 20), (21, 29), (9, 27)]), "black"); m.poly(q([(41, 15), (27, 20), (27, 29), (39, 27)]), "black")
+    m.poly(q([(10, 18), (19, 22), (19, 27), (11, 25)]), "white"); m.poly(q([(38, 18), (29, 22), (29, 27), (37, 25)]), "white")
+    for y in range(W):
+        for x in range(W):
+            if ((x - cx - OFF) / rx) ** 2 + ((y - cy - OFF) / ry) ** 2 > 1:
+                m.im.putpixel((x, y), (0, 0, 0, 0))
+    p.im.alpha_composite(m.im)
+
+
+def spidergrandma():                                             # a web hero grandma: a green mask, silver curls, a bun, pearls
+    p = Pic()
+    for x, y in ((9, 16), (7, 23), (8, 30), (39, 16), (41, 23), (40, 30), (14, 11), (34, 11)):   # curls round the mask
+        p.ball(x, y, 5, 5, "silver", "grey")
+    p.ball(24, 6, 7, 5, "silver", "grey")                       # the bun on top
+    web_face(p, 24, 25, 15, 17, "green")
+    p.pie(24, 14, 9, 200, 340, "silver")                         # her curls over the top of the mask
+    for i, x in enumerate(range(13, 36, 3)):                      # pearls
+        p.ell(x, 43 + (1 if 16 < x < 32 else 0), 1, 1, "white")
+    return p.done()
+
+
+def axo_sit(body, shade, gill, gill_dark, frills=False):         # a round sitting axolotl, as her night light
+    def gills(p):
+        if frills:                                               # feathery gills (the king)
+            for (ax, ay), (tx, ty) in (((14, 10), (8, 4)), ((11, 14), (5, 10)), ((11, 19), (5, 19))):
+                for sgn in (1, -1):
+                    a, t = (ax if sgn > 0 else 48 - ax, ay), (tx if sgn > 0 else 48 - tx, ty)
+                    p.line([a, t], gill, 3)
+                    p.ell(t[0], t[1], 2, 2, gill_dark)
+            return
+        for tri in (((16, 9), (20, 8), (15, 3)), ((12, 11), (15, 9), (5, 4)), ((10, 17), (11, 12), (3, 11))):
+            p.poly(list(tri), gill)
+            p.poly([(48 - x, y) for x, y in tri], gill)
+    def f(p, under=None, over=None):
+        gills(p)
+        if under:
+            under(p)
+        p.ball(24, 35, 11, 10, body, shade)                      # body
+        p.ell(16, 43, 3, 2, body); p.ell(32, 43, 3, 2, body)     # feet
+        p.ball(24, 18, 14, 11, body, shade)                      # the big round head
+        p.ell(18, 17, 2, 2, "black"); p.ell(30, 17, 2, 2, "black")   # eyes, shiny
+        p.px(17, 16, "white"); p.px(29, 16, "white")
+        p.px(22, 21, "black"); p.px(26, 21, "black")             # two little nostrils
+        p.line([(15, 22), (17, 24), (20, 24), (24, 25), (28, 24), (31, 24), (33, 22)], "black", 1)   # a wide, wavy smile
+        if over:
+            over(p)
+        return p.done()
+    return f
+
+
+def nightlight():                                                # her night light: white, mint gills, hugging a mint egg
+    p = Pic()
+    def egg(p):
+        p.ball(24, 37, 6, 8, "mint", "dmint")
+        p.ell(17, 35, 3, 2, "white"); p.ell(31, 38, 3, 2, "white")   # hands round it
+    return axo_sit("white", "dwhite", "mint", "dmint")(p, over=egg)
+
+
+def greenqueen():                                                # the night light as a green queen: a gold crown, a rainbow cape
+    p = Pic()
+    def cape(p):
+        for i, c in enumerate(["red", "orange", "yellow", "green", "blue", "purple"]):
+            x0 = 8 + i * 5
+            p.poly([(max(x0, 12 - (x0 < 24) * 0), 26), (x0 + 5, 26), (x0 + 5 + (i - 2.5) * 0.8, 46), (x0 + (i - 2.5) * 0.8, 46)], c)
+    def crown(p):
+        p.poly([(17, 9), (17, 3), (20, 6), (24, 1), (28, 6), (31, 3), (31, 9)], "gold")
+        p.rect(17, 8, 31, 9, "dyellow")
+        p.px(24, 5, "red")
+        p.ell(24, 37, 5, 6, "lgreen")                            # a pale belly
+        p.ell(18, 34, 2, 2, "green"); p.ell(30, 34, 2, 2, "green")   # hands
+    return axo_sit("green", "dgreen", "lime", "dlime")(p, under=cape, over=crown)
+
+
+def kingaxolotl():                                               # a green axolotl king on a rainbow throne, in green and red robes
+    p = Pic()
+    def throne(p):
+        for i, c in enumerate(["red", "orange", "yellow", "green", "blue", "purple"]):
+            r = 22 - i * 2
+            p.pie(24, 26, r, 180, 360, c)
+        p.pie(24, 26, 11, 180, 360, None)
+        p.rect(5, 30, 43, 33, "gold"); p.rect(7, 34, 41, 45, "dyellow")   # the seat
+    def robe(p):
+        p.ball(24, 37, 12, 9, "red", "dred")                      # a red robe, round over him
+        p.poly([(21, 29), (27, 29), (29, 45), (19, 45)], "green")  # green down the front
+        p.ell(24, 29, 9, 2, "white")                              # a fur collar
+        p.ell(14, 37, 3, 2, "green"); p.ell(34, 37, 3, 2, "green")   # his hands
+        p.poly([(17, 9), (17, 3), (20, 6), (24, 1), (28, 6), (31, 3), (31, 9)], "gold")   # crown
+        p.px(20, 7, "red"); p.px(28, 7, "red")
+    return axo_sit("green", "dgreen", "red", "dred", frills=True)(p, under=throne, over=robe)
+
+
+def fairymonster():                                              # a pink fairy monster: pigtails, little wings, a star wand
+    p = Pic()
+    p.ell(8, 26, 6, 9, "glass"); p.ell(40, 26, 6, 9, "glass")    # wings
+    p.ell(9, 7, 5, 5, "lpurple"); p.ell(39, 7, 5, 5, "lpurple")  # pigtails, tied up high
+    p.ell(13, 10, 2, 2, "yellow"); p.ell(35, 10, 2, 2, "yellow")
+    for x, y in ((10, 26), (38, 26), (12, 36), (36, 36), (18, 41), (30, 41), (24, 42)):   # fluff
+        p.ell(x, y, 4, 4, "pink")
+    p.ball(24, 27, 15, 16, "pink", "dpink")
+    p.pie(24, 18, 12, 180, 360, "lpurple")                       # her hair
+    p.ell(24, 13, 5, 3, "lpurple")
+    p.eye(19, 25, 4); p.eye(29, 25, 4)
+    p.ell(24, 30, 2, 2, "hpink")                                 # a round nose
+    p.smile(24, 34, 4)
+    p.line([(35, 37), (40, 23)], "white", 1)                     # the wand, and its star
+    import math
+    p.poly([(40 + (4 if k % 2 == 0 else 1.8) * math.cos(math.pi / 2 + k * math.pi / 5),
+             20 - (4 if k % 2 == 0 else 1.8) * math.sin(math.pi / 2 + k * math.pi / 5)) for k in range(10)], "yellow")
+    return p.done()
+
+
+def morningglory():                                              # a morning glory vine: heart leaves, purple trumpet flowers
+    import math
+    p = Pic()
+    pts = [(20 + 7 * math.sin(t / 5), 45 - t) for t in range(0, 36)]   # the vine, curling up
+    p.line(pts, "dgreen", 2)
+    def leaf(x, y, flip):                                        # a heart-shaped leaf, its point away from the vine
+        d = -1 if flip else 1
+        p.ell(x, y - 2, 3, 3, "green"); p.ell(x + 4 * d, y - 2, 3, 3, "green")
+        p.poly([(x - 3 * (d > 0) - 0 * d, y - 1), (x + 7 * (d > 0) - 0, y - 1), (x + 2 * d, y + 5)], "green")
+        p.line([(x + 2 * d, y - 3), (x + 2 * d, y + 3)], "dgreen", 1)
+    leaf(28, 39, False); leaf(11, 31, True); leaf(29, 24, False); leaf(9, 13, True)
+    def flower(cx, cy, r, face=False):
+        p.ell(cx, cy, r, r, "purple")
+        for i in range(5):                                       # five pale stripes from the middle
+            a = i * 2 * math.pi / 5 - math.pi / 2
+            p.line([(cx, cy), (cx + (r - 1) * math.cos(a), cy + (r - 1) * math.sin(a))], "lpurple", 1)
+        p.ell(cx, cy, r // 3, r // 3, "white")
+        if face:
+            p.ell(cx, cy + 1, r // 2 + 1, r // 2, "white")
+            p.ell(cx - 3, cy, 1, 2, "black"); p.ell(cx + 3, cy, 1, 2, "black")
+            p.smile(cx, cy + 3, 2)
+    flower(34, 32, 6); flower(14, 22, 5)
+    flower(30, 13, 9, True)
+    return p.done()
+
+
+def greengranny():                                               # Spider Grandma's stand-in: a grandma in a green cardigan
+    p = Pic()
+    p.rect(10, 38, 38, 45, "green"); p.poly([(20, 38), (28, 38), (24, 45)], "white")   # cardigan, a white blouse
+    for x, y in ((10, 18), (9, 26), (38, 18), (39, 26), (14, 11), (34, 11), (24, 8)):   # silver curls
+        p.ball(x, y, 6, 6, "silver", "grey")
+    p.ball(24, 6, 6, 4, "silver", "grey")                       # a bun
+    p.ball(24, 25, 13, 14, "tan", "dtan")                        # face
+    p.pie(24, 18, 11, 195, 345, "silver")
+    for x in (18, 30):                                           # round glasses
+        p.d.ellipse([x - 5 + OFF, 20 + OFF, x + 5 + OFF, 30 + OFF], outline=C["dgreen"] + (255,), width=1)
+    p.line([(23, 25), (25, 25)], "dgreen", 1)
+    p.ell(18, 25, 2, 2, "black"); p.ell(30, 25, 2, 2, "black")
+    p.smile(24, 33, 3)
+    p.cheek(13, 31); p.cheek(35, 31)
+    for x in range(15, 34, 3):                                   # pearls
+        p.ell(x, 40 + (1 if 18 < x < 30 else 0), 1, 1, "white")
+    return p.done()
+
+
+def pixie():                                                     # Fairy Monster's stand-in: a pixie in a leaf hat
+    p = Pic()
+    p.ell(9, 30, 6, 9, "lpurple"); p.ell(39, 30, 6, 9, "lpurple")   # wings
+    p.poly([(14, 34), (34, 34), (38, 46), (10, 46)], "green")    # a leaf dress
+    p.line([(24, 34), (24, 46)], "dgreen", 1)
+    p.ball(24, 24, 11, 11, "tan", "dtan")                        # face
+    p.poly([(12, 22), (6, 16), (14, 19)], "tan"); p.poly([(36, 22), (42, 16), (34, 19)], "tan")   # pointed ears
+    p.poly([(11, 17), (37, 17), (34, 8), (30, 3), (42, 1), (26, 6), (18, 8)], "dgreen")   # a pointed leaf hat
+    p.rect(11, 15, 37, 18, "green")
+    p.eye(20, 24, 3); p.eye(28, 24, 3)
+    p.smile(24, 30, 3)
+    p.cheek(16, 29); p.cheek(32, 29)
+    return p.done()
+
+
 STAND_INS = {                    # the look-alike's name: the stand-in's name and picture
     "BLUE PUP": ("SPOTTY PUP", spottypup),
     "RED PUP": ("FOX", fox),
@@ -1347,6 +1531,8 @@ STAND_INS = {                    # the look-alike's name: the stand-in's name an
     "COWGIRL": ("CACTUS", cactus),
     "SPACE HERO": ("ALIEN", alien),
     "SPIDER MOM": ("RAINBOW MOM", rainbowmom),
+    "SPIDER GRANDMA": ("GREEN GRANNY", greengranny),
+    "FAIRY MONSTER": ("PIXIE", pixie),
 }
 
 ICONS = [icon_one, icon_choir, icon_strum, icon_accordion, icon_guess, icon_follow, icon_chords]
@@ -1417,6 +1603,12 @@ FRIENDS = [
     ("SUNFLOWER", sunflower),
     ("SPIDER MOM", spidermom),
     ("DRAGON DUCK", dragonduck),
+    ("SPIDER GRANDMA", spidergrandma),
+    ("NIGHT LIGHT", nightlight),
+    ("GREEN QUEEN", greenqueen),
+    ("KING AXOLOTL", kingaxolotl),
+    ("FAIRY MONSTER", fairymonster),
+    ("MORNING GLORY", morningglory),
 ]
 
 

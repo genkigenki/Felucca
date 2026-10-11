@@ -181,6 +181,12 @@ static const kid_sound_t KID_SOUND[KID_N] = {
     /* hers: she drew them up with her dad */
     {2, "RESO", 100, KS_RAINBOW, KB_DISCO, 0, 0, 0, 0, TW_SPIDERMOM},           /* SPIDER MOM: a zappy, resonant hero (a look-alike: RAINBOW MOM) */
     {5, "VOX LEAD", 89, KS_CLOUDS, KB_ROCK, 0, 0, 70},   /* DRAGON DUCK: a quacky vowel with a dragon's growl (DIST) */
+    {7, "GOSPEL", 98, KS_STARS, KB_ROCK},            /* SPIDER GRANDMA: a gospel organ (a look-alike: GREEN GRANNY) */
+    {2, "BELL", 108, KS_STARS, KB_LULLABY},           /* NIGHT LIGHT: a music box bell, after her night light */
+    {2, "STRING", 89, KS_RAINBOW, KB_DANCE},         /* GREEN QUEEN: royal strings */
+    {12, "BRASS", 104, KS_BUBBLES, KB_MARCH},         /* KING AXOLOTL: a fanfare */
+    {6, "RING BELL", 116, KS_STREET, KB_DISCO},       /* FAIRY MONSTER: a magic ringing bell (a look-alike: PIXIE) */
+    {9, "MARIMBA", 127, KS_FLOWERS, KB_REGGAE},       /* MORNING GLORY: a wooden marimba */
 };
 
 /* the beats: drums on track 4 (DRUM), a bass line on track 2, 16 steps of 1/16. Drums: a string per lane
@@ -2131,8 +2137,8 @@ static uint16_t kid_band_px(int32_t x, int32_t y)
 
 /* the street (her idea: a street like a famous one on children's TV, and all the monster friends): two brick
  * houses, one with a stoop, a lamp post and a trash can on the sidewalk, and the monsters at home in the windows, on
- * the stoop and in the can. The friend she plays is out on the sidewalk, so its spot is empty. At night the windows
- * and the lamp light up */
+ * the stoop and in the can (Fairy Monster, from her second batch, next door). The friend she plays is out on the
+ * sidewalk, so its spot is empty. At night the windows and the lamp light up */
 static int32_t kid_street_who(uint32_t fr, int32_t x, int32_t y, int32_t x0, int32_t y0, int32_t sz)
 {
     if (kid_art(fr) == kid_art(kid.fr))
@@ -2143,7 +2149,7 @@ static int32_t kid_street_who(uint32_t fr, int32_t x, int32_t y, int32_t x0, int
 static int32_t kid_street_px(int32_t x, int32_t y)
 {
     static const int16_t WIN[6][3] = {   /* windows: left, top, who (a friend, -1 none) */
-        {8, 62, 10}, {44, 62, -1}, {80, 62, 22}, {132, 84, -1}, {168, 84, -1}, {200, 84, 9}};
+        {8, 62, 10}, {44, 62, -1}, {80, 62, 22}, {132, 84, -1}, {168, 84, 67}, {200, 84, 9}};   /* (67 FAIRY MONSTER) */
     uint32_t t = kf.t, nt = kid.night * 20u, i;
     int32_t c, bob = KID_SIN[(t / 70u) & 31u] * 2 / 127, lit = kid.night >= 4u;
     uint16_t dusk = RGB(24, 20, 56);

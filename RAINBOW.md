@@ -12,7 +12,7 @@ at the next power-on.
 | Control | What happens |
 | --- | --- |
 | Keys | Play the friend's sound. The note's letter shows big in the band at the bottom, in its own color, and the friend hops. A music staff drops in at the top and writes the note (see below). |
-| PRESETS | Next or previous friend (63 of them, each with its own picture, sound, home sky and favorite beat). |
+| PRESETS | Next or previous friend (69 of them, each with its own picture, sound, home sky and favorite beat). |
 | ALGORITHM | How the keys play, one step per turn (below): 1 FRIEND, 3 FRIENDS, STRUM, ACCORDION, GUESS, FOLLOW, CHORDS. |
 | SELECT | The beat slower or faster (SLOW, WALK, FAST). |
 | KNOB 1 | Big and small. Low notes make a big friend, high notes a small one. OCT- and OCT+ do the same. |
@@ -139,6 +139,8 @@ LOOK-ALIKES OFF, and each of them is replaced by an original stand-in with the s
 | Cowgirl | Cactus (in a cowboy hat) |
 | Space Hero | Alien |
 | Spider Mom | Rainbow Mom (a mom with a rainbow headband) |
+| Spider Grandma | Green Granny (silver curls, round glasses, a green cardigan) |
+| Fairy Monster | Pixie (a leaf hat and lilac wings) |
 
 Turn **PRESETS right** the same way to bring the originals back. The choice is kept when the FM-1 is switched off (the top bit of the
 VOLUME's byte). Songs in WRITE are untouched; their notes just show the stand-ins. The list is `STAND_INS` in
@@ -180,6 +182,14 @@ sidewalk, so its own spot is empty; at night the windows and the lamp light up. 
 Yellow Bird's home sky, and with LOOK-ALIKES off the stand-ins move in instead. And Cool Ducky went green, in a rainbow bucket hat and
 shades.
 
+Her second batch: Spider Grandma (a green web-hero mask with silver curls, a bun and pearls; WHEEL's GOSPEL organ),
+Night Light (drawn from her own axolotl night light: white, with mint gills, hugging a mint egg; PHASE's BELL, like a
+music box), Green Queen (the night light as a green queen in a gold crown and a rainbow cape; PHASE's STRING), King
+Axolotl (green, on a rainbow throne in red and green robes; FM6's BRASS fanfare), Fairy Monster (a pink fairy monster
+with pigtails, little wings and a star wand, who moved in next door on the street; TRIO's RING BELL) and Morning Glory (a
+vine with heart-shaped leaves and purple trumpet flowers; PHYS's MARIMBA). Spider Grandma and Fairy Monster are
+look-alikes, with Green Granny and Pixie as their stand-ins.
+
 Each one uses one of Felucca's own factory sounds (listed in `firmware/src/kid.c`, `KID_SOUND`), with its
 level set so they all play at about the same loudness. Each also has a home sky and a favorite beat
 (Ghost and Slimy: SPOOKY, a ghost-hunting funk; Frog and Axolotl: REGGAE; Butterfly and Rainbow: LULLABY). Scissors
@@ -196,7 +206,7 @@ repository and its website are public.
 
 ## Where it lives
 
-- `tools/gen_kid_art.py`: the 63 pictures, drawn from shapes on a 48 x 48 grid and outlined
+- `tools/gen_kid_art.py`: the 69 pictures, drawn from shapes on a 48 x 48 grid and outlined
   automatically. `python3 tools/gen_kid_art.py /tmp/kid_art.h --png /tmp/sheet.png` writes a contact
   sheet to look at. The build runs it (`tools/build.py` generate).
 - `firmware/src/kid.c`: everything else (sounds, knobs, buttons, the screen). It takes over the main
