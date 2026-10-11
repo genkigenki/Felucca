@@ -260,8 +260,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6_test" tests/fm6_test.c -lm
     mkdir -p build/fm6_demo
     run "FM6: algorithms, envelopes, retrigger, DC, clipping, macros, patch formats, voices, cost, demos" "$OUT/fm6_test" build/fm6_demo
-    # SLICE is in the standard build (firmware/src/core.h): its test always runs (after #22 by andreahaku)
-    if grep -q '^#define SLC_BREAK_BPM ' build/gen/felucca_samples.h; then
+    # SLICE is off in the MAKU build (firmware/src/core.h: FELUCCA_SLICE=0) and its user-slot uploader is gone:
+    # the test runs only for a build/ made with FELUCCA_SLICE=1 that has the uploader
+    if grep -q '^#define SLC_BREAK_BPM ' build/gen/felucca_samples.h && [ -f tools/fm1_sample_upload.py ]; then
         mkdir -p build/slice_demo
         python3 tests/slice_loop.py build/slice_demo/loop
         python3 tools/fm1_sample_upload.py build LOOP build/slice_demo/loop build/slice_demo/loop.wav:60 >/dev/null
@@ -269,8 +270,7 @@ if [ -f build/gen/felucca_tables.h ]; then
         run "SLICE: tables, onsets, reverse, keys, modes, MAN slices and their store, demos" "$OUT/slice_test" \
             build/slice_demo/loop build/slice_demo
     else
-        echo "== SLICE: build/ was made with FELUCCA_SLICE=0 (no BREAK); run ./build.sh without it first"
-        fail=1
+        echo "== skip SLICE (the engine is off: FELUCCA_SLICE=0, the default; no tools/fm1_sample_upload.py)"
     fi
 else
     echo "== skip hostsim (run ./build.sh once)"

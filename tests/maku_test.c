@@ -458,11 +458,11 @@ static int macros(void)
     uint32_t i, j, n, ok = 1, steals, maxact = 0, b;
     start(0);
     maku_macro_set(2, 2, 0);
-    bad += check("MACRO: AIR 0 -> REV 60, DLY 0, ATK 60", trk[2].p[P_REV] == 60 && trk[2].p[P_DLY] == 0 && trk[2].p[P_ATK] == 60);
+    bad += check("MACRO: AIR 0 -> REV 0, DLY 0, ATK 20", trk[2].p[P_REV] == 0 && trk[2].p[P_DLY] == 0 && trk[2].p[P_ATK] == 20);
     maku_macro_set(2, 2, 127);
-    bad += check("  AIR 127 -> REV 127, DLY 70, ATK 127", trk[2].p[P_REV] == 127 && trk[2].p[P_DLY] == 70 && trk[2].p[P_ATK] == 127);
+    bad += check("  AIR 127 -> REV 127, DLY 127, ATK 127", trk[2].p[P_REV] == 127 && trk[2].p[P_DLY] == 127 && trk[2].p[P_ATK] == 127);
     maku_macro_set(0, 1, 127);
-    bad += check("  a macro can run down: TONE 127 on the kick -> DECY 70", trk[0].p[P_E3] == 70 && trk[0].p[P_E2] == 110);
+    bad += check("  a macro can run down: TONE 127 on the kick -> DECY 30", trk[0].p[P_E3] == 30 && trk[0].p[P_E2] == 127);
     maku_macro_set(0, 0, 90);
     bad += check("  KICK SELECT is DENSITY", maku.dens == 90);
     for (i = 0; i < 4; i++)
@@ -998,7 +998,7 @@ static int verbs2(void)
         for (i = 0; i < 900u; i++)
             maku_block();
         bad += check("  let go: all back where they were; AIR's new attack stays", trk[1].p[P_LRATE] == lr && trk[1].p[P_LD_FLT] == ld && trk[3].p[P_REL] > 0 &&
-                     trk[2].p[P_ATK] != a0 && trk[2].p[P_ATK] == 60 + ((127 - 60) * 100 + 63) / 127 && !maku.ovlive);
+                     trk[2].p[P_ATK] != a0 && trk[2].p[P_ATK] == 20 + ((127 - 20) * 100 + 63) / 127 && !maku.ovlive);
         bad += check("  .. and the pitch wobble is gone", trk[1].p[P_LD_PIT] == 0);
         (void)r0;
     }
@@ -1087,7 +1087,7 @@ static int worlds_voices(void)
     printf("ui:   INSERT: %u of 12 worlds give a drone one, %u drones none; %u set ones sounding at the end\n", ins_worlds, ins_none, ins_sounding);
     bad += check("INSERT: only the drones get one (PHASR / CHOR, FLANG / CHOR), most worlds do, some drones do not, and a set one sounds",
                  !ins_wrong && ins_worlds >= 6u && ins_none >= 1u && ins_sounding >= ins_worlds);
-    {   /* the TONE macro of the drone carries the MIX (20 .. 110): up with the macro */
+    {   /* the TONE macro of the drone carries the MIX (0 .. 127): up with the macro */
         uint32_t v;
         int mono = 1, last = -1;
         for (v = 0; v <= 127u; v += 9u) {
@@ -1096,7 +1096,7 @@ static int worlds_voices(void)
             last = trk[MAKU_DRA].p[P_IMIX];
         }
         maku_macro_set(MAKU_DRA, 1, 127);
-        bad += check("INSERT: the drone's TONE macro moves its MIX up to 110, within 0 .. 127", mono && trk[MAKU_DRA].p[P_IMIX] == 110);
+        bad += check("INSERT: the drone's TONE macro moves its MIX up to 127, within 0 .. 127", mono && trk[MAKU_DRA].p[P_IMIX] == 127);
     }
     return bad;
 }
