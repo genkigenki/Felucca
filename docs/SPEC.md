@@ -10,7 +10,10 @@ MAKU (幕間機) is firmware for the M-VAVE FM-1 (a 240x240 screen, 4 knobs + ma
 derived from Felucca (Leo Kuroshita, GPL-3.0-only). It is an always-on ambience machine for DJ-event interludes: power
 it on and a new, random, in-key world is already playing. Nothing is saved but the likes: REC keeps the world playing
 now, and every HOME hold then draws a new world, more and more often from the likes, a little changed, so the machine
-grows towards its player's taste. Status: host tests and the browser emulator only; **not yet verified on hardware**.
+grows towards its player's taste. Status: verified on hardware by the author; a few specifics (the likes surviving an update, the ~40 ms
+gap of a REC write, the CPU estimate) are still read from the code or estimated, and are marked as such below.
+Names kept from Felucca for compatibility: the USB device name, the loader and package identities, the `FELUCCA_*` build options
+and the file names. Release packages are `maku-X.Y.fwsc`, identity `FM-1_9XY` (0.1 -> `FM-1_901`).
 
 ## Principles
 
@@ -23,7 +26,7 @@ grows towards its player's taste. Status: host tests and the browser emulator on
 
 | # | Part | Content | Steps |
 | --- | --- | --- | --- |
-| 1 | pulse (脈) | kick, DRUM engine; the PULSE kick crossfades into ECG-monitor beeps as TONE rises (from 80, pure at 110+) | 16 |
+| 1 | pulse (脈) | kick, DRUM engine; the PULSE kick crossfades into ECG-monitor beeps as TONE rises (from 80, pure at 110+; from 100 the beep climbs up to +4 semitones with an octave above fading in). Its tuning is fixed, it does not follow ROOT | 16 |
 | 2 | floor (床) | drone chords, PHYS (9 voicings of engine + preset + articulation) | 57 |
 | 3 | haze (霞) | shimmer, GRAIN (5 voicings) | 13 |
 | 4 | voice (声) | arpeggiated phrase, PHYS (10 voicings); 32-place phrase table with rests, random runs of 3..8 | 29 |
@@ -34,7 +37,8 @@ coprime and none is a multiple of 16, so the parts keep drifting out of phase. N
 
 Articulations (set per world, `maku_voices.c`): STRK struck, SOFT soft strike, SWEL swell (~2 s, held to the next note),
 BOW bowed, HOLD (~1.4 s, held until the chord changes). The floor and haze are held (tie) in most worlds and at least one
-of them always is. Voice shares per part: floor 3, held haze 2, voice 2, kick 1 (8 voices total).
+of them always is. Voice shares per part: floor 3 (a held PHYS floor 2), held haze 2, voice 2, kick 1 (8 voices total).
+Above kick density 96 the shares change to make room for the hats: kick 2, floor 2, voice 1.
 
 ## Controls
 
@@ -44,15 +48,18 @@ of them always is. Voice shares per part: floor 3, held haze 2, voice 2, kick 1 
 | Part | SELECT | PRESETS (tone) | ALGORITHM |
 | --- | --- | --- | --- |
 | 1 pulse | DENS (kick density) | TONE | WASH |
-| 2 floor | OPEN (chord voices 2-4; below 64: let the chord ring) | TONE | SWAY |
-| 3 haze | GRAIN (density / size; below the middle: sparser, longer) | TONE | AIR |
-| 4 voice | LOOSE (re-rolls, octave up; below the middle: sparser) | TONE | TRAIL |
+| 2 floor | OPEN (chord voices 2-4; below 64: let the chord ring, up to 70 % for a held floor, a struck chord is left out up to 55 %) | TONE | SWAY |
+| 3 haze | GRAIN (density / size; below the middle: sparser, up to 90 % of the notes spared) | TONE | AIR |
+| 4 voice | LOOSE (re-rolls, octave up; below the middle: sparser, up to 65 %) | TONE | TRAIL |
 
-- **Keys** play the focused part's sound, unquantized (not snapped to the scale). Every played note also melts into the
-  voice's phrase (the latest 8 are remembered and fade). When the pulse has focus the keys are a 16-step kick sequencer
-  (white keys = steps, ACC = accent; the black keys are eight noise pads). Hand-set kicks always play; DENS only adds ghosts.
+- **Keys** play the focused part's sound, unquantized (not snapped to the scale). A key just played is also the arp's next
+  note, and every played note melts into the voice's phrase (the latest 8 are remembered and fade; each phrase step
+  plays one of them with 35 %). When the pulse has focus the keys are a 16-step kick sequencer
+  (white keys = steps, ACC = accent; the black keys are eight noise pads). Hand-set kicks always play; DENS only adds ghosts. While SEQ is held the keys keep their old jobs: black keys mute, C4
+  unmutes all, F4 taps the tempo.
 - **Kick density** (DENS): 4-39 a hint on step 1, 40-67 step 9 joins, 68-95 steps 5 and 13, **96+ four on the floor is
-  certain**; above 96 hats are added on the same DRUM lanes (open hat on the off-beats from 96, closed hat from 104).
+  certain**; above 96 hats are added on the same DRUM lanes (open hat on the off-beats from 96, closed hat from 104; with the PULSE kick at TONE 95+ these hats are high sine pips,
+  not cymbals).
 - **HOME**: held = a new world (random, or from the likes: below). HOME + OCT-: settings menu (colour, screen off,
   calibration); HOME closes it.
 
@@ -77,7 +84,7 @@ Values stay until the next world.
 | ARP | tap steps the scale MAJ MIN LYD DOR MIX PHRY PEN MPEN; held, a pressed key sets the root and the knobs are ROOT / SCALE / REG (drone register) |
 | SEQ | held: SELECT = BPM (follows MIDI clock), PRESETS = SWING, ALGORITHM = DUCK (64 = default dip) |
 | OCT- / OCT+ | modulate a fifth down / up around the circle of fifths (a key-signature change: notes already sounding or in the phrase keep their pitch) |
-| PLAY | tap = DRIFT on/off (green LED while on); held: RATE / RANGE / REACH. While on, the 12 macros random-walk within RANGE/2 of where it was switched on; REACH 43+ also the space, 86+ also tempo / SWING / DUCK. A value turned by hand becomes the new anchor; a new world switches it off |
+| PLAY | tap = DRIFT on/off (green LED while on); held: RATE / RANGE / REACH. While on, the macros random-walk (small steps, every ~64 blocks, so values glide) within RANGE/2 of where it was switched on, except the kick's DENSITY, which never drifts; REACH 43+ also the space, 86+ also tempo / SWING / DUCK. A value turned by hand becomes the new anchor; a new world switches it off |
 | SAVE | no function |
 | REC | tap = like: the world playing now goes into the likes (REC lit until the next world); held ~2 s = every like forgotten |
 
@@ -108,15 +115,15 @@ MIDI: USB and TRS in, clock follow only; CC20 (any channel) is the kick density.
 
 ## Screen
 
-240x240 split into four 120x120 quadrants matching the knobs' physical 2x2: top-left (MASTER's place) = waveform + BPM +
-four volume bars + the focused part; the other three show the name, value and gauge of what SELECT / PRESETS / ALGORITHM
+240x240 split into four 120x120 quadrants matching the knobs' physical 2x2: top-left (MASTER's place) = waveform + BPM with the
+key (ROOT SCALE) beside it + four numbered, per-channel-coloured volume bars + the focused part's number and name; the other three show the name, value and gauge of what SELECT / PRESETS / ALGORITHM
 move now (the verb's own three while a verb is held). At most three parameters per mode, no paging.
 
 ## Sound design notes
 
 Space (all in `fx.c`): ensemble chorus, tape delay, ROOM reverb with pre-delay and moving combs, SPRING, reverse reverb
 (amount from the haze's AIR). INSERT (Felucca 1.5): a per-world PHASR / CHOR (floor) or FLANG / CHOR (haze), kept on trial.
-CPU estimate: worst case ~51 % of the device (host-derived, not measured on hardware); overload protection drops voices.
+CPU estimate: worst case ~51 % of the device (host-derived, not measured); overload protection drops voices.
 
 ## Kept / dropped
 
@@ -142,6 +149,6 @@ engines from the build (~28 KB of flash, but ui_test.c depends on them), and eve
 | Decisions, newest last | [decisions.md](decisions.md) |
 | Code | `firmware/src/maku.c`, `maku_voices.c`, `maku_fav.c` (likes), `ui_maku.c`, `ui_input.c`, `fx.c` |
 | Tests / build | `tests/maku_test.c`, `tests/run_tests.sh`; [../BUILDING.md](../BUILDING.md) |
-| Browser emulator | `web/emu/`; live at https://okumurari2.github.io/maku/ |
+| Browser emulator (with a -2..+2 rating bar that logs the sounding state; `#seed=N` replays a world) | `web/emu/`; live at https://okumurari2.github.io/maku/ |
 
 When the spec changes, update AMBIENT.md first, then this page (and the "Last synced" date above).
