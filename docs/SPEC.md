@@ -8,13 +8,14 @@ Last synced with AMBIENT.md: 2026-10-11.
 
 MAKU (幕間機) is firmware for the M-VAVE FM-1 (a 240x240 screen, 4 knobs + master, 2 rows of buttons, a key bed),
 derived from Felucca (Leo Kuroshita, GPL-3.0-only). It is an always-on ambience machine for DJ-event interludes: power
-it on and a new, random, in-key world is already playing. Nothing is saved; every boot, and every HOME hold, is a new
-world. Status: host tests and the browser emulator only; **not yet verified on hardware**.
+it on and a new, random, in-key world is already playing. Nothing is saved but the likes: REC keeps the world playing
+now, and every HOME hold then draws a new world, more and more often from the likes, a little changed, so the machine
+grows towards its player's taste. Status: host tests and the browser emulator only; **not yet verified on hardware**.
 
 ## Principles
 
 - It plays from power-on; there is no setup step.
-- No saving; boot parameters are random.
+- No saving; boot parameters are random. The one exception: the likes (REC), below.
 - Fine control of one parameter has no value; turning a knob should move things in a good direction (right = livelier).
 - No page navigation and no menu (only a small settings menu on HOME + OCT-); one button, one verb, an immediate sound.
 
@@ -52,7 +53,8 @@ of them always is. Voice shares per part: floor 3, held haze 2, voice 2, kick 1 
   (white keys = steps, ACC = accent; the black keys are eight noise pads). Hand-set kicks always play; DENS only adds ghosts.
 - **Kick density** (DENS): 4-39 a hint on step 1, 40-67 step 9 joins, 68-95 steps 5 and 13, **96+ four on the floor is
   certain**; above 96 hats are added on the same DRUM lanes (open hat on the off-beats from 96, closed hat from 104).
-- **HOME**: held = a new random world. HOME + OCT-: settings menu (colour, screen off, calibration); HOME closes it.
+- **HOME**: held = a new world (random, or from the likes: below). HOME + OCT-: settings menu (colour, screen off,
+  calibration); HOME closes it.
 
 ### Upper row: six verbs of change (work only while held; three own parameters on SELECT / PRESETS / ALGORITHM)
 
@@ -76,9 +78,33 @@ Values stay until the next world.
 | SEQ | held: SELECT = BPM (follows MIDI clock), PRESETS = SWING, ALGORITHM = DUCK (64 = default dip) |
 | OCT- / OCT+ | modulate a fifth down / up around the circle of fifths (a key-signature change: notes already sounding or in the phrase keep their pitch) |
 | PLAY | tap = DRIFT on/off (green LED while on); held: RATE / RANGE / REACH. While on, the 12 macros random-walk within RANGE/2 of where it was switched on; REACH 43+ also the space, 86+ also tempo / SWING / DUCK. A value turned by hand becomes the new anchor; a new world switches it off |
-| SAVE / REC | no function |
+| SAVE | no function |
+| REC | tap = like: the world playing now goes into the likes (REC lit until the next world); held ~2 s = every like forgotten |
 
 MIDI: USB and TRS in, clock follow only; CC20 (any channel) is the kick density. USB also carries the stereo audio input.
+
+## Likes: a machine that grows to taste (`firmware/src/maku_fav.c`)
+
+- **The ring**: up to 16 likes (`MAKU_FAV_MAX`), oldest first; a 17th pushes the oldest out. A like holds what
+  `maku_world` decides and nothing else: the seed, the floor / haze / voice (by the catalog's stable ids), ROOT, SCALE,
+  BPM, the 12 macros and the floor's and haze's INSERT (type, RATE, DEPTH, FDBK), as they are when REC is pressed
+  (knobs turned, DRIFT's wandering, a key changed by ARP or OCT included).
+- **A new world** (HOME held) with N likes: with r = min(90 %, 15 % x N) (`MAKU_FAV_STEP`, `MAKU_FAV_CAP`) one of the
+  likes, weighted by recency (1 .. N, oldest to newest), else a fresh random world. N = 0: exactly the old behaviour
+  (the same seed, the same world, bit for bit). The screen says FROM A LIKE or NEW WORLD.
+- **Mutation**: each part of the chosen like (the three voices, ROOT, SCALE, each of the 12 macros) is drawn anew with
+  ~8 % (`MAKU_MUT_P`), from the catalog's weights and the macros' ranges a new world uses; BPM and the INSERTs stay.
+  REC on a mutated world makes it a like of its own.
+- The choice and the mutation run only on a re-roll (main loop, never the ISR) and draw from a stream derived from the
+  seed, so the same likes and the same seed give the same world. Boot (and the emulator's `#seed=N`) stays random.
+- **Stable ids**: the catalog is append-only; every row has an id that never changes meaning. A changed sound or weight
+  is a new row with a new id (an old row is retired with weight 0 and still plays from a like). `MAKU_CATALOG_VERSION`
+  is only the rating log's key. A stored like with an unknown id or an out-of-range value is skipped; the others stay.
+- **Storage**: the device writes flash only when REC is pressed (a like or the clearing): its own storage object in the
+  former autosave's A/B sectors (0xE5000 / 0xE6000): one 4 KiB erase (~40 ms of silence) and four page writes per press,
+  the two sectors taking turns (~200,000 presses at 100,000 cycles). The blob has a magic, version and checksum; a damaged
+  or foreign one starts empty. Kept across Felucca / MAKU updates; lost when returning to the official V15. The emulator
+  keeps it with its simulated flash in localStorage. Ships empty.
 
 ## Screen
 
@@ -101,7 +127,8 @@ CPU estimate: worst case ~51 % of the device (host-derived, not measured on hard
 
 ## Open
 
-Boot-randomness ranges (by ear), ducking between all four volumes, ghost kicks shown dimly on the LEDs, removing unused
+Boot-randomness ranges (by ear), the likes' constants (16, 15 %, 90 %, 8 %, 2 s; by ear) and whether the ~40 ms gap of a
+REC write is acceptable (on hardware), ducking between all four volumes, ghost kicks shown dimly on the LEDs, removing unused
 engines from the build (~28 KB of flash, but ui_test.c depends on them), and everything on real hardware.
 
 ## Where things are
@@ -113,7 +140,7 @@ engines from the build (~28 KB of flash, but ui_test.c depends on them), and eve
 | How the verbs were regrouped (history) | [VERBS_PLAN.md](VERBS_PLAN.md) |
 | Voice catalog, articulations, rating tool | [VOICES_RATING.md](VOICES_RATING.md) |
 | Decisions, newest last | [decisions.md](decisions.md) |
-| Code | `firmware/src/maku.c`, `maku_voices.c`, `ui_maku.c`, `ui_input.c`, `fx.c` |
+| Code | `firmware/src/maku.c`, `maku_voices.c`, `maku_fav.c` (likes), `ui_maku.c`, `ui_input.c`, `fx.c` |
 | Tests / build | `tests/maku_test.c`, `tests/run_tests.sh`; [../BUILDING.md](../BUILDING.md) |
 | Browser emulator | `web/emu/`; live at https://okumurari2.github.io/Felucca/ |
 

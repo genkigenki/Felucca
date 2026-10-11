@@ -944,6 +944,31 @@ static uint8_t persist_pending;                 /* 1 requested, 2 waiting after 
 static uint32_t persist_retry_ms;
 #endif
 
+/* MAKU's likes (maku_fav.c): their own object (OBJ_MAKUFAV, the autosave's pair 0xE5000 / 0xE6000 under its own type),
+ * written only when REC is pressed (a like, or the clearing), never while it plays on or idles: a 4 KiB erase, the two
+ * sectors taking turns, and three page writes of the 524-byte ring. The erase stops the audio for its ~40 ms, as every save
+ * does (MAKU always plays: the REC press is heard as a short gap). Read once at power-on (persist_boot); a ring that does
+ * not load (none, torn, damaged, another version) starts empty. 0 = written */
+static int maku_fav_store(void)
+{
+#if FELUCCA_FLASH
+    uint8_t b[MAKU_FAV_BYTES];
+    if (!flash_ok)
+        return -1;
+    maku_fav_pack(b);
+    return st_save(OBJ_MAKUFAV, b, sizeof b);
+#else
+    return 0;
+#endif
+}
+#if FELUCCA_FLASH
+static void maku_fav_boot(void)
+{
+    uint8_t b[MAKU_FAV_BYTES];
+    maku_fav_unpack(b, st_load(OBJ_MAKUFAV, b, sizeof b));
+}
+#endif
+
 static void persist_boot(void)                    /* before settings_init / panel_init */
 {
 #if FELUCCA_FLASH
@@ -975,6 +1000,7 @@ static void persist_boot(void)                    /* before settings_init / pane
                 proj_fetch(i);
     }
     up_boot();                                     /* user presets */
+    maku_fav_boot();                               /* MAKU's likes */
 #endif
 }
 

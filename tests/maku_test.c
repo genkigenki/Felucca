@@ -570,9 +570,24 @@ static int buttons(void)
     down_for(B_SAVE, 3);
     bad += check("  SAVE does nothing (no verb, no undo, no page)", !maku.hv && ui.home && !ui.layer);
     let_go(B_SAVE);
+    maku_fav.n = 0;
     down_for(B_REC, 3);
     let_go(B_REC);
-    bad += check("  REC does nothing here (it arms no recording)", song.rec == 0u);
+    bad += check("  REC before a world (no voices yet): nothing is kept", maku_fav.n == 0u);
+    maku_world(77u);
+    down_for(B_REC, 3);
+    let_go(B_REC);
+    bad += check("  REC tapped: the world is a like (it arms no recording; REC's LED: liked)", song.rec == 0u && maku_fav.n == 1u &&
+                 maku_fav.liked && maku_fav.e[0].seed == maku.seed);
+    down_for(B_REC, 3);
+    let_go(B_REC);
+    bad += check("  .. tapped again: two likes", maku_fav.n == 2u);
+    down_for(B_REC, 100);
+    bad += check("  .. held 1.6 s: still two (the clearing is ~2 s)", maku_fav.n == 2u);
+    down_for(B_REC, 40);
+    bad += check("  .. held 2.2 s: every like forgotten, the LED off", maku_fav.n == 0u && !maku_fav.liked);
+    let_go(B_REC);
+    bad += check("  .. and the release likes nothing", maku_fav.n == 0u);
     {
         uint32_t r0 = (uint32_t)trk[1].p[P_ROOT], bpm = (uint32_t)song.g[G_BPM], same = 1, n;
         for (n = 0; n < 6u && same; n++) {
@@ -1237,9 +1252,250 @@ static int bench(void)
     return 0;
 }
 
+
+/* LIKES (maku_fav.c): what a world is, as one number: every parameter of the four tracks, the macros, the tempo, the
+ * articulations and the TONE macros, the voices by name (not by row) */
+static uint32_t world_sig(void)
+{
+    uint32_t h = 2166136261u, i, j;
+#define MIX(x) (h = (h ^ (uint32_t)(x)) * 16777619u)
+    for (i = 0; i < 4u; i++) {
+        for (j = 0; j < P_COUNT; j++)
+            MIX(trk[i].p[j]);
+        MIX(trk[i].eng_req);
+        MIX(maku.art[i]);
+        for (j = 0; j < 3u; j++) {
+            MIX(maku.m[i][j]);
+            MIX(maku_tone[i][j].p);
+            MIX(maku_tone[i][j].lo);
+            MIX(maku_tone[i][j].hi);
+        }
+        if (i && maku.voice[i] != 0xFFu)
+            for (const char *c = MAKU_V[i].v[maku.voice[i]].name; *c; c++)
+                MIX(*c);
+    }
+    MIX(song.g[G_BPM]);
+    MIX(maku.dens);
+    MIX(maku.open);
+    MIX(maku.loose);
+    MIX(fx_rvs);
+#undef MIX
+    return h;
+}
+static void fresh(void)
+{
+    ui_power_on();
+    maku_setup();
+}
+static int likes(void)
+{
+    int bad = 0, ok;
+    uint32_t s, k, n, cnt;
+    /* an empty ring: the world of every seed as before, and the stream that plays on from it too */
+    maku_fav.n = 0;
+    for (s = 1, ok = 1; s <= 300u; s++) {
+        uint32_t a, ra;
+        fresh();
+        maku_world(s * 2654435761u);
+        a = world_sig();
+        ra = rng_state;
+        fresh();
+        ok &= !maku_world_pref(s * 2654435761u) && world_sig() == a && rng_state == ra;
+    }
+    bad += check("LIKES: no likes: every new world is maku_world's, bit for bit (and the random stream after it)", ok);
+    /* the ring: a like more pushes out the oldest */
+    maku_fav.n = 0;
+    for (k = 0; k < 20u; k++) {
+        maku_fav_t e;
+        fresh();
+        maku_world(k + 1u);
+        ok = maku_fav_capture(&e);
+        maku_fav_push(&e);
+    }
+    bad += check("  20 likes: the ring keeps the last 16, oldest first", ok && maku_fav.n == MAKU_FAV_MAX &&
+                 maku_fav.e[0].seed == 5u && maku_fav.e[15].seed == 20u);
+    /* the share from the likes against N */
+    ok = maku_fav_rate(0) == 0 && maku_fav_rate(1) == 15u && maku_fav_rate(2) == 30u && maku_fav_rate(5) == 75u &&
+         maku_fav_rate(6) == 90u && maku_fav_rate(7) == 90u && maku_fav_rate(16) == 90u;
+    bad += check("  r = min(90 %, 15 % x N): 0 15 30 .. 75 90 90 ..", ok);
+    {
+        static const uint8_t NS[] = {1, 3, 16};
+        uint32_t t;
+        for (t = 0; t < sizeof NS; t++) {
+            maku_fav_t keep[16];
+            memcpy(keep, maku_fav.e, sizeof keep);
+            maku_fav.n = NS[t];
+            for (s = 0, cnt = 0; s < 4000u; s++) {
+                ui_power_on();
+                maku_setup();
+                cnt += maku_world_pref(s * 7919u + 13u);
+            }
+            memcpy(maku_fav.e, keep, sizeof keep);
+            printf("ui:   %u likes: %u of 4000 worlds from them (%u %% expected)\n", NS[t], cnt, maku_fav_rate(NS[t]));
+            bad += check(NS[t] == 1u ? "  1 like: ~15 % of the worlds come from it" : NS[t] == 3u ? "  3 likes: ~45 %" : "  16 likes: ~90 %",
+                         cnt * 100u >= (maku_fav_rate(NS[t]) - 3u) * 4000u && cnt * 100u <= (maku_fav_rate(NS[t]) + 3u) * 4000u);
+        }
+    }
+    /* the newer the likelier: weights 1 .. N */
+    {
+        uint32_t c[4] = {0, 0, 0, 0};
+        maku_fav.n = 4;
+        rng_state = 99u;
+        for (k = 0; k < 20000u; k++)
+            c[maku_fav_pick()]++;
+        printf("ui:   picks of 4 likes, oldest first: %u %u %u %u\n", c[0], c[1], c[2], c[3]);
+        bad += check("  a like is drawn by recency: 1 : 2 : 3 : 4 (+-10 %)", c[0] > 1800u && c[0] < 2200u && c[1] > 3600u &&
+                     c[1] < 4400u && c[2] > 5400u && c[2] < 6600u && c[3] > 7200u && c[3] < 8800u);
+    }
+    /* the changes: each part drawn anew with ~8 % */
+    {
+        uint32_t per[MAKU_FAV_NEL], total = 0, worst_lo = 1000, worst_hi = 0, nw = 0;
+        maku_fav_t base;
+        memset(per, 0, sizeof per);
+        for (s = 0; s < 40u; s++) {
+            fresh();
+            maku_world(s * 104729u + 7u);
+            maku_fav_capture(&base);
+            rng_state = s * 31u + 1u;
+            for (k = 0; k < 1000u; k++) {
+                maku_fav_t e = base;
+                uint32_t d = maku_fav_mutate(&e), b;
+                ok &= maku_fav_valid(&e);
+                for (b = 0; b < MAKU_FAV_NEL; b++)
+                    per[b] += (d >> b) & 1u;
+                nw++;
+            }
+        }
+        for (k = 0; k < MAKU_FAV_NEL; k++) {
+            uint32_t pm = per[k] * 1000u / nw;
+            total += per[k];
+            worst_lo = pm < worst_lo ? pm : worst_lo;
+            worst_hi = pm > worst_hi ? pm : worst_hi;
+        }
+        printf("ui:   changes over %u worlds: %u.%u %% of the parts (each part %u.%u .. %u.%u %%)\n", nw,
+               total * 1000u / (nw * MAKU_FAV_NEL) / 10u, total * 1000u / (nw * MAKU_FAV_NEL) % 10u,
+               worst_lo / 10u, worst_lo % 10u, worst_hi / 10u, worst_hi % 10u);
+        bad += check("  a like's parts change with ~8 % each (7.0 .. 9.0 % every part, 40000 draws), always a playable world",
+                     ok && worst_lo >= 70u && worst_hi <= 90u);
+    }
+    /* a like plays the world it was: voices, INSERTs, key, tempo, the macros as they were turned */
+    {
+        uint32_t same = 0;
+        for (s = 1; s <= 100u; s++) {
+            maku_fav_t e;
+            uint32_t a;
+            fresh();
+            maku_world(s * 6151u);
+            maku_macro_set(2, 2, (s * 37u) % 128u);       /* (turned by hand since) */
+            maku_macro_set(3, 0, (s * 11u) % 128u);
+            a = world_sig();
+            maku_fav_capture(&e);
+            fresh();
+            maku_fav_apply(&e, 1);
+            same += world_sig() == a;
+        }
+        bad += check("  a like, played unchanged, is the world it was (100 of 100, the knobs turned since included)", same == 100u);
+    }
+    /* the same likes and the same seed: the same world */
+    {
+        uint32_t a, b, diff = 0;
+        maku_fav.n = 6;
+        for (s = 1, ok = 1; s <= 200u; s++) {
+            fresh();
+            k = maku_world_pref(s * 48271u);
+            a = world_sig();
+            fresh();
+            ok &= maku_world_pref(s * 48271u) == k && world_sig() == a;
+            fresh();
+            maku_world_pref(s * 48271u + 1u);
+            b = world_sig();
+            diff += a != b;
+        }
+        bad += check("  with likes: the same seed and likes give the same world; seeds differ", ok && diff > 150u);
+    }
+    /* the stable ids: a longer catalog, its rows in another order, plays a like from the old one alike */
+    {
+        static maku_voice_t ext[4][24];
+        const maku_voice_t *keep[4];
+        uint8_t keepn[4], blob[MAKU_FAV_BYTES];
+        uint32_t a[16], i, r, same = 0;
+        maku_fav.n = 0;
+        for (s = 0; s < 16u; s++) {
+            maku_fav_t e;
+            fresh();
+            maku_world(s * 2246822519u + 3u);
+            a[s] = world_sig();
+            maku_fav_capture(&e);
+            maku_fav_push(&e);
+        }
+        maku_fav_pack(blob);
+        for (i = 1; i < 4u; i++) {
+            keep[i] = MAKU_V[i].v;
+            keepn[i] = MAKU_V[i].n;
+            ext[i][0] = MAKU_V[i].v[0];                    /* a new row first (another sound, a new id), the old ones reversed */
+            ext[i][0].name = "NEW ROW";
+            ext[i][0].pre = (uint8_t)(ext[i][0].pre + 1u);
+            ext[i][0].id = 200u;
+            for (r = 0; r < keepn[i]; r++)
+                ext[i][1u + r] = keep[i][keepn[i] - 1u - r];
+            MAKU_V[i].v = ext[i];
+            MAKU_V[i].n = (uint8_t)(keepn[i] + 1u);
+        }
+        n = maku_fav_unpack(blob, (int)sizeof blob);
+        for (s = 0; s < n; s++) {
+            fresh();
+            maku_fav_apply(&maku_fav.e[s], 1);
+            same += world_sig() == a[s];
+        }
+        for (i = 1; i < 4u; i++) {
+            MAKU_V[i].v = keep[i];
+            MAKU_V[i].n = keepn[i];
+        }
+        bad += check("  stable ids: with a row added and the rows reordered, every like plays the same world (16 of 16)", n == 16u && same == 16u);
+        for (i = 1, ok = 1; i < 4u; i++)
+            for (r = 0; r < MAKU_V[i].n; r++)
+                for (k = r + 1u; k < MAKU_V[i].n; k++)
+                    ok &= MAKU_V[i].v[r].id && MAKU_V[i].v[r].id != MAKU_V[i].v[k].id;
+        bad += check("  every catalog row has an id of its own (1.., unique in its part)", ok);
+    }
+    /* the blob: round trip, a like it cannot play left out, a broken or foreign one empty */
+    {
+        uint8_t b[MAKU_FAV_BYTES], c[MAKU_FAV_BYTES];
+        maku_fav_t keep[16];
+        uint32_t sum;
+        memcpy(keep, maku_fav.e, sizeof keep);
+        maku_fav_pack(b);
+        n = maku_fav_unpack(b, (int)sizeof b);
+        maku_fav_pack(c);
+        bad += check("  the ring packs and unpacks to itself (16 likes, every field)", n == 16u && !memcmp(keep, maku_fav.e, sizeof keep) && !memcmp(b, c, sizeof b));
+        memcpy(c, b, sizeof c);
+        c[MAKU_FAV_HEAD + 1u * MAKU_FAV_ESZ + 5u] = 77u;   /* like 1: a haze this catalog does not have */
+        c[MAKU_FAV_HEAD + 4u * MAKU_FAV_ESZ + 7u] = 13u;   /* like 4: ROOT 13 */
+        sum = maku_fav_sum(c, MAKU_FAV_BYTES - 4u);
+        maku_put32(c + MAKU_FAV_BYTES - 4u, sum);
+        n = maku_fav_unpack(c, (int)sizeof c);
+        ok = n == 14u && maku_fav.e[0].seed == keep[0].seed && maku_fav.e[1].seed == keep[2].seed &&
+             maku_fav.e[3].seed == keep[5].seed && maku_fav.e[13].seed == keep[15].seed;
+        bad += check("  an unknown voice id or a value out of range: that like is left out, the other 14 stay in order", ok);
+        memcpy(c, b, sizeof c);
+        c[100] ^= 1u;
+        bad += check("  a byte flipped (the checksum fails): the ring starts empty", maku_fav_unpack(c, (int)sizeof c) == 0u && !maku_fav.n);
+        memcpy(c, b, sizeof c);
+        c[4] = MAKU_FAV_VER + 1u;
+        maku_put32(c + MAKU_FAV_BYTES - 4u, maku_fav_sum(c, MAKU_FAV_BYTES - 4u));
+        bad += check("  another version (a later firmware's): empty, nothing misread", maku_fav_unpack(c, (int)sizeof c) == 0u);
+        bad += check("  none in flash, or the wrong length: empty", maku_fav_unpack(b, -1) == 0u && maku_fav_unpack(b, (int)sizeof b - 4) == 0u);
+        maku_fav_unpack(b, (int)sizeof b);
+        bad += check("  .. and the good one again: 16", maku_fav.n == 16u);
+    }
+    maku_fav.n = 0;
+    maku_fav.liked = 0;
+    return bad;
+}
+
 int main(void)
 {
-    int bad = setup() + world() + kick() + drones() + scale() + arp() + follow() + duck() + voices() + cost() + kickgrid() + macros() + knobs() + buttons() + melt() + fifths() + verbs() + verbs2() + screen() + worlds_voices() + catalog() + (getenv("MAKU_BENCH") ? bench() : 0);
+    int bad = setup() + world() + kick() + drones() + scale() + arp() + follow() + duck() + voices() + cost() + kickgrid() + macros() + knobs() + buttons() + melt() + fifths() + verbs() + verbs2() + screen() + worlds_voices() + catalog() + likes() + (getenv("MAKU_BENCH") ? bench() : 0);
     printf("%s\n", bad ? "MAKU TEST FAILED" : "maku tests passed");
     return bad != 0;
 }

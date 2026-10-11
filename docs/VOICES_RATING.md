@@ -272,7 +272,7 @@ worklet  ──{type:"snap", data}──▶  ページ：rating・note・時刻�
 | 声の「ゆっくりした旋律」は4ステップに1回 | そのとおり。`SWEL`/`BOW` の声は 4 ステップごとに1音、次の音まで TIE。ステップ24〜28は今までどおり無音（息継ぎ） |
 | マクロの ATK/REL は土台からの相対 | 持続系だけ、土台の ±12 を動く（`maku_macro_set`）。霞の AIR で小さくなる問題はこれで解消 |
 | TONE マクロ | **声ごとに差し替え**（カタログの `t`）。ANALOG の E6 は DRV、PHYS の E6 は BOW など、エンジンで意味が違い、共通の表では歪むため |
-| 声の名前・出し方をログに | `web_voice_name` / `web_voice_art`。記録には `catalog`（`MAKU_CATALOG_VERSION`）も入る。**カタログ（行・重み・上書き）を変えたら版を上げる** |
+| 声の名前・出し方をログに | `web_voice_name` / `web_voice_art`。記録には `catalog`（`MAKU_CATALOG_VERSION`）も入る。**カタログ（行・重み・上書き）を変えたら版を上げる**。版は評価ログのキーだけで、いいね（`maku_fav.c`）は見ない。カタログは追記のみで、各行に安定ID（`id`）がある。行や重みを変えるなら新IDの行を足し、古い行は重み0で引退させる（いいねからは引き続き鳴る） |
 | 評価後に自動で次の世界へ | 作っていない（任意だった） |
 
 ### 測ったこと（ホスト、`tests/maku_test.c` CATALOG と `MAKU_BENCH=1`）
