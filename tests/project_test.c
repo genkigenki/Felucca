@@ -196,7 +196,7 @@ int main(void)
     bad += check("FUN2 -> FUN6: converted, valid format 5 slot", ok && proj_ok(&q) && q.magic == PROJ_MAGIC);
     ok = q.sel == 2;
     for (i = 0; i < G_COUNT; i++)
-        ok &= q.g[i] == (i == G_RTYPE || i == G_TAPE || i == G_CRSH ? 0 : (int16_t)(500 + i));
+        ok &= q.g[i] == (i >= PROJ_NG ? GP[i].def : i == G_RTYPE || i == G_TAPE || i == G_CRSH ? 0 : (int16_t)(500 + i));
     bad += check("FUN2 -> FUN6: globals (id 24, the old drum channel: ROOM; 25, 26: TAPE / CRSH off) and selected track", ok);
     ok = 1;
     for (t = 0; t < NTRK; t++)
@@ -227,7 +227,8 @@ int main(void)
     ok = proj_import(&q, &buf, (int)sizeof v3) && proj_ok(&q) && q.magic == PROJ_MAGIC && q.sel == 3 &&
          q.parts == NPART;
     for (i = 0; i < G_COUNT; i++)
-        ok &= q.g[i] == (i == G_RTYPE || i == G_TAPE || i == G_CRSH ? 0 : (int16_t)(600 + i));   /* (a parts-4 FUN3 too) */
+        ok &= q.g[i] == (i >= PROJ_NG ? GP[i].def : i == G_RTYPE || i == G_TAPE || i == G_CRSH ? 0 : (int16_t)(600 + i));   /* (a parts-4 FUN3
+                                                         * too; GHOULBOX's ambience, past what it holds: the defaults) */
     for (t = 0; t < NTRK; t++)
         ok &= track_v3_ok(&q.t[t], &v3.t[t], t);
     bad += check("FUN3 -> FUN6: every parameter kept, the matrix OFF, steps, globals (24: ROOM)", ok);
@@ -441,6 +442,24 @@ int main(void)
         a.sum = proj_sum(&a);
         ok = proj_pack(&st, &a) && proj_import(&c, &st, sizeof st);
         bad += check("FUN7 name of 12 characters (no terminator)", ok && !memcmp(c.name, "ABCDEFGHIJKL", 12));
+        {   /* GHOULBOX: the ambience (G_AMB, G_CRKL): the tail's two bytes before the patches, value + 1 */
+            project_t d = a;
+            uint32_t sum;
+            d.g[G_AMB] = 77;
+            d.g[G_CRKL] = 12;
+            d.sum = proj_sum(&d);
+            ok = proj_pack(&st2, &d) && st2.raw[PROJ_AMB_OFF] == 78u && st2.raw[PROJ_AMB_OFF + 1u] == 13u &&
+                 PROJ_AMB_OFF + 2u == PROJ_FM6_OFF && proj_import(&c, &st2, sizeof st2) && c.g[G_AMB] == 77 && c.g[G_CRKL] == 12;
+            bad += check("ambience: AMB 77 and CRKL 12 round trip (the tail's last two bytes before the patches)", ok);
+            st2.raw[PROJ_AMB_OFF] = st2.raw[PROJ_AMB_OFF + 1u] = 0u;   /* as every FUN10 before wrote them */
+            sum = proj_hash(st2.raw, PROJ_STORE_SIZE - 4u);
+            memcpy(st2.raw + PROJ_STORE_SIZE - 4u, &sum, 4);
+            ok = proj_import(&c, &st2, sizeof st2) && c.g[G_AMB] == 0 && c.g[G_CRKL] == 40;
+            bad += check("  a FUN10 from before (zeros there): AMB 0 (off), CRKL its default 40", ok);
+            d.g[G_AMB] = 128;
+            d.sum = proj_sum(&d);
+            bad += check("  AMB out of range: not packed", !proj_pack(&st2, &d));
+        }
         st2 = st;
         st2.raw[PROJ_NAME_OFF + 3] ^= 1u;
         bad += check("FUN7 name byte changed: the hash refuses the project", !proj_import(&c, &st2, sizeof st2));

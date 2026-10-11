@@ -99,6 +99,8 @@ enum {                          /* global parameters */
                                  * and reverb send (inert since 1.0, clamped to 0 on every load since): the import
                                  * of a project of firmware before 1.0 reads them as the drum part's, then sets
                                  * them 0 (project.c proj_drums_to_part) */
+    G_AMB, G_CRKL,              /* GHOULBOX: the ambience on the mix (ambience.c): its level, its crackle. Appended:
+                                 * a project keeps them in FUN10's tail (project.c PROJ_AMB_OFF), not the header */
     G_COUNT
 };
 

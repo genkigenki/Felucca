@@ -61,6 +61,9 @@ Felucca's sequencer, song mode, effects, editor and backups all work as they do 
   power-on; it borrows the delay's buffer, so it needs no extra RAM.
 - **TAPE and CRSH** (FX > TAPE): the mix through a worn cassette (wow, flutter, saturation, hiss) and a
   cheap sampler's bits and rate.
+- **Ambience** (FX > TAPE, KNOB 3 and 4): **AMB** adds a cave's low wind to the mix and **CRKL** a torch's
+  crackle, with no track and no voice, playing even with the song stopped. AMB 0 (the default) is off; it saves
+  with the project. CAVE WIND and TORCH are still there as sounds when you want them on a track.
 - **GURDY**, a hurdy-gurdy engine: a bowed melody string, drones you tune, and the trompette's buzzing
   bridge struck in time, in six sounds.
   - **Crank mode:** set COUP to **CRANK** and SELECT becomes the wheel's crank. The keys pick the notes; turning

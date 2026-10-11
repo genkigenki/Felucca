@@ -503,7 +503,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <tr><td>DLY</td><td>TIME · FDBK · COLR · MIX</td></tr>
   <tr><td>REVERB</td><td>TYPE (ROOM, SPRING, HALL) · SIZE · DAMP</td></tr>
   <tr><td>CHORUS</td><td>CRT (rate) · CDP (depth)</td></tr>
-  <tr><td>TAPE</td><td>TAPE · CRSH</td></tr>
+  <tr><td>TAPE</td><td>TAPE · CRSH · AMB · CRKL</td></tr>
   <tr><td rowspan="2"><span class="k">SCL</span></td><td>SCL</td><td>ROOT · SCL · QNT (OFF, SNAP, WHITE, SEQ) · TRN (transpose)</td></tr>
   <tr><td>CHORD</td><td>CHRD (OFF, DIA3, DIA7, MAJ, MIN, DOM7, MAJ7, MIN7, SUS4, POW) · VOIC (CLOSE, OPEN, INV1, INV2, +OCT) · TEMP (EQUAL, PYTH, MEAN, JUST)</td></tr>
   <tr><td rowspan="3"><span class="k">EDIT</span></td><td>EDIT 1 · EDIT 2</td><td>The engine's eight controls, four per page (chapter 15)</td></tr>
@@ -590,6 +590,8 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <ul>
   <li><b>TAPE</b>: the whole mix through a worn cassette: wow and flutter (wavering pitch), saturation, treble loss and hiss. GHOULBOX starts at 40.</li>
   <li><b>CRSH</b>: a cheap sampler: fewer bits and a lower sample rate. Off by default; a little adds grit, a lot turns to crunch.</li>
+  <li><b>AMB</b>: the ambience, a low cave wind that rises and falls, in the same reverb as your tracks. It uses no track and no voice, and plays even when the song is stopped, like the air in a room. Off (0) by default; the first half of the knob is subtle.</li>
+  <li><b>CRKL</b>: the torch crackle in the ambience: from 0 (wind only) to a busy fire. AMB sets the level of both.</li>
 </ul>
 <h3>DLY</h3>
 <p><b>TIME</b> (as a note length, so it follows the tempo), <b>FDBK</b> (feedback: how many repeats; past 100 it builds up on itself, so ride it carefully), <b>COLR</b> (darker or brighter repeats) and <b>MIX</b>. With HALL selected, the delay is limited to 0.74 s, because the hall borrows part of its memory.</p>

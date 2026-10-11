@@ -174,6 +174,8 @@ static const param_desc_t GP[G_COUNT] = {
      * editor protocol depend on, do not move */
     [G_TAPE] = PD("TAPE", F_PCT, 0, 127, 0),       /* GHOULBOX: the mix through a worn cassette (tape.c) */
     [G_CRSH] = PD("CRSH", F_PCT, 0, 127, 0),       /* .. and a cheap sampler's bits and rate */
+    [G_AMB] = PD("AMB", F_PCT, 0, 127, 0),         /* GHOULBOX: the ambience (ambience.c): 0 = off, as before */
+    [G_CRKL] = PD("CRKL", F_PCT, 0, 127, 40),      /* .. its crackle: 0 = the wind alone */
 };
 
 static const param_desc_t *track_desc(const track_t *t, uint32_t id)
@@ -414,7 +416,7 @@ static const page_t PAGES[] = {
     {"DLY", FAM_FX, SC_GLOBAL, GR_NONE, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},
     {"REVERB", FAM_FX, SC_GLOBAL, GR_NONE, {G_RTYPE, G_RSIZE, G_RDAMP, 0xFF}},   /* TYPE: ROOM / SPRING / HALL */
     {"CHORUS", FAM_FX, SC_GLOBAL, GR_NONE, {G_CRATE, G_CDEPTH, 0xFF, 0xFF}},
-    {"TAPE", FAM_FX, SC_GLOBAL, GR_NONE, {G_TAPE, G_CRSH, 0xFF, 0xFF}},             /* GHOULBOX (tape.c) */
+    {"TAPE", FAM_FX, SC_GLOBAL, GR_NONE, {G_TAPE, G_CRSH, G_AMB, G_CRKL}},          /* GHOULBOX (tape.c, ambience.c) */
     {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},
     {"CHORD", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, P_TEMP, 0xFF}},   /* SCL again: the chord keys (chord.c);
                                                                               * GHOULBOX: KNOB 3 TEMP */

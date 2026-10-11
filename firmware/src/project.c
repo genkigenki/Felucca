@@ -106,6 +106,8 @@
 #define PROJ_MAGIC_V1 0x46554E31u              /* "FUN1": one instrument; loads into track 1 */
 #define PROJ_NP_V2 53u                         /* P_COUNT of formats 1 and 2 (P_E0 was 45) */
 #define PROJ_NG_V2 27u                         /* G_COUNT of formats 1 and 2 */
+#define PROJ_NG 27u                            /* the globals every format's header holds (FUN1 .. FUN10): G_BPM .. G_CRSH.
+                                                * GHOULBOX's appended ones (G_AMB, G_CRKL) are FUN10's tail's (PROJ_AMB_OFF) */
 #define PROJ_NP_V3 57u                         /* P_COUNT of format 3 (P_E0 was 49) */
 #define PROJ_NP_V4 69u                         /* P_COUNT of format 4 (P_E0 61) */
 #define PROJ_PHYS 2u                           /* project_t.phys: PHYS without DUST and DRUM (see the top) */
@@ -135,12 +137,12 @@ typedef struct { uint8_t note[4], n, time, flags, vel, hit, acc; } step10_t;
 typedef struct { int16_t p[69]; uint8_t engine, preset; step10_t step[NSTEP]; uint8_t lane[NLANE][5]; } proj_trk_v5_t;
 typedef struct {                               /* format 5, before the song chain */
     uint32_t magic, size;
-    int16_t g[G_COUNT];
+    int16_t g[PROJ_NG];
     uint8_t sel, parts, phys, rsv;
     proj_trk_v5_t t[NTRK];
     uint32_t sum;
 } project_v5_t;
-typedef struct { uint32_t magic, size; int16_t g[G_COUNT]; uint8_t sel, parts, phys, rsv;
+typedef struct { uint32_t magic, size; int16_t g[PROJ_NG]; uint8_t sel, parts, phys, rsv;
     proj_trk_v5_t t[NTRK]; chain_v9_t chain; uint32_t sum; } project_v6_t;
 _Static_assert(sizeof(project_v5_t) == 3352u && sizeof(project_v6_t) == 3388u, "frozen formats 5 / 6 sizes");
 /* Serialized FUN7 keeps the retained cache's exact extent. Params are biased
@@ -157,8 +159,11 @@ _Static_assert(sizeof(project_v5_t) == 3352u && sizeof(project_v6_t) == 3388u, "
 #define PROJ_STORE_V7 3388u                    /* FUN7 */
 #define PROJ_NAME_OFF (PROJ_STORE_SIZE - 4u - PROJ_NAME_LEN)
 #define PROJ_FM6_OFF (PROJ_NAME_OFF - NTRK * FM6_PACKED)
+/* GHOULBOX: G_AMB and G_CRKL, a byte each (value + 1; 0, as every FUN10 before wrote it: the default), the reserved
+ * tail's last two before the patches: track parameters can still grow by two (8 bytes) before them */
+#define PROJ_AMB_OFF (PROJ_FM6_OFF - 2u)
 typedef union { uint32_t align; uint8_t raw[PROJ_STORE_SIZE]; } project_store_t;
-_Static_assert(G_COUNT == 27u, "FUN7 globals retain original IDs");
+_Static_assert(PROJ_NG == 27u && G_COUNT == PROJ_NG + 2u, "FUN7 globals retain original IDs; GHOULBOX's two in the tail");
 _Static_assert(sizeof(project_store_t) == 3840u && PROJ_STORE_V7 == sizeof(project_v6_t), "FUN10 / FUN7 sizes");
 typedef struct {                               /* a track of format 4, read only */
     int16_t p[PROJ_NP_V4];
@@ -167,7 +172,7 @@ typedef struct {                               /* a track of format 4, read only
 } proj_trk_v4_t;
 typedef struct {                               /* format 4 (1.0 development builds), read only */
     uint32_t magic, size;
-    int16_t g[G_COUNT];
+    int16_t g[PROJ_NG];
     uint8_t sel, parts, phys, rsv;
     proj_trk_v4_t t[NTRK];
     uint32_t sum;
@@ -179,7 +184,7 @@ typedef struct {                               /* a track of format 3, read only
 } proj_trk_v3_t;
 typedef struct {                               /* format 3 (0.9 .. 1.0), read only */
     uint32_t magic, size;
-    int16_t g[G_COUNT];
+    int16_t g[PROJ_NG];
     uint8_t sel, parts, rsv[2];
     proj_trk_v3_t t[NTRK];
     uint32_t sum;
@@ -224,6 +229,13 @@ static int proj_ok(const project_t *q) { return q->magic == PROJ_MAGIC && q->siz
  * format before FUN7 may hold any channel there. FUN7 came after it was inert (always 0), so only those imports
  * set it: ROOM, the only reverb they knew */
 static void proj_rtype_room(int16_t *g) { g[G_RTYPE] = 0; }
+/* the globals no header holds (GHOULBOX's G_AMB, G_CRKL): their defaults (ambience off) */
+static void proj_g_rest(int16_t *g)
+{
+    uint32_t i;
+    for (i = PROJ_NG; i < G_COUNT; i++)
+        g[i] = GP[i].def;
+}
 
 /* the globals of formats 1 and 2 (G_* unchanged since; any added later: their defaults) */
 static void proj_g_from_v2(int16_t *g, const int16_t *g2)
@@ -388,7 +400,8 @@ static int proj_from_v4(project_t *q, const project_v4_t *v4, int n)
     memset(q, 0, sizeof *q);
     q->magic = PROJ_MAGIC;
     q->size = sizeof *q;
-    memcpy(q->g, v4->g, sizeof q->g);
+    memcpy(q->g, v4->g, sizeof v4->g);
+    proj_g_rest(q->g);
     proj_rtype_room(q->g);
     q->sel = v4->sel;
     q->parts = v4->parts;
@@ -410,7 +423,8 @@ static int proj_from_v3(project_t *q, const project_v3_t *v3, int n)
     memset(q, 0, sizeof *q);
     q->magic = PROJ_MAGIC;
     q->size = sizeof *q;
-    memcpy(q->g, v3->g, sizeof q->g);
+    memcpy(q->g, v3->g, sizeof v3->g);
+    proj_g_rest(q->g);
     proj_rtype_room(q->g);
     q->sel = v3->sel;
     q->parts = v3->parts;
@@ -541,7 +555,8 @@ static int proj_import_old(project_t *q, const void *b, int n)
             v->size == bytes && ((const uint32_t *)b)[bytes / 4u - 1u] == proj_hash(b, bytes - 4u)) {
             memset(q, 0, sizeof *q);
             q->magic = PROJ_MAGIC; q->size = sizeof *q;
-            memcpy(q->g, v->g, sizeof q->g);
+            memcpy(q->g, v->g, sizeof v->g);
+            proj_g_rest(q->g);
             proj_rtype_room(q->g);
             q->sel = v->sel; q->parts = v->parts; q->phys = v->phys;
             for (i = 0; i < NTRK; i++) {
@@ -593,7 +608,8 @@ static int proj_pack(project_store_t *out, const project_t *q)
             if (q->fm6[t][i] > 127u) return 0;
     if (!chain_valid(&q->chain) || !motion_valid(&q->motion) || P_COUNT > 127u) return 0;
     memset(out, 0, sizeof *out); memcpy(b, &magic, 4); memcpy(b + 4, &size, 4);
-    memcpy(b + 8, q->g, sizeof q->g); b[62] = q->sel; b[63] = q->parts; b[64] = q->phys; b[66] = P_COUNT;
+    if (q->g[G_AMB] < 0 || q->g[G_AMB] > 127 || q->g[G_CRKL] < 0 || q->g[G_CRKL] > 127) return 0;
+    memcpy(b + 8, q->g, PROJ_NG * sizeof q->g[0]); b[62] = q->sel; b[63] = q->parts; b[64] = q->phys; b[66] = P_COUNT;
     for (t = 0; t < NTRK; t++) {
         for (i = 0; i < P_COUNT; i++) {
             if (q->t[t].p[i] < -64 || q->t[t].p[i] > 127) return 0;
@@ -615,9 +631,10 @@ static int proj_pack(project_store_t *out, const project_t *q)
             b[pos++] = (uint8_t)(s->probability | (r >> 1) << 7);
         }
     }
-    if (pos + sizeof q->chain + sizeof q->motion > PROJ_FM6_OFF) return 0;
+    if (pos + sizeof q->chain + sizeof q->motion > PROJ_AMB_OFF) return 0;
     memcpy(b + pos, &q->chain, sizeof q->chain); pos += sizeof q->chain;
     memcpy(b + pos, &q->motion, sizeof q->motion);
+    b[PROJ_AMB_OFF] = (uint8_t)(q->g[G_AMB] + 1); b[PROJ_AMB_OFF + 1u] = (uint8_t)(q->g[G_CRKL] + 1);   /* GHOULBOX */
     memcpy(b + PROJ_FM6_OFF, q->fm6, sizeof q->fm6);
     {   /* the name (0-padded; stops at the first 0) */
         char n[PROJ_NAME_LEN + 1u];
@@ -673,10 +690,16 @@ static int proj_unpack(project_t *q, const uint8_t *b, uint32_t st)
     memcpy(&magic, b, 4); memcpy(&size, b + 4, 4); memcpy(&sum, b + st - 4u, 4);
     if (magic != (v7 ? PROJ_MAGIC_V7 : st == PROJ_STORE_V8 ? PROJ_MAGIC_V8 : st == PROJ_STORE_V9 ? PROJ_MAGIC_V9 : PROJ_MAGIC) ||
         size != st || sum != proj_hash(b, st - 4u) ||
-        np < 8u || np > P_COUNT || 68u + NTRK * (np + 2u + NSTEP * 9u) + chn + mot > end)
+        np < 8u || np > P_COUNT || 68u + NTRK * (np + 2u + NSTEP * 9u) + chn + mot > end - (v10 ? 2u : 0u))   /* (FUN10:
+                                                         * GHOULBOX's ambience, PROJ_AMB_OFF) */
         return 0;
     memset(q, 0, sizeof *q); q->magic = PROJ_MAGIC; q->size = sizeof *q;
-    memcpy(q->g, b + 8, sizeof q->g); q->sel = b[62]; q->parts = b[63]; q->phys = b[64];
+    memcpy(q->g, b + 8, PROJ_NG * sizeof q->g[0]); q->sel = b[62]; q->parts = b[63]; q->phys = b[64];
+    proj_g_rest(q->g);
+    if (v10 && b[PROJ_AMB_OFF])                         /* GHOULBOX: the ambience (0: none stored, the default) */
+        q->g[G_AMB] = (int16_t)(b[PROJ_AMB_OFF] - 1u);
+    if (v10 && b[PROJ_AMB_OFF + 1u])
+        q->g[G_CRKL] = (int16_t)(b[PROJ_AMB_OFF + 1u] - 1u);
     if (v7 && (q->g[G_RTYPE] < 0 || q->g[G_RTYPE] > 1))   /* a FUN7 may still hold the old drum channel there */
         proj_rtype_room(q->g);
     for (t = 0; t < NTRK; t++) {
