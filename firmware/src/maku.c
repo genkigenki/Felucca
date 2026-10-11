@@ -60,8 +60,9 @@ static struct {
     uint8_t drs;                 /* the space DRIFT has added (0..127): the sends rise and the master's low-pass closes; it stays when switched off */
     int16_t dra[16];             /* DRIFT's anchors, taken at the switch-on: the 12 macros, BPM, TEMPO's SWING and DUCK, drs */
     int16_t drw[16];             /* .. and what it last left there: a value found changed since was moved by hand, and is the new anchor */
-    uint8_t pk[MAKU_PK], pk_w[MAKU_PK], pk_av;  /* the notes played, always melting into the arp phrase: pk_w the strength of each
-                                  * (255 new, 0 gone; it fades), bit i of pk_av: pk[i] is outside the scale */
+    uint8_t pk[MAKU_PK], pk_w[MAKU_PK], pk_av, pk_new;  /* the notes played, always melting into the arp phrase: pk_w the strength of each
+                                  * (255 new, 0 gone; it fades), bit i of pk_av: pk[i] is outside the scale,
+                                  * bit i of pk_new: not yet heard in the arp (the next arp step plays it for sure) */
     uint8_t stay_a, stay_b;      /* a held drone / haze: the chord (note) coming next is not struck, the last one rings through (OPEN / GRAIN) */
     uint8_t open;                /* DRONE: OPEN 0..127: how many voices of the chord and how wide */
     uint8_t loose;               /* ARP: LOOSE 0..127: how much the phrase unravels and climbs */
@@ -371,6 +372,7 @@ static void maku_pick(uint32_t note)
             w = i;
     maku.pk[w] = (uint8_t)note;
     maku.pk_w[w] = 255u;
+    maku.pk_new = (uint8_t)(maku.pk_new | (1u << w));
     maku.pk_av = (uint8_t)((maku.pk_av & ~(1u << w)) | ((((m >> ((note + 120u - (uint32_t)trk[MAKU_ARP].p[P_ROOT]) % 12u)) & 1u) ? 0u : 1u) << w));
 }
 
@@ -402,6 +404,19 @@ static uint32_t maku_arp_step(const track_t *t, uint32_t idx, uint32_t d, step_t
         maku.frame_on = 0;                          /* (a new run starts in the key as it is) */
         maku.pos = (uint8_t)(rng() % MAKU_TABLE);
         maku.run_left = (uint8_t)(3u + rng() % (6u - d / 32u));
+    }
+    if (maku.pk_new) {                              /* a key just played: the next arp step sounds it (any of them, if several), once */
+        uint32_t j = 0, n = 0, k;
+        for (k = 0; k < MAKU_PK; k++)
+            if (((maku.pk_new >> k) & 1u) && maku.pk_w[k] && !(rng() % ++n))
+                j = k;
+        maku.pk_new = 0;
+        if (n) {
+            out->n = 1;
+            out->note[0] = maku.pk[j];
+            out->vel = (uint8_t)(52u + rng() % 20u);
+            return 1;
+        }
     }
     if ((uint32_t)(rng() % 100u) < 35u) {           /* what was played melts into the phrase: a note still remembered is taken as often */
         uint32_t j = 0, k, live = 0, pick, take;    /* as it is strong, and every try fades them all; an avoid note is taken less often */

@@ -1198,6 +1198,7 @@ static void maku_setup(void)
     maku.dvalid = 0;
     memset(maku.pk_w, 0, sizeof maku.pk_w);
     maku.pk_av = 0;
+    maku.pk_new = 0;
     maku.dens = 0;
     maku.stay_a = maku.stay_b = 0;
     maku.run_left = 0;

@@ -625,6 +625,22 @@ static int melt(void)
             hit_b++;
     }
     bad += check("  with REC never pressed the played note is heard in the phrase, then fades away for good", hit_a > 5u && hit_b == 0u);
+    {
+        uint32_t first = 0, t, k;                       /* a key just played: the first arp step that sounds is that note, for sure */
+        for (t = 0; t < 200u; t++) {
+            memset(maku.pk_w, 0, sizeof maku.pk_w);
+            maku.pk_new = 0;
+            maku_pick(110u);
+            for (k = 0; k < 64u; k++) {
+                maku.run_left = 3;
+                if (maku_step(MAKU_ARP, k % 20u, &st) && st.n) {
+                    first += st.note[0] == 110u;
+                    break;
+                }
+            }
+        }
+        bad += check("  a key just played is the next note the arp sounds (not left to chance), once", first == 200u);
+    }
     return bad;
 }
 
