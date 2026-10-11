@@ -593,6 +593,22 @@ static void pulse(void)
     render(&p, FS, 0, &P);
     if (P.over)
         snprintf(why + strlen(why), sizeof why - strlen(why), " corner: %u at full scale;", P.over);
+    {                                                       /* the hats under it: BEEP, a high pure pip */
+        double fb;
+        int16_t pp[sizeof trk[0].p / sizeof trk[0].p[0]] = {0};
+        int32_t st;
+        dv_default(&p, DVT_BEEP);
+        render(&p, FS, 0, &P);
+        fb = pitch(&P, 5 * ms, 30 * ms, 800, 6000);
+        if (fabs(1200 * log2(fb / 2000.0)) > 60 || P.stop < 30 * ms || P.stop > 90 * ms || P.over || rms_db(&P, 120 * ms, FS) > -60)
+            snprintf(why + strlen(why), sizeof why - strlen(why), " BEEP: %.0f Hz, stop %u, over %u;", fb, P.stop, P.over);
+        pp[P_E6] = 2, pp[P_E2] = 127;
+        if (drum_gm(pp, 42, &st) != DVT_BEEP || drum_gm(pp, 46, &st) != DVT_BEEP || drum_gm(pp, 36, &st) != DVT_PULSE)
+            snprintf(why + strlen(why), sizeof why - strlen(why), " the hats do not become BEEP at TONE 127;");
+        pp[P_E2] = 64;
+        if (drum_gm(pp, 42, &st) != DVT_HATC)
+            snprintf(why + strlen(why), sizeof why - strlen(why), " the hats are not hats at TONE 64;");
+    }
     if (why[0]) {
         printf("drum_test: PULSE FAIL:%s\n", why);
         bad = 1;
