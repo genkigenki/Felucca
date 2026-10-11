@@ -95,8 +95,10 @@ Felucca itself is supported through [GitHub Sponsors](https://github.com/sponsor
 ## AI disclaimer
 
 MAKU, like Felucca, is developed with the assistance of AI coding agents, used for coding, testing, documentation,
-translation and maintenance. Felucca states that no generative AI is used to create music, icons, or visual artwork for
-it; see [On AI-Assisted Development and Responsibility](https://github.com/hugelton/Felucca/discussions/166).
+translation and maintenance. **The MAKU logo (`assets/logo.jpg`) is AI-generated.** MAKU's design and direction are
+decided by its maintainer. Felucca states that no generative AI is used to create music, icons, or visual artwork for
+it, which does not extend to the MAKU logo; see
+[On AI-Assisted Development and Responsibility](https://github.com/hugelton/Felucca/discussions/166).
 
 ## Credits
 
