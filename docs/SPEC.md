@@ -53,7 +53,7 @@ Above kick density 96 the shares change to make room for the hats: kick 2, floor
 | 4 voice | LOOSE (re-rolls, octave up; below the middle: sparser, up to 65 %) | TONE | TRAIL |
 
 - **Keys** play the focused part's sound, unquantized (not snapped to the scale). A key just played is also the arp's next
-  note, and every played note melts into the voice's phrase (the latest 8 are remembered and fade; each phrase step
+  note, and every played note melts into the voice's phrase (the latest 8 are remembered and fade, an out-of-scale note twice as fast; each phrase step
   plays one of them with 35 %). When the pulse has focus the keys are a 16-step kick sequencer
   (white keys = steps, ACC = accent; the black keys are eight noise pads). Hand-set kicks always play; DENS only adds ghosts. While SEQ is held the keys keep their old jobs: black keys mute, C4
   unmutes all, F4 taps the tempo.
