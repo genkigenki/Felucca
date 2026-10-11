@@ -1168,14 +1168,13 @@ static void maku_setup(void)
     maku.dive = 0;
     memset(maku.pm, PM_WARP, sizeof maku.pm);         /* (the macros' ranges as they are: a world or a like draws the levels) */
     memset(maku.vp, 0, sizeof maku.vp);               /* the verbs' parameters (SINK: SINK WASH HUSH; GLO: -, SWING, DUCK; ROOT: -, -, REG) */
-    maku.vp[VB_SINK][0] = 100;
-    maku.vp[VB_SINK][1] = maku.vp[VB_SINK][2] = 127;
+    memcpy(maku.vp, MAKU_PEAK, sizeof maku.vp);        /* the six upper verbs: how far they go (MAKU_PEAK); their times (maku.vt) stay across worlds */
     maku.vp[VB_GLO][2] = 64;
     maku.vp[VB_ROOT][2] = 1;
-    {                                                  /* SCRAMBLE ARP KICK SWING; CASCADE DENSE SPAN HARM; DRIFT RATE RANGE REACH; LIFT TONE EDGE THIN; SWELL ATTACK RELEASE STAY; WOBBLE RATE DEPTH PITCH */
-        static const uint8_t D[6][3] = {{80, 60, 50}, {110, 60, 48}, {60, 70, 64}, {40, 48, 64}, {80, 90, 64}, {70, 80, 40}};
-        memcpy(&maku.vp[VB_SCRAM][0], D, sizeof D);
-    }
+    maku.vp[VB_DRIFT][0] = 60;                        /* (DRIFT: RATE RANGE REACH) */
+    maku.vp[VB_DRIFT][1] = 70;
+    maku.vp[VB_DRIFT][2] = 64;
+    maku_vt_defaults();
     for (i = 0; i < NTRK; i++)
         maku_sound(i, MAKU_R[i].eng, MAKU_R[i].pre);
     trk[MAKU_DRA].p[P_LRATE] = 14;                    /* SWAY's very slow LFO on the drone's filter (~0.1 Hz: a 10 s turn) */
@@ -1186,8 +1185,13 @@ static void maku_setup(void)
     maku_macro_set(MAKU_ARP, 0, 0);
     song.g[G_BPM] = 72;
     maku.on = 1;
-    maku.hv = maku.verb = maku.brk = 0;                /* (the verbs held, and the drones' last steps SWELL replays) */
+    maku.hv = maku.verb = 0;                           /* (the verbs held, and the drones' last steps SWELL replays) */
+    maku.pp = maku.rst = 0;
     memset(maku.va, 0, sizeof maku.va);
+    memset(maku.vq, 0, sizeof maku.vq);
+    memset(maku.vph, 0, sizeof maku.vph);
+    memset(maku.vhl, 0, sizeof maku.vhl);
+    memset(maku.vft, 0, sizeof maku.vft);
     maku.dr_tog = maku.dr_moved = 0;                   /* (DRIFT is off in a new world) */
     maku.dr_on = 0;
     maku.dr_t = 0;
@@ -1197,6 +1201,7 @@ static void maku_setup(void)
     memset(maku.ov, 0, sizeof maku.ov);
     maku.ovlive = 0;
     maku.dvalid = 0;
+    maku.dlast = 0;
     memset(maku.pk_w, 0, sizeof maku.pk_w);
     maku.pk_av = 0;
     maku.pk_new = 0;

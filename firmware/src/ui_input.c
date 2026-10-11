@@ -279,6 +279,10 @@ static uint32_t key_leds(uint32_t *br)                 /* (*br: a layer's keys t
  * rest: the root's keys lit, the scale's at the mid level, the others glowing; the keys held and playing as ever
  * (lit, INV dark). Each picture is built off-line and copied one byte per column, the
  * glow first: an LED going from lit to dim never has a dark frame */
+/* MAKU: the upper row's buttons and the verbs they hold (maku_buttons, ui_leds) */
+static const struct { uint8_t b, v; } MAKU_VBTN[] = {
+    {B_FX, VB_SINK}, {B_SCL, VB_CASC}, {B_ENV, VB_SWELL}, {B_LFO, VB_WOB}, {B_EDIT, VB_LIFT}, {B_GLO, VB_SCRAM},
+};
 static void ui_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, nd[FM1_NCOL] = {0}, own[FM1_NCOL] = {0}, og[FM1_NCOL] = {0}, nb[FM1_NCOL] = {0};
@@ -299,6 +303,10 @@ static void ui_leds(void)
         led_put(nl, panel.btn[B_ARP], FAM_BTN[fam] == B_ARP ? !k : (int)k);   /* (on ARP's page: dark flashes) */
     if (!ui.layer && !maku.on && (perf_latched || perf_k[0] || perf_k[1] || perf_k[2] || perf_k[3]))
         led_put(nl, panel.btn[B_FX], 1);                /* FX LATCH: lit while an effect or a macro is on */
+    if (maku.on)                                        /* MAKU: a verb that is going is lit, one that is fading breathes */
+        for (k = 0; k < NELEM(MAKU_VBTN); k++)
+            if (maku.va[MAKU_VBTN[k].v] > 0)
+                led_put(maku.vph[MAKU_VBTN[k].v] == 2u ? nb : nl, panel.btn[MAKU_VBTN[k].b], 1);
     if (ui.layer)                                       /* the layer's button breathes while its map is up */
         led_put(nb, panel.btn[layer_btn()], 1);
     led_put(nl, panel.btn[B_REC], (song.rec != 0u && ui.layer != LAYER_REC) || (maku.on && maku_fav_lit()));   /* (its layer: it breathes; MAKU: while "LIKED" is up) */
@@ -1083,6 +1091,8 @@ static void maku_verb_turn(uint32_t v, uint32_t j, int32_t s, uint32_t enc)
         maku.scale = (uint8_t)a->p[P_SCALE];
     } else if (v == VB_ROOT) {                          /* REG: LOW / MID / HIGH */
         maku.vp[v][2] = (uint8_t)clamp((int32_t)maku.vp[v][2] + (s > 0 ? 1 : -1), 0, 2);
+    } else if (v != VB_NONE && v < VB_N && maku_timed(v)) {      /* an upper verb: RISE HOLD FADE */
+        maku.vt[v][j] = (uint8_t)clamp((int32_t)maku.vt[v][j] + accel(enc, s, 127), 0, 127);
     } else if (v != VB_NONE && v < VB_N && !(v == VB_GLO && j == 0u)) {
         maku.vp[v][j] = (uint8_t)clamp((int32_t)maku.vp[v][j] + accel(enc, s, 127), 0, 127);
         if (v == VB_GLO)
@@ -1132,7 +1142,7 @@ static void maku_buttons(uint32_t pressed, uint32_t notes)
 {
     static const struct { uint8_t b, v; } V[] = {
         {B_FX, VB_SINK}, {B_SCL, VB_CASC}, {B_ENV, VB_SWELL}, {B_LFO, VB_WOB}, {B_EDIT, VB_LIFT}, {B_GLO, VB_SCRAM}, {B_PLAY, VB_DRIFT},
-    };
+    };   /* (MAKU_VBTN's, and PLAY) */
     uint32_t i, k, nh = 0, fresh, thin;
     int32_t m;
     for (i = 0; i < NELEM(V); i++)
@@ -1153,9 +1163,8 @@ static void maku_buttons(uint32_t pressed, uint32_t notes)
             if ((nh >> V[i].v) & 1u)
                 maku.verb = V[i].v;
     }
-    maku.brk = (uint8_t)((nh >> VB_SINK) & 1u);
-    thin = ((uint32_t)maku.vp[VB_LIFT][2] * (uint32_t)maku.va[VB_LIFT]) >> 12;   /* LIFT's THIN: the master's high-pass up; the space DRIFT added darkens its low-pass */
-    m = (int32_t)(thin * 60u / 127u) - (int32_t)maku.drs * 40 / 127;
+    thin = maku_vamt(VB_LIFT, 2);                         /* LIFT's THIN: the master's high-pass up; the space DRIFT added darkens its low-pass */
+    m = (int32_t)(thin * 100u / 127u) - (int32_t)maku.drs * 40 / 127;
     perf_k[0] = (int8_t)clamp(m, -100, 100);
     for (k = 0; k < 27u; k++)                             /* the keys always melt into the field (not the kick's grid: its keys are steps) */
         if (((notes >> k) & 1u) && !maku_kick_grid())
@@ -1396,7 +1405,7 @@ static void ui_input(void)
         if (!lay)
             maku_buttons(pressed, notes);
         else
-            maku.hv = maku.verb = maku.brk = 0;         /* (the tempo or the key (SEQ, ARP) is up: no verb is held) */
+            maku.hv = maku.verb = 0;                    /* (the tempo or the key (SEQ, ARP) is up: no verb is held) */
         pressed &= (1u << panel.btn[B_OCTDN]) | (1u << panel.btn[B_OCTUP]);
         ui.pg_down = 0;
     }

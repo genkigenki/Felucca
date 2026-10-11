@@ -63,19 +63,18 @@ Above kick density 96 the shares change to make room for the hats: kick 2, floor
 - **HOME**: held = a new world (random, or from the likes: below). HOME + OCT-: settings menu (colour, screen off,
   calibration); HOME closes it.
 
-### Upper row: six verbs of change (work only while held; three own parameters on SELECT / PRESETS / ALGORITHM)
+### Upper row: six verbs of change (a press rises, holds while down and for HOLD, then fades; RISE / HOLD / FADE in beats on SELECT / PRESETS / ALGORITHM while held; how far each goes is fixed)
 
 | Button | Verb | Axis | What it does | Parameters |
 | --- | --- | --- | --- | --- |
-| FX | SINK 潜る | depth | kick fades out, reverb / delay / reverse sends deepen in ~0.75 s, reverb feedback towards 0.995, dry voices step back; release ~3 s | SINK / WASH / HUSH |
-| SCL | CASCADE 降り注ぐ | range, note count | the arp plays every step (rests too), octave +1 / +2 and a third above stack | DENSE / SPAN / HARM |
-| ENV | SWELL 膨らむ | time | longer attack / release; held voices keep the chord, struck ones repeat it | ATTACK / RELEASE / STAY |
-| LFO | WOBBLE 揺れる | motion | filter LFO faster and deeper, chorus send up, pitch wobble | RATE / DEPTH / PITCH |
-| EDIT | LIFT 持ち上げる | timbre | all TONE macros up, distortion (not the kick), master high-pass up | TONE / EDGE / THIN |
-| GLO | SCRAMBLE 崩す | order | the arp jumps around, more re-rolls, kick ghosts, more swing | ARP / KICK / SWING |
+| FX | SINK 潜る | depth | kick fades out, reverb / delay / reverse sends deepen, reverb feedback towards 0.995, dry voices step back; defaults dive ~0.4 s, back ~3 s after HOLD | RISE / HOLD / FADE |
+| SCL | CASCADE 降り注ぐ | range, note count | the arp plays every step (rests too), octave +1 / +2 and a third above stack | RISE / HOLD / FADE |
+| ENV | SWELL 膨らむ | time | the floor and the haze strike their chord again; attack / release up towards their top; held voices keep the chord, struck ones repeat it | RISE / HOLD / FADE |
+| LFO | WOBBLE 揺れる | motion | filter LFO faster and deeper, chorus send up, pitch wobble | RISE / HOLD / FADE |
+| EDIT | LIFT 持ち上げる | timbre | all TONE macros to the top, distortion (not the kick), master high-pass up | RISE / HOLD / FADE |
+| GLO | SCRAMBLE 崩す | order | the arp jumps around and stutters (x2..x4), more re-rolls, kick ghosts and rolls, beats left out, more swing | RISE / HOLD / FADE |
 
-Pairs: SINK vs LIFT, SWELL vs SCRAMBLE, CASCADE vs WOBBLE. A verb's amount rises in ~0.3 s and falls in ~0.6 s (SINK has its own).
-Values stay until the next world.
+Pairs: SINK vs LIFT, SWELL vs SCRAMBLE, CASCADE vs WOBBLE. A verb's amount rises over RISE (1/4 .. 8 beats), stays full while held and for HOLD (0, 1/2 .. 32 beats) after, then fades over FADE (2 .. 32 beats, an S curve); the beat is the song tempo. The times stay across worlds (not across power-off); the upper row's LEDs are lit while a verb goes and breathe while it fades. docs/VERBS_TUNE_PLAN.md.
 
 ### Lower row: operations that keep
 

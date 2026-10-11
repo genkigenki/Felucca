@@ -116,7 +116,7 @@ const STORE = "felucca-emu-flash";
 // Two drawings of the same controls: WIDE after the FM-1's own layout, TALL for a phone held upright (the
 // screen larger, the keys across the whole width). Rebuilt when the orientation changes; the state stays.
 const ROW1 = ["FX", "SCL", "ENV", "LFO", "EDIT", "GLO"], ROW2 = ["HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC"];
-// what each button does on MAKU (docs/AMBIENT.md): the verb under its label. The upper row is held verbs of change; ARP is the key and
+// what each button does on MAKU (docs/AMBIENT.md): the verb under its label. The upper row is verbs of change, a press that lasts a few seconds; ARP is the key and
 // SEQ the tempo (hold, turn the three knobs); PLAY: tap switches DRIFT (its green LED), hold to set it; SAVE and REC do nothing
 const VERB = { FX: "SINK", SCL: "CASCADE", ENV: "SWELL", LFO: "WOBBLE", EDIT: "LIFT", GLO: "SCRAMBLE",
                HOME: "NEW", SAVE: "", ARP: "KEY", SEQ: "TEMPO", PLAY: "DRIFT", REC: "" };
