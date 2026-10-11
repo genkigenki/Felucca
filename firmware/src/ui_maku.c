@@ -45,7 +45,7 @@ static void mq_macro(uint32_t j, uint32_t f, uint32_t tempo)
     char b[8];
     const char *name = tempo ? "BPM" : MAKU_MAC[f][j].name;
     int32_t v = tempo ? song.g[G_BPM] : maku.m[f][j];
-    uint16_t cc = mk_col(f), c = ui.hot_t && ui.hot_col == j ? T_ACCENT : cc;
+    uint16_t cc = mk_col(f), c = cc;                    /* (hot_col is a volume knob, not this macro) */
     cv_text(8, 6, &AF_S, MAKU_ROLE[j], T_DIM);          /* (the knob's name only: the track is in the top left) */
     cv_text(8, 24, &AF_M, name, T_MID);
     fmt_int(b, v);
