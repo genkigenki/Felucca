@@ -91,7 +91,7 @@ Verified on hardware by the author, except for the following, which are read fro
 
 GPL-3.0-only. A derivative of [Felucca](https://github.com/hugelton/Felucca) (Leo Kuroshita / Hügelton Instruments) with the
 sequencer editing, presets and saving, sound-design pages and web editor removed. Every package contains three Apache-2.0
-files of the JieLi AC79 SDK, so the licence texts travel with it ([`LICENSES/`](https://github.com/okumurari2/maku/blob/main/LICENSES)). The logo is AI-generated. M-VAVE and FM-1 are
+files of the JieLi AC79 SDK, so the licence texts are kept in the repository ([`LICENSES/`](https://github.com/okumurari2/maku/blob/main/LICENSES)). The logo is AI-generated. M-VAVE and FM-1 are
 trademarks of their respective owners; MAKU is not affiliated with or endorsed by them.
 
 ### Files
