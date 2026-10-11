@@ -4,13 +4,15 @@
 
 **MAKU (幕間機)** is an always-on ambience machine for the M-VAVE FM-1: power it on and a new, random, in-key
 world is already playing. Four parts (a pulse, a floor, a haze, a voice), four volume knobs, three macros per part,
-and buttons that are verbs (dive, drift, wobble, swell, keep, scramble, cascade, twist). Nothing is saved: every boot is a
+and buttons that are verbs (sink, cascade, swell, wobble, lift, scramble, drift). Nothing is saved: every boot is a
 new world, and HOME held makes another.
 
 MAKU is built on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita (Hügelton Instruments), GPL-3.0-only.
 The sequencer editing, presets and projects, engine pages, web editor and the other Felucca features are removed (see
 [docs/AMBIENT.md](docs/AMBIENT.md), "捨てるもの"). Installing is at your own risk: M-VAVE's updater or the installer's
 **Return to official V15** takes you back. Not yet verified on hardware.
+
+**Try it in your browser: [MAKU emulator](https://okumurari2.github.io/Felucca/)** (GitHub Pages, built from `web/emu/`).
 
 ## Docs
 
@@ -28,9 +30,12 @@ The sequencer editing, presets and projects, engine pages, web editor and the ot
 - **KNOB 1-4** set the volume of parts 1-4 and move the focus to that part; **SELECT / PRESETS / ALGORITHM** are the
   focused part's three macros, each moving several parameters at once, and turning right always makes it livelier
 - **Keys** play the focused part's sound, unquantized; every played note also melts into the voice's phrase
-- **Buttons are verbs**, held: PLAY dives, FX drifts, LFO wobbles, ENV swells, SAVE keeps, SEQ scrambles, ARP cascades,
-  EDIT twists, GLO sets tempo / swing / duck, SCL sets root / scale / register, OCT- / OCT+ step the key around the
-  circle of fifths; while one is held the three knobs move its own three parameters
+- **The upper row is six verbs of change, held**: FX sinks (depth), SCL cascades (more notes, higher, a third above), ENV swells
+  (longer, the chords stay), LFO wobbles (filter and pitch), EDIT lifts (brighter, harder, thinner), GLO scrambles (the beat and the
+  phrase come apart); while one is held the three knobs move its own three parameters
+- **The lower row keeps**: ARP sets root / scale / register (a tap steps the scale), SEQ sets tempo / swing / duck, PLAY is a switch for
+  DRIFT (the values wander on their own; lit while on; hold it to set RATE / RANGE / REACH), SAVE and REC do nothing;
+  OCT- / OCT+ step the key around the circle of fifths
 - **Kick**: when the kick part has focus the keys become a 16-step sequencer
 - **HOME** held: a new random world. HOME + OCT-: the settings menu (colour, screen off, calibration)
 - **MIDI**: USB and TRS in, clock follow; CC20 is the kick density. USB also carries the stereo audio input

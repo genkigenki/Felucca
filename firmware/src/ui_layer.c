@@ -94,7 +94,9 @@ static struct {
 #define LY_DTAP_MS 300u                /* #83: the second press of a double tap at most this long after the first tap */
 
 static int layer_allowed(void) { return !ui.menu && !ui.confirm && !ui.uboot && !name_on(); }
-static uint32_t ly_bit(uint32_t l) { return 1u << panel.btn[LAYERS[l].btn]; }
+/* the button of layer l: MAKU moves GLO (the tempo) to SEQ and SCL (the key) to ARP, the upper row being verbs (docs/VERBS_PLAN.md) */
+static uint32_t ly_btn(uint32_t l) { return maku.on && l == LAYER_GLO ? B_SEQ : maku.on && l == LAYER_SCL ? B_ARP : LAYERS[l].btn; }
+static uint32_t ly_bit(uint32_t l) { return 1u << panel.btn[ly_btn(l)]; }
 /* SEQ's layer is there on the SEQ pages that show the pattern only (elsewhere SEQ held opens SONG: ui_input) */
 static int tools_page(void)
 {
@@ -111,7 +113,7 @@ static uint32_t layer_bits(void)
         m |= ly_avail(l) ? ly_bit(l) : 0u;
     return m;
 }
-static uint32_t layer_btn(void) { return LAYERS[ui.layer % LAYER_N].btn; }
+static uint32_t layer_btn(void) { return ly_btn(ui.layer % LAYER_N); }
 static const char *layer_head(void) { return ui.layer == LAYER_FX && perf_latch_on ? "[FX] LATCH" : LAYERS[ui.layer % LAYER_N].head; }
 static uint32_t layer_open(void) { return ui.ly && (ui.ly_t0 & LY_OPEN) && ly_down(ui.ly) && layer_allowed() ? ui.ly : 0u; }
 static int layer_set_open(void)                 /* (FX LATCH: FX is one too, OCT- turns all off) */
@@ -305,6 +307,8 @@ static void layer_tap(uint32_t l)
         ui_say("SCALE: ", N_SCALE[n]);
         return;
     }
+    if (maku.on && l == LAYER_GLO)                      /* MAKU: the tempo (SEQ): a tap does nothing, no page */
+        return;
     lys.nv.home = ui.home;                              /* (#83: the page this tap leaves, for a double tap) */
     lys.nv.page = ui.page;
     lys.nv.act = ui.act;
