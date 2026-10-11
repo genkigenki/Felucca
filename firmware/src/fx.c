@@ -731,8 +731,8 @@ static void mix_part(track_t *t, uint32_t n)
         int32_t c = t->p[P_CHOR] * 258, d = t->p[P_DLY] * 258, r = t->p[P_REV] * 258, pk = t->peak;
         int32_t dv = (uint32_t)(t - trk) == 0u ? 0 : maku_dive();   /* BREAK: everything but the kick sinks into the reverb and delay */
         if (dv) {
-            d += (((int32_t)(127 * 258 * 6 / 10) - (d < 127 * 258 * 6 / 10 ? d : 127 * 258 * 6 / 10)) * dv) >> 12;
-            r += (((int32_t)(127 * 258 * 9 / 10) - (r < 127 * 258 * 9 / 10 ? r : 127 * 258 * 9 / 10)) * dv) >> 12;
+            d += (((int32_t)(127 * 258 * 8 / 10) - (d < 127 * 258 * 8 / 10 ? d : 127 * 258 * 8 / 10)) * dv) >> 12;
+            r += (((int32_t)(127 * 258) - (r < 127 * 258 ? r : 127 * 258)) * dv) >> 12;
         }
         maku_boost((uint32_t)(t - trk), &c, &d, &r);   /* the held verbs (WOBBLE) and DRIFT's space: more into the buses */
         int32_t xmax = c > d ? c : d;
