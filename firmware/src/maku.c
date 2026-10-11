@@ -431,8 +431,10 @@ static uint32_t maku_arp_step(const track_t *t, uint32_t idx, uint32_t d, step_t
                 }
             take = (uint32_t)(rng() % 255u) < maku.pk_w[j] && (!((maku.pk_av >> j) & 1u) || (uint32_t)(rng() % 100u) < 35u);
             for (k = 0; k < MAKU_PK; k++)
-                if (maku.pk_w[k])
-                    maku.pk_w[k] = (uint8_t)(maku.pk_w[k] - 1u - maku.pk_w[k] / 24u);
+                if (maku.pk_w[k]) {                 /* (an avoid note fades twice as fast) */
+                    uint32_t dec = (1u + maku.pk_w[k] / 24u) << ((maku.pk_av >> k) & 1u);
+                    maku.pk_w[k] = (uint8_t)(dec < maku.pk_w[k] ? maku.pk_w[k] - dec : 0u);
+                }
             if (take) {
                 out->n = 1;
                 out->note[0] = maku.pk[j];
