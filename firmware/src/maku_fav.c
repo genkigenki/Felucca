@@ -42,8 +42,11 @@ typedef struct {
 static struct {
     maku_fav_t e[MAKU_FAV_MAX];      /* oldest first */
     uint8_t n;
-    uint8_t liked;                   /* the world now has been liked (REC's LED) */
+    uint8_t liked;                   /* the world now has been liked */
 } maku_fav __attribute__((section(".pool")));
+
+/* REC's LED in MAKU: lit only while "LIKED n/16" (or "LIKED, NOT SAVED") is up */
+static int maku_fav_lit(void) { return maku_fav.liked && ui.msg_t && !memcmp(ui.msg, "LIKED", 5); }
 
 static int maku_fav_store(void);     /* project.c: the ring to flash (0 = written) */
 

@@ -301,7 +301,7 @@ static void ui_leds(void)
         led_put(nl, panel.btn[B_FX], 1);                /* FX LATCH: lit while an effect or a macro is on */
     if (ui.layer)                                       /* the layer's button breathes while its map is up */
         led_put(nb, panel.btn[layer_btn()], 1);
-    led_put(nl, panel.btn[B_REC], (song.rec != 0u && ui.layer != LAYER_REC) || (maku.on && maku_fav.liked));   /* (its layer: it breathes; MAKU: this world is a like) */
+    led_put(nl, panel.btn[B_REC], (song.rec != 0u && ui.layer != LAYER_REC) || (maku.on && maku_fav_lit()));   /* (its layer: it breathes; MAKU: while "LIKED" is up) */
     k = oct_leds();
     led_put(nl, panel.btn[B_OCTDN], (int)(k & 1u));
     led_put(nl, panel.btn[B_OCTUP], (int)((k >> 1) & 1u));
