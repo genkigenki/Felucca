@@ -253,26 +253,27 @@ static const uint8_t MAKU_PAD[8] = {59, 74, 44, 69, 54, 70, 46, 55};
  * p 0xFF: nothing (the macro's effect is read from maku.* directly: DENSITY, OPEN, LOOSE) */
 typedef struct { uint8_t p; int16_t lo, hi; } mm_t;
 #define MM_NONE 0xFFu
-static const struct { const char *name; mm_t m[3]; } MAKU_MAC[4][3] = {
+#define MAKU_NM 5u                               /* ALGORITHM (j = 2) owns up to five parameters, the others three */
+static const struct { const char *name; mm_t m[MAKU_NM]; } MAKU_MAC[4][3] = {
     {   /* 1 KICK */
         {"DENS", {{MM_NONE, 0, 0}, {MM_NONE, 0, 0}, {MM_NONE, 0, 0}}},
         {"TONE", {{P_E2, 0, 127}, {P_E4, 0, 127}, {P_E3, 127, 30}}},
-        {"WASH", {{P_REV, 0, 127}, {P_DLY, 0, 80}, {P_E7, 0, 100}}},
+        {"WASH", {{P_REV, 0, 127}, {P_DLY, 0, 100}, {P_E7, 0, 127}, {MM_NONE, 0, 0}, {MM_NONE, 0, 0}}},
     },
     {   /* 2 DRONE */
         {"OPEN", {{MM_NONE, 0, 0}, {MM_NONE, 0, 0}, {MM_NONE, 0, 0}}},
         {"TONE", {{P_E2, 0, 127}, {P_E6, 0, 127}, {P_IMIX, 0, 127}}},   /* (the INSERT's MIX; a world with none: inert) */
-        {"SWAY", {{P_CHOR, 0, 127}, {P_LD_FLT, 0, 100}, {P_REL, 30, 127}}},
+        {"SWAY", {{P_CHOR, 0, 127}, {P_LD_FLT, 0, 127}, {P_REL, 20, 127}, {P_IB, 30, 127}, {P_DETUNE, 0, 45}}},
     },
     {   /* 3 SHIMMER */
         {"GRAIN", {{P_E3, 0, 127}, {P_E2, 127, 20}, {P_IMIX, 0, 127}}},   /* (.. and here) */
         {"TONE", {{P_E7, 0, 127}, {P_E5, 0, 127}, {P_E6, 0, 100}}},
-        {"AIR", {{P_REV, 0, 127}, {P_DLY, 0, 110}, {P_ATK, 30, 127}}},
+        {"AIR", {{P_REV, 0, 127}, {P_DLY, 0, 127}, {P_ATK, 20, 127}, {P_IB, 30, 127}, {P_DETUNE, 0, 45}}},
     },
     {   /* 4 ARP */
         {"LOOSE", {{MM_NONE, 0, 0}, {MM_NONE, 0, 0}, {MM_NONE, 0, 0}}},
         {"TONE", {{P_E2, 0, 127}, {P_E3, 127, 20}, {P_E5, 20, 127}}},
-        {"TRAIL", {{P_DLY, 0, 127}, {P_REV, 0, 127}, {P_REL, 10, 127}}},
+        {"TRAIL", {{P_DLY, 0, 127}, {P_REV, 0, 127}, {P_REL, 0, 127}, {P_CHOR, 0, 70}, {MM_NONE, 0, 0}}},
     },
 };
 
@@ -288,7 +289,7 @@ static void maku_macro_set(uint32_t i, uint32_t j, uint32_t v)
     maku.m[i][j] = (uint8_t)v;
     v += ((uint32_t)maku.vp[VB_TWIST][j] * (uint32_t)maku.va[VB_TWIST]) >> 12;   /* TWIST held: all of them, further on */
     v = v > 127u ? 127u : v;
-    for (n = 0; n < 3u; n++) {
+    for (n = 0; n < (j == 2u ? MAKU_NM : 3u); n++) {
         const mm_t *e = j == 1u ? &maku_tone[i][n] : &MAKU_MAC[i][j].m[n];
         int32_t lo = e->lo, hi = e->hi;
         if (e->p == MM_NONE)
