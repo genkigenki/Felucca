@@ -732,7 +732,7 @@ static void mock_state(int s)
     case S_MOCK_MENU: ui.menu = 1; ui.menu_sel = 0; break;
     case S_MAKU_SINK: case S_MAKU_GLO: case S_MAKU_ROOT:   /* a verb held: its three parameters in the quadrants */
         maku_setup(); song.sel = 1; ui.hot_t = 0; ui.force = 1;
-        maku.brk = s == S_MAKU_SINK;
+        maku.verb = s == S_MAKU_SINK ? VB_SINK : VB_NONE;
         ui.layer = s == S_MAKU_GLO ? LAYER_GLO : s == S_MAKU_ROOT ? LAYER_SCL : 0;
         break;
     case S_MAKU_SCRAM: case S_MAKU_CASC: case S_MAKU_DRIFT: case S_MAKU_LIFT: case S_MAKU_SWELL: case S_MAKU_WOB:

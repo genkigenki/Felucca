@@ -62,9 +62,10 @@ Reference and history:
   focused part's three macros, each moving several parameters at once, and turning right always makes it livelier
 - **Keys** play the focused part's sound, unquantized; every played note also melts into the voice's phrase.
   When the kick part has focus the keys become a 16-step sequencer
-- **Upper row, six verbs of change, held**: FX sinks (depth), SCL cascades (more notes, higher, a third above), ENV swells
+- **Upper row, six verbs of change, each a press that lasts a few seconds**: FX sinks (depth), SCL cascades (more notes, higher, a third above), ENV swells
   (longer, the chords stay), LFO wobbles (filter and pitch), EDIT lifts (brighter, harder, thinner), GLO scrambles (the beat and
-  the phrase come apart); while one is held the three knobs move its own three parameters
+  the phrase come apart). A press rises (RISE), holds while it is down and for HOLD after, then fades slowly (FADE); the three
+  knobs move those times, in beats, while it is held, and the LED shows what is going
 - **Lower row, operations that keep**: ARP sets root / scale / register (a tap steps the scale), SEQ sets tempo / swing / duck,
   PLAY is a switch for DRIFT (the values wander on their own; hold it to set RATE / RANGE / REACH), SAVE does nothing;
   OCT- / OCT+ step the key around the circle of fifths
