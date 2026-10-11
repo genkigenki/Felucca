@@ -142,6 +142,6 @@ engines from the build (~28 KB of flash, but ui_test.c depends on them), and eve
 | Decisions, newest last | [decisions.md](decisions.md) |
 | Code | `firmware/src/maku.c`, `maku_voices.c`, `maku_fav.c` (likes), `ui_maku.c`, `ui_input.c`, `fx.c` |
 | Tests / build | `tests/maku_test.c`, `tests/run_tests.sh`; [../BUILDING.md](../BUILDING.md) |
-| Browser emulator | `web/emu/`; live at https://okumurari2.github.io/Felucca/ |
+| Browser emulator | `web/emu/`; live at https://okumurari2.github.io/maku/ |
 
 When the spec changes, update AMBIENT.md first, then this page (and the "Last synced" date above).
