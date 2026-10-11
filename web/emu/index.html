@@ -105,7 +105,7 @@ footer small { font-size: 11px; opacity: .8; }
 
 <p class="keys">
   <span><kbd>Z</kbd>–<kbd>'</kbd> <kbd>Q</kbd>–<kbd>O</kbd> keys</span>
-  <span><kbd>1</kbd>–<kbd>=</kbd> FX … REC (hold: freeze, tape stop, sweep, repeat, break…)</span>
+  <span><kbd>1</kbd>–<kbd>=</kbd> FX … REC (hold: sink, cascade, swell, wobble, lift, scramble; ARP key, SEQ tempo; tap PLAY: drift on / off)</span>
   <span style="white-space:normal">KNOB 1–4 = volumes · SELECT / PRESETS / ALGORITHM = the focused part's three macros · HOME held = a new world</span>
   <span><kbd>[</kbd> <kbd>]</kbd> OCT</span>
   <span><kbd>↑</kbd> <kbd>↓</kbd> SELECT</span>
@@ -137,9 +137,10 @@ const STORE = "felucca-emu-flash";
 // Two drawings of the same controls: WIDE after the FM-1's own layout, TALL for a phone held upright (the
 // screen larger, the keys across the whole width). Rebuilt when the orientation changes; the state stays.
 const ROW1 = ["FX", "SCL", "ENV", "LFO", "EDIT", "GLO"], ROW2 = ["HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC"];
-// what each button does on MAKU (docs/AMBIENT.md): the verb under its label
-const VERB = { FX: "FREEZE", SCL: "ROOT", ENV: "TAPE", LFO: "SWEEP", EDIT: "SHIMMER", GLO: "TEMPO",
-               HOME: "NEW", SAVE: "REPEAT", ARP: "ARP", SEQ: "RISE", PLAY: "BREAK", REC: "" };
+// what each button does on MAKU (docs/AMBIENT.md): the verb under its label. The upper row is held verbs of change; ARP is the key and
+// SEQ the tempo (hold, turn the three knobs); PLAY: tap switches DRIFT (its green LED), hold to set it; SAVE and REC do nothing
+const VERB = { FX: "SINK", SCL: "CASCADE", ENV: "SWELL", LFO: "WOBBLE", EDIT: "LIFT", GLO: "SCRAMBLE",
+               HOME: "NEW", SAVE: "", ARP: "KEY", SEQ: "TEMPO", PLAY: "DRIFT", REC: "" };
 const KNOBS = ["MASTER", "SELECT", "PRESETS", "ALGORITHM", "KNOB 1", "KNOB 2", "KNOB 3", "KNOB 4"];
 const LAYOUTS = {
   wide: {
