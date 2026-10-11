@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* AMBIENT.md: the screen while MAKU is on, 240 x 240 in four 119 x 119 quadrants, laid out like the knobs:
- *   top left      the key (ROOT and SCALE, always: OCT- / OCT+ move it), the waveform, BPM, the four tracks' volumes
- *                 (KNOB 1..4 left to right), the focus
+ *   top left      the focused track (its number and name), the waveform, the key (ROOT and SCALE, always: OCT- / OCT+
+ *                 move it) and BPM on one line, the four tracks' volumes (KNOB 1..4 left to right), the focus
  *   top right     SELECT's macro of the focused track (DENSITY: the kick's 16 steps too)
  *   bottom left   PRESETS' macro
  *   bottom right  ALGORITHM's macro
@@ -46,10 +46,7 @@ static void mq_macro(uint32_t j, uint32_t f, uint32_t tempo)
     const char *name = tempo ? "BPM" : MAKU_MAC[f][j].name;
     int32_t v = tempo ? song.g[G_BPM] : maku.m[f][j];
     uint16_t cc = mk_col(f), c = ui.hot_t && ui.hot_col == j ? T_ACCENT : cc;
-    char tag[4] = {'C', 'H', 0, 0};
-    cv_text(8, 6, &AF_S, MAKU_ROLE[j], T_DIM);
-    tag[2] = MAKU_NUM[f & 3u][0];
-    cv_text(MKQ - 6 - text_w(&AF_S, tag), 6, &AF_S, tag, cc);
+    cv_text(8, 6, &AF_S, MAKU_ROLE[j], T_DIM);          /* (the knob's name only: the track is in the top left) */
     cv_text(8, 24, &AF_M, name, T_MID);
     fmt_int(b, v);
     cv_text_in(0, 48, MKQ, &AF_L, b, c, T_BG);
@@ -147,13 +144,23 @@ static void mq_top_left(void)
             cv_line_t(x - 1, py, x, y, mk_col(f), 2);
         py = y;
     }
-    {                                                   /* the key, whatever else the screen shows (the message has its own line) */
+    {                                                   /* the focused track, "4 VOICE" (a message in its place a while) */
+        char t[16];
+        str_cpy(t, MAKU_NUM[f], sizeof t);
+        str_cpy(t + str_len(t), " ", sizeof t - str_len(t));
+        str_cpy(t + str_len(t), MAKU_TRK_NAME[f], sizeof t - str_len(t));
+        if (ui.msg_t)                                   /* (the small face: a message may be long) */
+            cv_text(6, 8, &AF_S, ui.msg, T_ACCENT);
+        else
+            cv_text(6, 4, &AF_M, t, mk_col(f));
+    }
+    {                                                   /* the key, whatever else the screen shows, on BPM's line */
         char k[16];
         str_cpy(k, N_NOTE[(uint32_t)trk[MAKU_DRA].p[P_ROOT] % 12u], sizeof k);
         str_cpy(k + str_len(k), " ", sizeof k - str_len(k));
         str_cpy(k + str_len(k), N_SCALE[clamp(trk[MAKU_DRA].p[P_SCALE], 0, (int32_t)(sizeof N_SCALE / sizeof N_SCALE[0]) - 1)],
                 sizeof k - str_len(k));
-        cv_text(6, 4, &AF_M, k, T_TEXT);
+        cv_text(6, 52, &AF_S, k, T_TEXT);
     }
     fmt_int(b, song.g[G_BPM]);
     {
@@ -170,7 +177,6 @@ static void mq_top_left(void)
         if (i == f)
             cv_rect(bx, 116, 25, 2, cc);
     }
-    cv_text(6, 52, &AF_S, ui.msg_t ? ui.msg : MAKU_TRK_NAME[f], ui.msg_t ? T_ACCENT : mk_col(f));
     cv_blit(0, 0);
 }
 
