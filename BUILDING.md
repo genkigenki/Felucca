@@ -89,6 +89,14 @@ keeps the flash's storage sectors (projects, user presets, settings) in the brow
 MIDI out, the editor, updates), TRS MIDI and the user sample slots. A build of it is on the site:
 <https://hugelton.github.io/Felucca/webapp/try/>.
 
+Each build records the commit it was made from (`build/build.json`, `build/emu/build.json`; `-dirty` when the
+sources had uncommitted changes), and the emulator page shows it after the version. To check that the emulator
+on GitHub Pages (<https://okumurari2.github.io/maku/>) matches the local build:
+
+```
+python3 tools/check_emu.py      # MATCH (exit 0) or DIFFERENT (exit 1), with each build's commit
+```
+
 ## Tests
 
 ```
