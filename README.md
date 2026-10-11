@@ -12,6 +12,8 @@ The sequencer editing, presets and projects, engine pages, web editor and the ot
 [docs/AMBIENT.md](docs/AMBIENT.md), "捨てるもの"). Installing is at your own risk: M-VAVE's updater or the installer's
 **Return to official V15** takes you back. Not yet verified on hardware.
 
+**Try it in your browser: [MAKU emulator](https://okumurari2.github.io/Felucca/)** (GitHub Pages, built from `web/emu/`).
+
 ## Docs
 
 - [docs/SPEC.md](docs/SPEC.md): the spec digest and a map of the docs
