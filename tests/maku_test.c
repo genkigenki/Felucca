@@ -11,6 +11,9 @@
  *   COST      a bar of the four tracks at DENSITY 127 costs a bounded number of note-ons.
  * Built and run by tests/run_tests.sh. */
 #define UI_TEST_NO_MAIN 1
+#include <stdint.h>
+static uint32_t mk_full_fills;                          /* whole-screen fills: the screen going dark for a moment */
+#define UI_FILL_HOOK(x, y, w, h) (mk_full_fills += (w) >= 240u && (h) >= 240u)
 #include "ui_test.c"
 
 #define BAR_STEPS 16u
@@ -501,6 +504,12 @@ static int knobs(void)
     bad += check("  ALGORITHM turns macro 3; the focus stays", maku.m[2][2] == m - 2u && song.sel == 2);
     turn(EN_SELECT, 3);
     bad += check("  SELECT turns macro 1 (the tempo is GLO's)", maku.m[2][0] > 0u);
+    mk_full_fills = 0;
+    turn(EN_SELECT, 1);
+    turn(EN_PRESET, 1);
+    turn(EN_ALGO, 1);
+    turn(EN_K3, 1);
+    bad += check("  turning a knob repaints only what changed (no whole-screen fill: the screen would blink)", mk_full_fills == 0);
     turn(EN_K1, 1);
     m = maku.m[0][0];
     turn(EN_SELECT, 5);
