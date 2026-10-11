@@ -509,6 +509,9 @@ static int knobs(void)
     turn(EN_PRESET, 1);
     turn(EN_ALGO, 1);
     turn(EN_K3, 1);
+    turn(EN_K1, 1);
+    turn(EN_K2, 1);                                     /* (a volume of another track moves the focus) */
+    turn(EN_K4, 1);
     bad += check("  turning a knob repaints only what changed (no whole-screen fill: the screen would blink)", mk_full_fills == 0);
     turn(EN_K1, 1);
     m = maku.m[0][0];

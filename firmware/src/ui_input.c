@@ -1098,7 +1098,11 @@ static void maku_knobs(void)
     for (k = 0; k < 4u; k++) {
         if ((s = panel_enc(EN_K1 + k)) == 0)
             continue;
-        track_select(k);
+        {
+            uint8_t force = ui.force;
+            track_select(k);
+            ui.force = force;                           /* (the quadrants repaint opaque on f: no whole-screen fill) */
+        }
         trk[k].p[P_LEVEL] = (int16_t)clamp(trk[k].p[P_LEVEL] + accel(EN_K1 + k, s, 127), 0, 127);
         ui.hot_col = (uint8_t)k;
         ui.hot_t = 40;
