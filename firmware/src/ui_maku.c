@@ -24,6 +24,13 @@ static uint16_t mk_col(uint32_t i)
     return settings.palette == UI_BW_INDEX ? T_THEME : C[i & 3u];
 }
 
+/* the same for a text: in GREY a text is gray by its brightness (the red and the yellow white, the green and the blue dim), so
+ * there it takes the theme's, as in MONO; the bars, gauges and waveform keep the colour */
+static uint16_t mk_ink(uint32_t i)
+{
+    return ux.mono ? T_THEME : mk_col(i);
+}
+
 /* a toward b by pct %, per channel (ux_mix would gray it in GREY) */
 static uint16_t mk_mix(uint16_t a, uint16_t b, int32_t pct)
 {
@@ -45,12 +52,12 @@ static void mq_macro(uint32_t j, uint32_t f, uint32_t tempo)
     char b[8];
     const char *name = tempo ? "BPM" : MAKU_MAC[f][j].name;
     int32_t v = tempo ? song.g[G_BPM] : maku.m[f][j];
-    uint16_t cc = mk_col(f), c = cc;                    /* (hot_col is a volume knob, not this macro) */
+    uint16_t cc = mk_col(f), c = mk_ink(f);             /* (hot_col is a volume knob, not this macro) */
     cv_text(8, 6, &AF_S, MAKU_ROLE[j], T_DIM);          /* (the knob's name only: the track is in the top left) */
     cv_text(8, 24, &AF_M, name, T_MID);
     fmt_int(b, v);
     cv_text_in(0, 48, MKQ, &AF_L, b, c, T_BG);
-    mq_gauge(8, 92, MKQ - 16, tempo ? (v - 40) * 127 / 200 : v, c);
+    mq_gauge(8, 92, MKQ - 16, tempo ? (v - 40) * 127 / 200 : v, cc);
     if (!tempo && f == MAKU_KICK && j == 0) {           /* the kick's 16 steps: set, ghost, the playhead */
         uint32_t m = maku_kick_mask(), g = maku_kick_ghosts(), i, ph = song.playing ? trk[MAKU_KICK].seq_idx % 16u : 0xFFu;
         for (i = 0; i < 16u; i++) {
@@ -152,7 +159,7 @@ static void mq_top_left(void)
         if (ui.msg_t)                                   /* (the small face: a message may be long) */
             cv_text(6, 8, &AF_S, ui.msg, T_ACCENT);
         else
-            cv_text(6, 4, &AF_M, t, mk_col(f));
+            cv_text(6, 4, &AF_M, t, mk_ink(f));
     }
     {                                                   /* the key, whatever else the screen shows, on BPM's line */
         char k[16];
@@ -173,7 +180,7 @@ static void mq_top_left(void)
         uint16_t cc = mk_col(i), c = i == f ? (ui.hot_t && ui.hot_col == i ? T_ACCENT : cc) : mk_mix(cc, T_BG, 55);
         cv_rect(bx, 64, 25, bh, T_LINE);
         cv_rect(bx, 64 + bh - h, 25, h, c);
-        cv_text(bx + (25 - text_w(&AF_S, MAKU_NUM[i])) / 2, 104, &AF_S, MAKU_NUM[i], i == f ? cc : T_MID);
+        cv_text(bx + (25 - text_w(&AF_S, MAKU_NUM[i])) / 2, 104, &AF_S, MAKU_NUM[i], i == f ? mk_ink(i) : T_MID);
         if (i == f)
             cv_rect(bx, 116, 25, 2, cc);
     }
