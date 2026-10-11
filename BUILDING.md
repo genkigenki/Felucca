@@ -1,4 +1,4 @@
-# Building Felucca
+# Building MAKU
 
 The build makes three files in `build/`:
 
