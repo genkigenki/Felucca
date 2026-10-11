@@ -583,7 +583,7 @@ static __attribute__((noinline)) uint32_t maku_step(uint32_t i, uint32_t idx, st
         }
         if (idx == 0)
             maku.cyc_b++;
-        if (!maku_held(i) && maku_spare(i, 60u))        /* GRAIN: fewer notes of the haze */
+        if (!maku_held(i) && maku_spare(i, 90u))        /* GRAIN: fewer notes of the haze (the smaller the grain, the sparser: up to 90 %) */
             return 0;
         if (idx == 0) {
             out->note[0] = (uint8_t)maku_note(t, MAKU_SHIM_A[maku.cyc_b % 6u], maku_low(36u));
