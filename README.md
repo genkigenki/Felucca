@@ -14,6 +14,8 @@ the new worlds come from your likes (a little changed), so MAKU grows to your ta
 
 **Try it in your browser: [MAKU emulator](https://okumurari2.github.io/maku/)** (GitHub Pages, built from `web/emu/`).
 
+<p align="center"><img src="docs/screenshot-pulse.png" alt="MAKU's screen on the FM-1: part 1 (pulse) has focus; four volume bars, BPM, and the DENS / TONE / WASH macros" width="360"></p>
+
 MAKU is built on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita (Hügelton Instruments), GPL-3.0-only.
 The sequencer editing, presets and projects, engine pages, web editor and the other Felucca features are removed (see
 [docs/AMBIENT.md](docs/AMBIENT.md), "捨てるもの").
@@ -26,7 +28,8 @@ The sequencer editing, presets and projects, engine pages, web editor and the ot
 1. Download `maku-X.Y.fwsc` from the [Releases](https://github.com/okumurari2/maku/releases) page.
 2. Connect the FM-1 over USB and write the package from a computer:
    `python3 tools/fm1_install.py maku-X.Y.fwsc` (needs `pip3 install mido python-rtmidi`; see [BUILDING.md](BUILDING.md)).
-   Felucca's own web installer installs Felucca's release, not MAKU.
+   Felucca's own web installer installs Felucca's release, not MAKU. A browser installer that takes any FM-1 `.fwsc`
+   (Chrome / Edge), such as the [FM-1 Firmware Hub](https://fm1.designburgapps.com), can write MAKU's package too.
 3. **To go back**: the installer's **Return to official V15** (Felucca's web installer has it), or M-VAVE's own updater.
    Both erase your likes.
 
@@ -34,13 +37,21 @@ Build it yourself: [BUILDING.md](BUILDING.md).
 
 ## Docs
 
+Start here:
+
+- [docs/RELEASE_0.1.md](docs/RELEASE_0.1.md): release notes of v0.1 (Japanese / English)
 - [docs/ABOUT.md](docs/ABOUT.md): the idea, what it does now and what is open (Japanese / English)
 - [docs/SPEC.md](docs/SPEC.md): the current spec in one self-contained page (English), and a map of the docs
-- [docs/AMBIENT.md](docs/AMBIENT.md): the full spec (Japanese; wins on any conflict)
-- [docs/MAKU.md](docs/MAKU.md): design notes of the generator under it (Japanese, written for an earlier form)
-- [docs/VOICES_RATING.md](docs/VOICES_RATING.md): the voice catalog and how it is rated (Japanese)
-- [docs/decisions.md](docs/decisions.md): one line per decision, newest last
 - [BUILDING.md](BUILDING.md): build and release
+
+Reference and history:
+
+- [docs/AMBIENT.md](docs/AMBIENT.md): the full spec (Japanese; wins on any conflict)
+- [docs/VOICES_RATING.md](docs/VOICES_RATING.md): the voice catalog and how it is rated (Japanese)
+- [docs/MAKU.md](docs/MAKU.md): design notes of the generator under it (Japanese, written for an earlier form)
+- [docs/VERBS_PLAN.md](docs/VERBS_PLAN.md): how the verbs were regrouped
+- [docs/decisions.md](docs/decisions.md): one line per decision, newest last
+- [docs/HUB_SUBMISSION.md](docs/HUB_SUBMISSION.md): draft text for listing on the FM-1 Firmware Hub
 
 ## What it does
 
