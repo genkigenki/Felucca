@@ -1166,6 +1166,7 @@ static void maku_setup(void)
     uint32_t i, j;
     maku.kfade = 4096;                                /* (SINK's fade-in: a new world starts with the kick full) */
     maku.dive = 0;
+    memset(maku.pm, PM_WARP, sizeof maku.pm);         /* (the macros' ranges as they are: a world or a like draws the levels) */
     memset(maku.vp, 0, sizeof maku.vp);               /* the verbs' parameters (SINK: SINK WASH HUSH; GLO: -, SWING, DUCK; ROOT: -, -, REG) */
     maku.vp[VB_SINK][0] = 100;
     maku.vp[VB_SINK][1] = maku.vp[VB_SINK][2] = 127;
@@ -1221,6 +1222,20 @@ static uint32_t maku_macro_draw(uint32_t i, uint32_t j)
         return 24u + rng() % 33u;
     return i == MAKU_ARP && !j ? rng() % 40u : i == MAKU_DRA && !j ? 45u + rng() % 70u : 25u + rng() % 60u;
 }
+/* a new world's pitch levels (PM_*) of the floor and the haze: each STILL 70 %, SWAY 22 %, WARP 8 %; never both WARP (the
+ * floor then sways: one part stays an anchor) */
+static uint32_t maku_pm_one(void)
+{
+    uint32_t x = rng() % 100u;
+    return x < 70u ? PM_STILL : x < 92u ? PM_SWAY : PM_WARP;
+}
+static void maku_pm_draw(uint8_t *a, uint8_t *b)
+{
+    *a = (uint8_t)maku_pm_one();
+    *b = (uint8_t)maku_pm_one();
+    if (*a == PM_WARP && *b == PM_WARP)
+        *a = PM_SWAY;
+}
 static void maku_world(uint32_t seed)
 {
     uint32_t i, j;
@@ -1241,16 +1256,24 @@ static void maku_world(uint32_t seed)
         maku_voice_apply(MAKU_ARP, c);
         trk[MAKU_DRA].p[P_LRATE] = 14;                   /* ~0.1 Hz */
     }
-    {   /* the INSERT: a slow sweep on the drone and, less often, the shimmer (or none: the macros' MIX then does nothing).
-         * RATE 15..45 is 0.1 .. 0.5 Hz (LFO_INC's table); the TONE macros carry the MIX (MAKU_MAC) */
-        static const uint8_t DA[] = {IT_PHASER, IT_CHORUS, IT_OFF, IT_PHASER}, DB[] = {IT_OFF, IT_FLANGER, IT_CHORUS};
+    maku_pm_draw(&maku.pm[MAKU_DRA], &maku.pm[MAKU_DRB]);   /* how far the floor's and the haze's pitch may waver */
+    {   /* the INSERT: a slow sweep on the drone and, less often, the shimmer (or none: the macros' MIX then does nothing),
+         * by the part's pitch level: a STILL floor no CHOR (a PHASR does not bend the pitch), a STILL haze mostly none and a
+         * slower CHOR, a WARP part always a swept one. RATE 15..45 is 0.1 .. 0.5 Hz (LFO_INC's table; STILL 15..25:
+         * up to ~0.2 Hz); the TONE macros carry the MIX (MAKU_MAC) */
+        static const uint8_t DA_S[] = {IT_PHASER, IT_PHASER, IT_OFF}, DA[] = {IT_PHASER, IT_CHORUS, IT_OFF, IT_PHASER},
+                             DA_W[] = {IT_CHORUS};
+        static const uint8_t DB_S[] = {IT_OFF, IT_OFF, IT_CHORUS}, DB[] = {IT_OFF, IT_FLANGER, IT_CHORUS},
+                             DB_W[] = {IT_FLANGER, IT_CHORUS};
+        static const struct { const uint8_t *t; uint8_t n; } TA[PM_N] = {{DA_W, sizeof DA_W}, {DA_S, sizeof DA_S}, {DA, sizeof DA}},
+                                                             TB[PM_N] = {{DB_W, sizeof DB_W}, {DB_S, sizeof DB_S}, {DB, sizeof DB}};
         track_t *a = &trk[MAKU_DRA], *b = &trk[MAKU_DRB];
-        a->p[P_ITYPE] = DA[rng() % sizeof DA];
-        b->p[P_ITYPE] = DB[rng() % sizeof DB];
-        a->p[P_IA] = (int16_t)(15u + rng() % 31u);
-        b->p[P_IA] = (int16_t)(15u + rng() % 31u);
-        a->p[P_IB] = (int16_t)(50u + rng() % 70u);          /* DEPTH */
-        b->p[P_IB] = (int16_t)(50u + rng() % 70u);
+        uint32_t pa = maku.pm[MAKU_DRA], pb = maku.pm[MAKU_DRB];
+        a->p[P_ITYPE] = TA[pa].t[rng() % TA[pa].n];
+        b->p[P_ITYPE] = TB[pb].t[rng() % TB[pb].n];
+        a->p[P_IA] = (int16_t)(15u + rng() % (pa == PM_STILL ? 11u : 31u));
+        b->p[P_IA] = (int16_t)(15u + rng() % (pb == PM_STILL ? 11u : 31u));
+        /* (DEPTH: SWAY's and AIR's, set with the macros below) */
         a->p[P_IC] = (int16_t)(30u + rng() % 50u);          /* FDBK */
         b->p[P_IC] = (int16_t)(30u + rng() % 50u);
     }

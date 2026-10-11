@@ -1276,6 +1276,7 @@ static uint32_t world_sig(void)
             MIX(trk[i].p[j]);
         MIX(trk[i].eng_req);
         MIX(maku.art[i]);
+        MIX(maku.pm[i]);
         for (j = 0; j < 3u; j++) {
             MIX(maku.m[i][j]);
             MIX(maku_tone[i][j].p);
@@ -1505,9 +1506,85 @@ static int likes(void)
     return bad;
 }
 
+/* PITCH LEVELS (maku.c PM_*): a world's floor and haze are mostly STILL, never both WARP; the level bounds the haze
+ * GRAIN's RAND and a swept INSERT's DEPTH whatever the macros and LIFT do, and picks the INSERT; a like keeps it, and a
+ * like kept before the levels (0) plays as WARP, the ranges as they were */
+static int pitch_levels(void)
+{
+    int bad = 0;
+    uint32_t s, n = 3000u, c[2][PM_N] = {{0}}, both = 0, rand_out = 0, depth_out = 0, ins_out = 0, grains = 0, sweeps = 0;
+    for (s = 1; s <= n; s++) {
+        uint32_t i;
+        start(64);
+        maku_world(s * 2246822519u + 3u);
+        c[0][maku.pm[MAKU_DRA]]++;
+        c[1][maku.pm[MAKU_DRB]]++;
+        both += maku.pm[MAKU_DRA] == PM_WARP && maku.pm[MAKU_DRB] == PM_WARP;
+        for (i = MAKU_DRA; i <= MAKU_DRB; i++) {
+            uint32_t l = maku.pm[i], ty = (uint32_t)trk[i].p[P_ITYPE], sw = ty == IT_FLANGER || ty == IT_CHORUS;
+            ins_out += (l == PM_STILL && (ty == IT_FLANGER || (i == MAKU_DRA && ty == IT_CHORUS))) || (l == PM_WARP && !sw) ||
+                       (l == PM_STILL && sw && trk[i].p[P_IA] > 25);
+            maku.vp[VB_LIFT][0] = 127;                      /* LIFT held all the way: TONE past 127 */
+            maku.va[VB_LIFT] = 4096;
+            maku_macro_set(i, 1, 127);
+            if (trk[i].eng_req == MAKU_ENGI_GRAIN && maku_tone[i][2].p == P_E6) {
+                grains++;
+                rand_out += trk[i].p[P_E6] > MAKU_PM[l].rhi;
+                maku.va[VB_LIFT] = 0;
+                maku_macro_set(i, 1, 0);
+                rand_out += trk[i].p[P_E6] < MAKU_PM[l].rlo;
+            }
+            maku.va[VB_LIFT] = 0;
+            if (sw) {
+                sweeps++;
+                maku_macro_set(i, 2, 127);
+                depth_out += trk[i].p[P_IB] > MAKU_PM[l].dhi;
+                maku_macro_set(i, 2, 0);
+                depth_out += trk[i].p[P_IB] < MAKU_PM[l].dlo;
+            }
+        }
+    }
+    printf("ui:   pitch levels over %u worlds, STILL / SWAY / WARP: floor %u %u %u, haze %u %u %u; %u haze GRAIN, %u swept INSERTs\n",
+           n, c[0][PM_STILL], c[0][PM_SWAY], c[0][PM_WARP], c[1][PM_STILL], c[1][PM_SWAY], c[1][PM_WARP], grains, sweeps);
+    bad += check("PITCH: each part STILL ~70 %, SWAY ~22 %, WARP ~8 % (the floor a little less: never both WARP)",
+                 c[1][PM_STILL] * 100u >= 66u * n && c[1][PM_STILL] * 100u <= 74u * n && c[1][PM_WARP] * 100u >= 6u * n &&
+                 c[1][PM_WARP] * 100u <= 10u * n && c[0][PM_STILL] * 100u >= 66u * n && c[0][PM_WARP] * 100u <= 10u * n && !both);
+    bad += check("  the haze GRAIN's RAND within its level, TONE 0 .. 127 and LIFT on top", grains > 100u && !rand_out);
+    bad += check("  a swept INSERT's DEPTH within its level, SWAY / AIR 0 .. 127", sweeps > 100u && !depth_out);
+    bad += check("  the INSERT by level: STILL no FLANG (the floor no CHOR), a slow CHOR; WARP always swept", !ins_out);
+    {   /* a like: the levels kept and stored; one from before them (0) is WARP: RAND up to 100 */
+        maku_fav_t e;
+        uint8_t blob[MAKU_FAV_BYTES];
+        uint32_t ok = 1, k;
+        for (s = 1; s <= 200u; s++) {
+            start(64);
+            maku_world(s * 977u);
+            if (!maku_fav_capture(&e))
+                continue;
+            maku_fav.n = 0;
+            maku_fav_push(&e);
+            maku_fav_pack(blob);
+            ok &= maku_fav_unpack(blob, (int)sizeof blob) == 1u && maku_fav.e[0].pm == e.pm &&
+                  e.pm == (maku.pm[MAKU_DRA] | maku.pm[MAKU_DRB] << 2);
+            if (maku.pm[MAKU_DRB] == PM_STILL && trk[MAKU_DRB].eng_req == MAKU_ENGI_GRAIN && maku_tone[MAKU_DRB][2].p == P_E6) {
+                e.pm = 0;
+                for (k = 0; k < 12u; k++)
+                    if (k == 3u * MAKU_DRB + 1u)
+                        e.m[k] = 127;
+                start(64);
+                maku_fav_apply(&e, 1);
+                ok &= maku.pm[MAKU_DRA] == PM_WARP && maku.pm[MAKU_DRB] == PM_WARP && trk[MAKU_DRB].p[P_E6] == 100;
+            }
+        }
+        maku_fav.n = 0;
+        bad += check("  a like keeps the levels (in the blob too); one kept before them plays as WARP (RAND 100 at TONE 127)", ok);
+    }
+    return bad;
+}
+
 int main(void)
 {
-    int bad = setup() + world() + kick() + drones() + scale() + arp() + follow() + duck() + voices() + cost() + kickgrid() + macros() + knobs() + buttons() + melt() + fifths() + verbs() + verbs2() + screen() + worlds_voices() + catalog() + likes() + (getenv("MAKU_BENCH") ? bench() : 0);
+    int bad = setup() + world() + kick() + drones() + scale() + arp() + follow() + duck() + voices() + cost() + kickgrid() + macros() + knobs() + buttons() + melt() + fifths() + verbs() + verbs2() + screen() + worlds_voices() + catalog() + likes() + pitch_levels() + (getenv("MAKU_BENCH") ? bench() : 0);
     printf("%s\n", bad ? "MAKU TEST FAILED" : "maku tests passed");
     return bad != 0;
 }
