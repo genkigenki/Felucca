@@ -18,8 +18,8 @@
  *           The sweep through 100..400 Hz, the harmonics and the drive keep the kick audible on a small
  *           speaker (energy above 150 Hz >= -12 dB at the defaults) without touching the fundamental
  *   PULSE   the MAKU pulse's kick, crossfaded by TONE between two voices: a thick, heavy kick (a long round body, a
- *           shallow sweep, strong 2nd and 3rd harmonics, a soft-clip DRIVE, a soft click) below TONE 40, and an ECG
- *           monitor's beep (a ~600 Hz sine, one a hit: 35 ms, to 225 ms with the accent, so the hits are the pip, pip, piii; TUNE moves it) from
+ *           shallow sweep, strong 2nd and 3rd harmonics, a soft-clip DRIVE, a soft click) below TONE 80, and an ECG
+ *           monitor's beep (a ~600 Hz sine, one pip of 50 ms a hit; TUNE moves it) from
  *           TONE 110 up; the kick's body shortens from TONE 8 (long) to 40 (a tight cut); in between, both at once, the kick down and the beeps up (the drive stays on the kick)
  *   SNARE   two sines (f, 1.6 f) with a small downward glide under a short shell envelope, plus noise
  *           through a band-pass (TONE: its centre) under a spike and a body envelope and a little
@@ -138,7 +138,8 @@ static const struct {
     {533, 403, 664, 200, 69, {64, 64, 56}, 3222},        /* PULSE  56 Hz, tau 20..400 ms (the ROUND body); the beeps ~1 kHz */
 };
 /* PULSE: TONE below DV_PL_LO is the kick alone, DV_PL_HI and above the beeps alone */
-#define DV_PL_LO 40
+#define DV_PL_CUT 40                                         /* the kick's body is at its shortest from here */
+#define DV_PL_LO 80
 #define DV_PL_HI 110
 #define DV_PL_TUNE 1222                                      /* the beeps' pitch (p16: 674 Hz at TUNE 0; 600 Hz at the MAKU kick's TUNE) */
 #define DV_SEED 0x5EED1234
@@ -355,11 +356,11 @@ static void dv_setup_own(dv_coef_t *c, const dv_param_t *p)
     switch (t) {
     case DVT_PULSE: {
         int32_t ge = clamp(((int32_t)tn - DV_PL_LO) * 32768 / (DV_PL_HI - DV_PL_LO), 0, 32768), g;
-        int32_t m = 256 - (clamp((int32_t)tn, 8, DV_PL_LO) - 8) * 206 / (DV_PL_LO - 8);   /* the kick's body, x1 at TONE 8
+        int32_t m = 256 - (clamp((int32_t)tn, 8, DV_PL_CUT) - 8) * 206 / (DV_PL_CUT - 8);   /* the kick's body, x1 at TONE 8
                                                           * down to x0.2 at 40: a long thick kick below, a tight cut above */
         c->hp = ge;                                      /* the beeps' share (Q15); the kick's is 1 - it */
         c->kb[1] = DV_P16(DV_PL_TUNE + p16 - DV_DEF[t].p16);   /* the beep's increment (follows TUNE) */
-        c->metal = (int16_t)(1544 + acc * 66);           /* its length: 35 ms, to 225 ms at full accent */
+        c->metal = 2205;                                 /* its length: 50 ms, a pip */
         c->span[1] = DV_P16(p16 + 96) - c->inc[0];       /* the sweep: half an octave, slow (tau 45 ms) ... */
         c->k[1] = dv_k(45000);
         c->kb[0] = dv_kb(tau * (uint32_t)m >> 8);
@@ -699,8 +700,7 @@ static __attribute__((noinline)) void dv_kick_run(const dv_coef_t *c, dv_voice_t
 }
 
 /* PULSE: the kick (dv_kick_run) at 1 - the share, and a beep at the share (c->hp): a sine at c->kb[1] of c->metal samples
- * (v->s[1] its phase, v->s[0] the sample in it), with a 3 ms rise and a 5 ms fall. One beep a hit: the sequence of hits
- * is the pip, pip, piii (a soft hit: a short pip, an accented one: a long beep) */
+ * (v->s[1] its phase, v->s[0] the sample in it), with a 3 ms rise and a 5 ms fall. One pip a hit */
 static __attribute__((noinline)) void dv_pulse_run(const dv_coef_t *c, dv_voice_t *v, int32_t *y, uint32_t n)
 {
     int32_t ge = c->hp, gk = 32768 - ge, t = v->s[0], len = c->metal;
