@@ -1090,7 +1090,6 @@ static void maku_verb_turn(uint32_t v, uint32_t j, int32_t s, uint32_t enc)
         if (v == VB_DRIFT)
             maku.dr_moved = 1;                          /* (PLAY held and turned: letting go does not switch DRIFT) */
     }
-    ui.force = 1;
 }
 static void maku_knobs(void)
 {
@@ -1099,11 +1098,14 @@ static void maku_knobs(void)
     for (k = 0; k < 4u; k++) {
         if ((s = panel_enc(EN_K1 + k)) == 0)
             continue;
-        track_select(k);
+        {
+            uint8_t force = ui.force;
+            track_select(k);
+            ui.force = force;                           /* (the quadrants repaint opaque on f: no whole-screen fill) */
+        }
         trk[k].p[P_LEVEL] = (int16_t)clamp(trk[k].p[P_LEVEL] + accel(EN_K1 + k, s, 127), 0, 127);
         ui.hot_col = (uint8_t)k;
         ui.hot_t = 40;
-        ui.force = 1;
     }
     for (j = 0; j < 3u; j++) {
         uint32_t f = song.sel < 4u ? song.sel : 0u, e = j == 0u ? EN_SELECT : j == 1u ? EN_PRESET : EN_ALGO;
@@ -1116,7 +1118,6 @@ static void maku_knobs(void)
             maku_macro_set(f, j, (uint32_t)clamp((int32_t)maku.m[f][j] + accel(e, s, 127), 0, 127));
             fmt_int(b, maku.m[f][j]);
             ui_say(MAKU_MAC[f][j].name, b);
-            ui.force = 1;
         }
     }
 }

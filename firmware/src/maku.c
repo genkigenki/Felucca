@@ -82,7 +82,21 @@ static struct {
     uint8_t art[4];              /* how each track sounds (ART_*): from the catalog row */
     uint8_t atk0[4], rel0[4];    /* the track's ATK / REL of its articulation: a sustained voice's macros move around them */
     int32_t duck;                /* the kick's dip of the other tracks' level, Q12 (4096: none); it recovers in maku_block */
+    uint8_t pm[4];               /* how far each part's pitch may waver (PM_*; the floor and the haze, drawn per world) */
 } maku;
+
+/* How far a part's pitch may waver (docs/decisions.md 2026-10-11): a world draws one level for the floor and one for the
+ * haze, mostly STILL. The level bounds what wavers the pitch: the haze GRAIN's RAND (each grain's random detune, +-12
+ * semitones x (RAND / 127)^2, eng_grain.c) on its TONE macro, and the DEPTH of a swept INSERT (FLANG / CHOR) on SWAY / AIR,
+ * so no macro, LIFT or DRIFT takes a STILL part past it. The INSERT drawn depends on it too (maku_world). WARP is 0: the
+ * ranges as they were before the levels (maku_setup, and a like kept before them) */
+enum { PM_WARP, PM_STILL, PM_SWAY, PM_N };
+static const struct { uint8_t rlo, rhi, dlo, dhi; } MAKU_PM[PM_N] = {
+    {0, 100, 30, 127},           /* WARP: RAND up to 100 (+-7 semitones), the whole sweep */
+    {6, 18, 20, 60},             /* STILL: RAND up to 18 (+-24 cents, a chorus's blur), a shallow sweep */
+    {10, 40, 30, 100},           /* SWAY: RAND up to 40 (+-1.2 semitones) */
+};
+#define MAKU_ENGI_GRAIN 8u
 
 /* How a part sounds (docs/VOICES_RATING.md). STRK: struck, over at once; SOFT: struck softly (slower attack); SWEL: swells
  * in and is held to the next note; BOW: an exciter that keeps sounding, held; HOLD: a drone held until the chord changes.
@@ -319,6 +333,15 @@ static void maku_macro_set(uint32_t i, uint32_t j, uint32_t v)
             hi = lo + 24;
             lo = lo < 0 ? 0 : lo;
             hi = hi > 127 ? 127 : hi;
+        }
+        if (maku.pm[i] != PM_WARP) {                                /* the part's pitch level bounds what wavers it */
+            if (e->p == P_E6 && trk[i].eng_req == MAKU_ENGI_GRAIN) {
+                lo = MAKU_PM[maku.pm[i]].rlo;
+                hi = MAKU_PM[maku.pm[i]].rhi;
+            } else if (e->p == P_IB && (trk[i].p[P_ITYPE] == IT_FLANGER || trk[i].p[P_ITYPE] == IT_CHORUS)) {
+                lo = MAKU_PM[maku.pm[i]].dlo;
+                hi = MAKU_PM[maku.pm[i]].dhi;
+            }
         }
         trk[i].p[e->p] = (int16_t)(lo + ((hi - lo) * (int32_t)v + (hi >= lo ? 63 : -63)) / 127);
     }

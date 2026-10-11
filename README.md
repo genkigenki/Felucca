@@ -51,6 +51,7 @@ Reference and history:
 - [docs/MAKU.md](docs/MAKU.md): design notes of the generator under it (Japanese, written for an earlier form)
 - [docs/VERBS_PLAN.md](docs/VERBS_PLAN.md): how the verbs were regrouped
 - [docs/decisions.md](docs/decisions.md): one line per decision, newest last
+- [docs/UI_RULES.md](docs/UI_RULES.md): the UI rules to keep when building another FM-1 firmware from MAKU (Japanese)
 - [docs/HUB_SUBMISSION.md](docs/HUB_SUBMISSION.md): draft text for listing on the FM-1 Firmware Hub
 
 ## What it does

@@ -529,6 +529,7 @@ EXPORT const char *web_param_label(uint32_t track, uint32_t j)
 }
 
 EXPORT uint32_t web_test_user_preset(uint32_t i) { return (uint32_t)up_used(i); }
+EXPORT uint32_t web_test_likes(void) { return maku_fav.n; }   /* the likes kept (REC) */
 
 EXPORT uint16_t *web_screen(void) { return web_fb; }
 EXPORT uint32_t web_screen_draws(void) { return web_draws; }
