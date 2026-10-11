@@ -29,8 +29,7 @@ int main(int argc, char **argv)
     web_nor_erase();
     web_boot();
     render(500);
-    web_test_heavy();
-    render(120);                               /* (the sequencer already runs from power-on) */
+    web_test_heavy();                          /* (the sequencer already runs from power-on) */
     rec = 1;
     render(2000);
     fclose(out);

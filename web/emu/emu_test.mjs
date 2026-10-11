@@ -77,7 +77,7 @@ check("  over by 1 s (~0.70 s)", a.ex.web_anim_levels() === 0);
 const home = a.screen();
 check(`boots: the splash, then HOME (${colours(home)} colours), the HOME LED lit`,
       splash > 1 && colours(home) > 4 && (a.ex.web_lit_buttons() >> B.HOME & 1) === 1);
-check("silent at rest", a.peak === 0);
+check("MAKU plays by itself at rest (always on)", a.peak > 0.001);
 a.ex.web_keys(1 << 7);                                        // C4
 a.render(300);
 const keyLit = (a.ex.web_lit_keys() >> 7) & 1;
@@ -94,15 +94,18 @@ check(`a MIDI note in (USB-MIDI's queue) sounds (peak ${a.peak.toFixed(3)})`, a.
 const draws = a.ex.web_screen_draws();
 a.turn(EN.K1, 3);
 check("KNOB 1 redraws the screen", a.ex.web_screen_draws() > draws);
-check("the sequencer runs from power-on (MAKU is always on), PLAY's green LED", a.ex.web_playing() === 1 && (a.ex.web_lit_buttons() >> 14 & 1) === 1);
-a.ex.web_buttons(1 << B.FX);                                  // #119: FX held, its map: the effects breathe
+check("the sequencer runs from power-on (MAKU is always on); PLAY (DRIFT) is off, its LED dark", a.ex.web_playing() === 1 && (a.ex.web_lit_buttons() >> 14 & 1) === 0);
+a.tap(B.PLAY);
+check("PLAY: DRIFT on, PLAY's green LED", (a.ex.web_lit_buttons() >> 14 & 1) === 1);
+a.tap(B.PLAY);
+check("PLAY again: DRIFT off, the LED dark", (a.ex.web_lit_buttons() >> 14 & 1) === 0);
+a.ex.web_buttons(1 << B.FX);                                  // FX is a verb (SINK) now: held, nothing breathes or lights
 a.render(800);
 const brK = a.ex.web_breath_keys(), brB = a.ex.web_breath_buttons(), litK = a.ex.web_lit_keys();
 a.ex.web_buttons(0);
 a.render(300);
-check("FX held: its button and the effects' keys breathe, none lit; let go: nothing",
-      (brB >> B.FX & 1) === 1 && brK !== 0 && (brK & litK) === 0 && litK === 0 &&
-      a.ex.web_breath_keys() === 0 && a.ex.web_breath_buttons() === 0);
+check("FX held (a verb): its own button does not breathe (OCT+/- do, the music lights keys)",
+      (brB >> B.FX & 1) === 0 && brK === 0 && (a.ex.web_breath_buttons() >> B.FX & 1) === 0);
 { // the page's breathing peaks against the firmware's (hal/fm1_input.h FM1_LED_BREATH_PK / _LO, /256 of lit): the
   // colour at 50 % between the dark and the lit one by the LED's share, gamma-encoded (sRGB), within 0.06
   const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
@@ -121,15 +124,13 @@ check("FX held: its button and the effects' keys breathe, none lit; let go: noth
         Math.abs(got[3] - lo) <= 0.06);
 }
 
-// ---- a user preset saved from the panel, kept across a fresh instance
+// ---- a like (REC) saved from the panel, kept across a fresh instance
 const w0 = a.ex.web_flash_writes_count();
-a.tap(B.SAVE);
-a.tap(B.OCTUP);
-a.tap(B.OCTUP);
-a.render(200);
+a.tap(B.REC);
+a.render(400);
 const saved = storeSectors(new Uint8Array(a.mem.buffer, a.ex.web_nor(), a.ex.web_nor_size()));
-check(`SAVE, OCT+, OCT+: user preset 1 written (${Object.keys(saved).length} sectors kept)`,
-      a.ex.web_test_user_preset(0) === 1 && a.ex.web_flash_writes_count() > w0 && Object.keys(saved).length > 0);
+check(`REC: a like kept (${Object.keys(saved).length} sectors kept)`,
+      a.ex.web_test_likes() === 1 && a.ex.web_flash_writes_count() > w0 && Object.keys(saved).length > 0);
 const kept = JSON.parse(JSON.stringify(Object.fromEntries(     // as the page keeps them (base64 in localStorage)
   Object.entries(saved).map(([k, v]) => [k, Buffer.from(v).toString("base64")]))));
 const b = await device(Object.fromEntries(Object.entries(kept).map(([k, v]) => [k, new Uint8Array(Buffer.from(v, "base64"))])));
@@ -137,7 +138,7 @@ b.render(600);
 const c = await device(null);
 c.render(600);
 check("a fresh instance with the kept sectors has it; one without does not",
-      b.ex.web_test_user_preset(0) === 1 && c.ex.web_test_user_preset(0) === 0);
+      b.ex.web_test_likes() === 1 && c.ex.web_test_likes() === 0);
 
 // ---- deterministic: the same gestures, the same samples
 async function song() {
