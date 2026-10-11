@@ -34,7 +34,8 @@ Build it yourself: [BUILDING.md](BUILDING.md).
 
 ## Docs
 
-- [docs/SPEC.md](docs/SPEC.md): **start here**, the current spec in one self-contained page (English), and a map of the docs
+- [docs/ABOUT.md](docs/ABOUT.md): the idea, what it does now and what is open (Japanese / English)
+- [docs/SPEC.md](docs/SPEC.md): the current spec in one self-contained page (English), and a map of the docs
 - [docs/AMBIENT.md](docs/AMBIENT.md): the full spec (Japanese; wins on any conflict)
 - [docs/MAKU.md](docs/MAKU.md): design notes of the generator under it (Japanese, written for an earlier form)
 - [docs/VOICES_RATING.md](docs/VOICES_RATING.md): the voice catalog and how it is rated (Japanese)
