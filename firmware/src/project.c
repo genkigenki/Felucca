@@ -944,21 +944,40 @@ static uint8_t persist_pending;                 /* 1 requested, 2 waiting after 
 static uint32_t persist_retry_ms;
 #endif
 
-/* MAKU's likes (maku_fav.c): their own object (OBJ_MAKUFAV, the autosave's pair 0xE5000 / 0xE6000 under its own type),
- * written only when REC is pressed (a like, or the clearing), never while it plays on or idles: a 4 KiB erase, the two
- * sectors taking turns, and three page writes of the 524-byte ring. The erase stops the audio for its ~40 ms, as every save
- * does (MAKU always plays: the REC press is heard as a short gap). Read once at power-on (persist_boot); a ring that does
- * not load (none, torn, damaged, another version) starts empty. 0 = written */
+/* MANNER:rec-preerase. MAKU's likes (maku_fav.c): their own object (OBJ_MAKUFAV, the autosave's pair 0xE5000 / 0xE6000 under its own type),
+ * written only when REC is pressed (a like, or the clearing), never while it plays on or idles: the ring (524 bytes) is
+ * three page writes into the copy that is not current. That copy is erased AHEAD of the press (storage.c st_tidy: at
+ * power-on, and at the next new world), because the 4 KiB erase stops the audio for its ~40 ms: so the press itself
+ * stops nothing (a page write is under a millisecond). Only when the stale copy is still there (REC pressed again
+ * before a power-on or a new world) is the erase done on the press, inside the SOFT dip (audio.c, storage_hw.c).
+ * Read once at power-on (persist_boot); a ring that does not load (none, torn, damaged, another version) starts empty.
+ * 0 = written */
+static uint8_t maku_fav_stale;                        /* a save left the other copy to erase (maku_fav_tidy) */
 static int maku_fav_store(void)
 {
 #if FELUCCA_FLASH
     uint8_t b[MAKU_FAV_BYTES];
+    int rc;
     if (!flash_ok)
         return -1;
     maku_fav_pack(b);
-    return st_save(OBJ_MAKUFAV, b, sizeof b);
+    rc = st_save(OBJ_MAKUFAV, b, sizeof b);
+    if (rc == 0)
+        maku_fav_stale = 1;
+    return rc;
 #else
     return 0;
+#endif
+}
+/* erase the stale copy now (a moment when a short dip is not heard: a new world begins, power-on). Cheap when there
+ * is nothing to do */
+static void maku_fav_tidy(void)
+{
+#if FELUCCA_FLASH
+    if (!maku_fav_stale || !flash_ok)
+        return;
+    maku_fav_stale = 0;
+    (void)st_tidy(OBJ_MAKUFAV);
 #endif
 }
 #if FELUCCA_FLASH
@@ -966,6 +985,7 @@ static void maku_fav_boot(void)
 {
     uint8_t b[MAKU_FAV_BYTES];
     maku_fav_unpack(b, st_load(OBJ_MAKUFAV, b, sizeof b));
+    (void)st_tidy(OBJ_MAKUFAV);                    /* the previous session's stale copy (the audio has not started) */
 }
 #endif
 

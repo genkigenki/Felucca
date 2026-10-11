@@ -10,14 +10,15 @@ MAKU (幕間機) is firmware for the M-VAVE FM-1 (a 240x240 screen, 4 knobs + ma
 derived from Felucca (Leo Kuroshita, GPL-3.0-only). It is an always-on ambience machine for DJ-event interludes: power
 it on and a new, random, in-key world is already playing. Nothing is saved but the likes: REC keeps the world playing
 now, and every HOME hold then draws a new world, more and more often from the likes, a little changed, so the machine
-grows towards its player's taste. Status: verified on hardware by the author; a few specifics (the likes surviving an update, the ~40 ms
-gap of a REC write, the CPU estimate) are still read from the code or estimated, and are marked as such below.
+grows towards its player's taste. Status: verified on hardware by the author; a few specifics (the likes surviving an update, the REC
+write's silence, the CPU estimate) are still read from the code or estimated, and are marked as such below.
 Names kept from Felucca for compatibility: the USB device name, the loader and package identities, the `FELUCCA_*` build options
 and the file names. Release packages are `maku-X.Y.fwsc`, identity `FM-1_9XY` (0.1 -> `FM-1_901`).
 
 ## Principles
 
-- It plays from power-on; there is no setup step.
+- It plays from power-on; there is no setup step. The first ~0.8 s swell in from silence (a MASTER knob left up does not shout out of
+  the small speaker; the emulator has no swell).
 - No saving; boot parameters are random. The one exception: the likes (REC), below.
 - Fine control of one parameter has no value; turning a knob should move things in a good direction (right = livelier).
 - No page navigation and no menu (only a small settings menu on HOME + OCT-); one button, one verb, an immediate sound.
@@ -60,8 +61,11 @@ Above kick density 96 the shares change to make room for the hats: kick 2, floor
 - **Kick density** (DENS): 4-39 a hint on step 1, 40-67 step 9 joins, 68-95 steps 5 and 13, **96+ four on the floor is
   certain**; above 96 hats are added on the same DRUM lanes (open hat on the off-beats from 96, closed hat from 104; with the PULSE kick at TONE 95+ these hats are high sine pips,
   not cymbals).
-- **HOME**: held = a new world (random, or from the likes: below). HOME + OCT-: settings menu (colour, screen off,
-  calibration); HOME closes it.
+- **HOME**: held = a new world (random, or from the likes: below). HOME + OCT-: settings menu (colour, LEDS, screen off,
+  calibration); HOME closes it. LEDS is AUTO by default: DIM LO on the battery, DIM HI while a USB host is connected.
+  On the battery at 1 bar of 3 or less the top left says BATTERY LOW (0 bars: BATTERY EMPTY) for ~2 s, after the level has held for 5 s, again
+  at once on dropping a bar and every 2 minutes; nothing on the screen otherwise. Where each of these is in the code: `grep -rn MANNER: firmware`
+  (docs/UI_RULES.md 10).
 
 ### Upper row: six verbs of change (work only while held; three own parameters on SELECT / PRESETS / ALGORITHM)
 
@@ -108,7 +112,7 @@ MIDI: USB and TRS in, clock follow only; CC20 (any channel) is the kick density.
   is a new row with a new id (an old row is retired with weight 0 and still plays from a like). `MAKU_CATALOG_VERSION`
   is only the rating log's key. A stored like with an unknown id or an out-of-range value is skipped; the others stay.
 - **Storage**: the device writes flash only when REC is pressed (a like or the clearing): its own storage object in the
-  former autosave's A/B sectors (0xE5000 / 0xE6000): one 4 KiB erase (~40 ms of silence) and four page writes per press,
+  former autosave's A/B sectors (0xE5000 / 0xE6000): four page writes per press into a copy erased ahead of time (at power-on and at the next new world: the 4 KiB erase stops the audio for ~40 ms, so it is never done on the press unless REC is pressed again before either; then it is inside a short fade dip, audio.c SOFT),
   the two sectors taking turns (~200,000 presses at 100,000 cycles). The blob has a magic, version and checksum; a damaged
   or foreign one starts empty. Kept across Felucca / MAKU updates; lost when returning to the official V15. The emulator
   keeps it with its simulated flash in localStorage. Ships empty.
@@ -136,8 +140,8 @@ CPU estimate: worst case ~51 % of the device (host-derived, not measured); overl
 
 ## Open
 
-Boot-randomness ranges (by ear), the likes' constants (16, 15 %, 90 %, 8 %, 2 s; by ear) and whether the ~40 ms gap of a
-REC write is acceptable (on hardware), ducking between all four volumes, ghost kicks shown dimly on the LEDs, removing unused
+Boot-randomness ranges (by ear), the likes' constants (16, 15 %, 90 %, 8 %, 2 s; by ear) and whether the dip of a second REC
+before any new world is acceptable (on hardware), ducking between all four volumes, ghost kicks shown dimly on the LEDs, removing unused
 engines from the build (~28 KB of flash, but ui_test.c depends on them), and everything on real hardware.
 
 ## Where things are

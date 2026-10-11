@@ -49,6 +49,7 @@ static struct {
 static int maku_fav_lit(void) { return maku_fav.liked && ui.msg_t && !memcmp(ui.msg, "LIKED", 5); }
 
 static int maku_fav_store(void);     /* project.c: the ring to flash (0 = written) */
+static void maku_fav_tidy(void);     /* project.c: the other copy erased ahead of the next REC */
 
 /* the share of the worlds (percent) drawn from n likes */
 static uint32_t maku_fav_rate(uint32_t n)

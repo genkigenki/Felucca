@@ -138,9 +138,9 @@ static void boot_leds(void)
     uint32_t crashed = fm1_crash.magic == FM1_CRASH_MAGIC && fm1_crash.count != crash_seen;
     crash_seen = fm1_crash.count;
     boot_clean = !crashed && !bootguard.failed && !(fm1_boot.p3_rst & 4u);
-    fm1_led_dim_level(settings_leds == LEDS_DIM_LO);
+    fm1_led_dim_level(leds_eff() == LEDS_DIM_LO);         /* MANNER:leds-auto */
     if (boot_clean && !(ui_prefs & PREF_ANIM_OFF))
-        fm1_led_anim_start(settings_leds == LEDS_DIM || settings_leds == LEDS_DIM_LO);
+        fm1_led_anim_start(leds_eff() == LEDS_DIM || leds_eff() == LEDS_DIM_LO);
 }
 
 static void fm1_main(void)
@@ -174,6 +174,8 @@ static void fm1_main(void)
     felucca_init();
     master_boot();
     kb_boot_hold = 1;                         /* #137: no notes from the keys before the UI (seq.c keyboard_block) */
+    soft_fade_in();                           /* MANNER:fade-in. the first ~0.8 s swell from silence (audio.c SOFT): the world is playing, the
+                                               * speaker is small, the MASTER knob may be up */
     audio_init();
     usb_start();
 #if FELUCCA_UART

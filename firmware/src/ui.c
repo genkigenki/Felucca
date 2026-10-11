@@ -1294,6 +1294,7 @@ static void maku_world_new(void)
 {
     static uint32_t n;
     uint32_t seed = fm1_ms * 0x9E3779B1u + ++n * 0x85EBCA6Bu, liked;
+    maku_fav_tidy();                                  /* MANNER:rec-preerase (after a REC: the stale copy erased now, under the change of world) */
     maku_setup();
     liked = maku_world_pref(seed);
     perf_kill = 1;                                    /* (what was held lets go; the next pass clears it) */

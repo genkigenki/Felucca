@@ -3,7 +3,8 @@
 /* Persistent storage on the SPI NOR.
  *
  * Every object has an A/B sector pair. A save goes to the copy that is not
- * the current one: erase the sector, program the payload pages (from offset
+ * the current one: erase the sector (unless it reads blank already: st_tidy erases the stale copy ahead of time,
+ * where the ~40 ms it stops the audio are not heard), program the payload pages (from offset
  * 256), then the 32-byte header at offset 0 LAST. The header is the commit
  * record (magic, seq, length, payload CRC, header CRC); on load the valid
  * copy with the newest seq wins (including wrap), so a write torn at any point leaves the
@@ -129,11 +130,42 @@ static int st_load(uint32_t obj, void *dst, uint32_t max)
     return (int)h.len;
 }
 
+/* MANNER:rec-preerase. A sector that reads all 0xFF is erased already: a save into it skips the erase, whose ~40 ms stop the audio (see
+ * storage_hw.c). It is read through st_buf, so call it before a payload is copied there */
+static int st_blank(uint32_t base)
+{
+    const uint32_t *w = (const uint32_t *)st_buf;
+    uint32_t off, i;
+    for (off = 0; off < ST_SECTOR; off += 256u) {
+        if (st_read(base + off, st_buf, 256u))
+            return 0;
+        for (i = 0; i < 64u; i++)
+            if (w[i] != 0xFFFFFFFFu)
+                return 0;
+    }
+    return 1;
+}
+
+/* MANNER:rec-preerase. The copy that is not current, when it holds an older valid copy of this same object, erased ahead of the next save,
+ * which then writes into a blank sector (st_blank) and stops nothing. The caller picks a moment when the erase is not
+ * heard: power-on, a new world. The current copy is untouched (a power cut here loses nothing). A copy that is not
+ * this object's (the autosave's pair is shared with MAKU's likes), damaged or already blank is left alone.
+ * 1 = erased, 0 = nothing to do, < 0 = the erase failed */
+static int st_tidy(uint32_t obj)
+{
+    st_hdr_t h, o;
+    int cur = st_current(obj, &h), rc;
+    if (cur < 0 || st_head(obj, (uint32_t)(1 - cur), &o) != 0)
+        return 0;
+    rc = st_erase(st_sector(obj, (uint32_t)(1 - cur)));
+    return rc ? rc : 1;
+}
+
 /* save into copy `to` (0 A, 1 B; -1: the one that is not the current copy, as st_save) */
 static int st_save_to(uint32_t obj, const void *src, uint32_t len, int to)
 {
     uint32_t seq, base, off;
-    int cur, rc;
+    int cur, rc, blank;
     st_hdr_t h;
     if (obj >= OBJ_COUNT || len > ST_PAYLOAD_MAX || to > 1)
         return -1;
@@ -142,9 +174,10 @@ static int st_save_to(uint32_t obj, const void *src, uint32_t len, int to)
     if (to < 0)
         to = cur == 0 ? 1 : 0;                        /* write the other copy */
     base = st_sector(obj, (uint32_t)to);
+    blank = st_blank(base);                           /* (st_tidy may have erased it already) */
     for (off = 0; off < len; off++)
         st_buf[off] = ((const uint8_t *)src)[off];    /* the driver wants RAM sources */
-    if ((rc = st_erase(base)) != 0)
+    if (!blank && (rc = st_erase(base)) != 0)
         return rc;
     for (off = 0; off < len; off += 256u) {
         uint32_t n = len - off > 256u ? 256u : len - off;

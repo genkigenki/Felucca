@@ -71,7 +71,7 @@ Reference and history:
 - **HOME** held: a new world, random or (more often the more likes there are, up to 90 %) one of your likes, a little changed.
   HOME + OCT-: the settings menu (colour, screen off, calibration)
 - **REC** tapped: a like (the world playing now is kept, up to 16, REC lit); held ~2 s: every like forgotten. Besides the
-  settings menu, the likes are the only thing written to flash, and only when REC is pressed (a short gap in the sound).
+  settings menu, the likes are the only thing written to flash, and only when REC is pressed (the erase is done ahead of time, so the press itself stops nothing; see docs/UI_RULES.md 10).
   Returning to the official firmware erases the likes; updates between MAKU / Felucca builds should keep them (read from
   the code; not yet verified on hardware). 公式V15に戻す・M-VAVE のアップデータを使うと、いいねは消えます
 - **MIDI**: USB and TRS in, clock follow; CC20 is the kick density. USB also carries the stereo audio input

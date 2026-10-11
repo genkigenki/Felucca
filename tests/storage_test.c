@@ -11,12 +11,13 @@ static uint8_t nor[0x100000];
 static int fail_after = -1;            /* torn-write injection: stop after N programs */
 static int fail_bytes = -1;            /* power loss after any programmed byte */
 static int erase_error, write_protected;
-static uint32_t io_calls;
+static uint32_t io_calls, erase_calls;
 
 static int st_read(uint32_t off, void *dst, uint32_t n) { io_calls++; memcpy(dst, nor + off, n); return 0; }
 static int st_erase(uint32_t off)
 {
     io_calls++;
+    erase_calls++;
     if (erase_error) return -8;
     if (!write_protected) memset(nor + off, 0xFF, 4096);
     return 0;
@@ -206,6 +207,48 @@ int main(void)
         bad += check("save after sequence wrap", st_save(OBJ_PROJECT0, b, sizeof b) == 0 &&
                                                 st_load(OBJ_PROJECT0, got, sizeof got) == (int)sizeof b &&
                                                 !memcmp(got, b, sizeof b));
+    }
+    {   /* a save into a sector that reads blank has no erase; st_tidy erases the stale copy ahead of the next save */
+        char c[600], d[600];
+        uint32_t A = st_sector(OBJ_PROJECT0, 0), B = st_sector(OBJ_PROJECT0, 1);
+        memset(c, 'C', sizeof c);
+        memset(d, 'D', sizeof d);
+        memset(nor, 0xFF, sizeof nor);
+        erase_calls = 0;
+        bad += check("saves into blank sectors (A, then B): no erase, both load in turn",
+                     st_save(OBJ_PROJECT0, a, sizeof a) == 0 && st_save(OBJ_PROJECT0, b, sizeof b) == 0 && erase_calls == 0 &&
+                     st_load(OBJ_PROJECT0, got, sizeof got) == (int)sizeof b && !memcmp(got, b, sizeof b));
+        bad += check("the third save goes over A's first: one erase",
+                     st_save(OBJ_PROJECT0, c, sizeof c) == 0 && erase_calls == 1);
+        bad += check("st_tidy: the stale copy (B) erased, the current (A) untouched and loading",
+                     st_tidy(OBJ_PROJECT0) == 1 && erase_calls == 2 && nor[B] == 0xFFu && nor[A] != 0xFFu &&
+                     st_load(OBJ_PROJECT0, got, sizeof got) == (int)sizeof c && !memcmp(got, c, sizeof c));
+        bad += check("  a second tidy does nothing (the other copy is blank)", st_tidy(OBJ_PROJECT0) == 0 && erase_calls == 2);
+        bad += check("  the next save goes to the tidied copy with no erase",
+                     st_save(OBJ_PROJECT0, d, sizeof d) == 0 && erase_calls == 2 &&
+                     st_load(OBJ_PROJECT0, got, sizeof got) == (int)sizeof d && !memcmp(got, d, sizeof d));
+        memset(nor, 0xFF, sizeof nor);
+        erase_calls = 0;
+        bad += check("st_tidy with no valid copy does nothing", st_tidy(OBJ_PROJECT0) == 0 && erase_calls == 0);
+        st_save(OBJ_PROJECT0, a, sizeof a);
+        nor[B + 4095u] = 0x7Fu;
+        erase_calls = 0;
+        bad += check("a stray byte at the very end of a sector: not blank, the save erases it",
+                     st_save(OBJ_PROJECT0, b, sizeof b) == 0 && erase_calls == 1 && nor[B + 4095u] == 0xFFu);
+        memset(nor, 0xFF, sizeof nor);
+        st_save(OBJ_PROJECT0, a, sizeof a);
+        st_save(OBJ_PROJECT0, b, sizeof b);
+        st_save(OBJ_PROJECT0, c, sizeof c);                /* A current, B stale */
+        erase_error = 1;
+        bad += check("st_tidy: a failing erase is reported, the current copy still loads",
+                     st_tidy(OBJ_PROJECT0) < 0 && st_load(OBJ_PROJECT0, got, sizeof got) == (int)sizeof c && !memcmp(got, c, sizeof c));
+        erase_error = 0;
+        memset(nor, 0xFF, sizeof nor);
+        st_save(OBJ_AUTOSAVE, a, sizeof a);                /* the pair shared with MAKU's likes: A holds an autosave */
+        st_save_to(OBJ_MAKUFAV, b, sizeof b, 1);           /* .. the likes in B */
+        erase_calls = 0;
+        bad += check("st_tidy leaves another object's copy in the shared pair alone",
+                     st_tidy(OBJ_MAKUFAV) == 0 && erase_calls == 0 && st_load(OBJ_AUTOSAVE, got, sizeof got) == (int)sizeof a);
     }
     {
         uint32_t calls = io_calls;

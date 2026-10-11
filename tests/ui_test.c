@@ -2444,54 +2444,75 @@ static int test_layer(void)
     }
     /* the LEDS setting: KNOB 1 / OCT+ up to INV, left / OCT- down to OFF; saved in the retired zoom field */
     ui_power_on();
+    settings_leds = LEDS_AUTO;                        /* (the default, settings_test: this file's other tests run in DIM HI) */
     hold(B_HOME); ui.menu_sel = MI_LEDS;
-    ok = settings_leds == LEDS_DIM;
+    ok = settings_leds == LEDS_AUTO;
+    turn(EN_K1, 1); ok &= settings_leds == LEDS_DIM;
     turn(EN_K1, 1); ok &= settings_leds == LEDS_INV;
     turn(EN_K1, 1); ok &= settings_leds == LEDS_INV;
     turn(EN_K1, -1); ok &= settings_leds == LEDS_DIM;
+    turn(EN_K1, -1); ok &= settings_leds == LEDS_AUTO;
     turn(EN_K1, -1); ok &= settings_leds == LEDS_DIM_LO;
     turn(EN_K1, -1); ok &= settings_leds == LEDS_OFF;
     turn(EN_K1, -1); ok &= settings_leds == LEDS_OFF;
     press(B_OCTUP); ok &= settings_leds == LEDS_DIM_LO && ui.menu == 1u;
+    press(B_OCTUP); ok &= settings_leds == LEDS_AUTO;
     press(B_OCTUP); ok &= settings_leds == LEDS_DIM;
     press(B_OCTUP); ok &= settings_leds == LEDS_INV;
     press(B_OCTUP); ok &= settings_leds == LEDS_INV && ui.menu == 1u;   /* (stops at the end) */
-    for (k = 0; k < 4u; k++) press(B_OCTDN);
+    for (k = 0; k < 5u; k++) press(B_OCTDN);
     ok &= settings_leds == LEDS_OFF && ui.menu == 1u;
     ok &= !strcmp(LEDS_NAME[LEDS_OFF], "OFF") && !strcmp(LEDS_NAME[LEDS_DIM_LO], "DIM LO") &&
-          !strcmp(LEDS_NAME[LEDS_DIM], "DIM HI") && !strcmp(LEDS_NAME[LEDS_INV], "INV");
+          !strcmp(LEDS_NAME[LEDS_AUTO], "AUTO") && !strcmp(LEDS_NAME[LEDS_DIM], "DIM HI") && !strcmp(LEDS_NAME[LEDS_INV], "INV");
     {   /* a setting changed from elsewhere (the editor's MENU_SET: menu_put) while the MENU is shown: redrawn */
         static uint16_t before[240 * 240];
         frame();
         memcpy(before, host_screen, sizeof before);
-        menu_put(MI_LEDS, 3);                          /* (OFF -> INV, the row shown) */
+        menu_put(MI_LEDS, 4);                          /* (OFF -> INV, the row shown) */
         frame();
-        ok &= settings_leds == LEDS_INV && memcmp(before, host_screen, sizeof before) && menu_get(MI_LEDS) == 3u;
+        ok &= settings_leds == LEDS_INV && memcmp(before, host_screen, sizeof before) && menu_get(MI_LEDS) == 4u;
         menu_put(MI_LEDS, 0);
         frame();
         ok &= !memcmp(before, host_screen, sizeof before);
     }
     hold(B_HOME);
-    bad += check("menu LEDS: DIM HI by default; KNOB 1 OFF < DIM LO < DIM HI < INV (stops at the ends), OCT+ / OCT- the same; "
+    bad += check("menu LEDS: AUTO by default; KNOB 1 OFF < DIM LO < AUTO < DIM HI < INV (stops at the ends), OCT+ / OCT- the same; "
                  "a change from the editor redraws the shown MENU", ok && !ui.menu);
     {
         persist_t p = {0};
         uint32_t m;
         p.magic = PERSIST_MAGIC; p.panel = panel;
         ok = 1;
-        settings.zoom = 0;                              /* (DIM HI keeps an older record's 0 / 1 as saved) */
+        settings.zoom = 0;                              /* (AUTO keeps an older record's 0 / 1 as saved) */
         for (m = 0; m < LEDS_COUNT; m++) {
             settings_leds = (uint8_t)m;
-            settings_export(&p); settings_leds = LEDS_DIM;
+            settings_export(&p); settings_leds = LEDS_INV;
             ok &= settings_import(&p, sizeof p) && settings_leds == m && leds_stored_ok(p.zoom) &&
-                  p.zoom == (m == LEDS_DIM ? 0u : LEDS_TAG | m);
+                  p.zoom == (m == LEDS_AUTO ? 0u : LEDS_TAG | m);
             settings_export(&p);                    /* (idempotent: saved again, the same field) */
-            ok &= p.zoom == (m == LEDS_DIM ? 0u : LEDS_TAG | m);
+            ok &= p.zoom == (m == LEDS_AUTO ? 0u : LEDS_TAG | m);
         }
-        settings_leds = LEDS_DIM;
+        settings_leds = LEDS_AUTO;
         settings_export(&p);
-        bad += check("  LEDS is saved with the settings and read back (all four); DIM HI saves the field as before (0)",
-                     ok && p.zoom == 0u && settings_import(&p, sizeof p) && settings_leds == LEDS_DIM);
+        bad += check("  LEDS is saved with the settings and read back (all five); AUTO saves the field as before (0)",
+                     ok && p.zoom == 0u && settings_import(&p, sizeof p) && settings_leds == LEDS_AUTO);
+    }
+    {   /* AUTO is DIM LO on the battery and DIM HI while a USB host is connected (ui_input.c leds_eff); the others are themselves */
+        uint32_t m, cfg = usb.config, susp = usb.suspended;
+        ok = 1;
+        usb.config = 0; usb.suspended = 0;
+        settings_leds = LEDS_AUTO; ok &= leds_eff() == LEDS_DIM_LO;
+        usb.config = 1; ok &= leds_eff() == LEDS_DIM;
+        usb.suspended = 1; ok &= leds_eff() == LEDS_DIM_LO;           /* (the host asleep: not powering us) */
+        for (m = 0; m < LEDS_COUNT; m++)
+            if (m != LEDS_AUTO) {
+                settings_leds = (uint8_t)m;
+                usb.config = 0; usb.suspended = 0; ok &= leds_eff() == m;
+                usb.config = 1; ok &= leds_eff() == m;
+            }
+        usb.config = (uint8_t)cfg; usb.suspended = (uint8_t)susp;
+        settings_leds = LEDS_DIM;                         /* (back to this file's reference state) */
+        bad += check("  LEDS AUTO: DIM LO on the battery, DIM HI with a USB host; every other mode is itself on either", ok);
     }
     /* combo: a key with FX: at once, silent, no MIDI, no recording, no step */
     ui_power_on();
@@ -7038,6 +7059,75 @@ static int test_menu_prefs(void)
  * toggles; drawn so from the next frame (ux.style, the tokens: LINE has no SURF, a rule under the header); saved in a
  * spare byte of the settings and read back; settings from before it, and an unknown value, read as FLAT; 2, the
  * retired PIXEL (1.0.1), as LINE (again on a second import: idempotent) */
+/* BATTERY (ui_input.c battery_notice): nothing while it is fine; on the battery at 1 bar or less "BATTERY LOW" (0: "BATTERY
+ * EMPTY") once the level has held for 5 s, again when it drops a bar and every 2 minutes; never over another message; not
+ * with a USB host, not before a first reading (the emulator has none) */
+static int shows_battery(void) { return msg_is("BATTERY LOW") || msg_is("BATTERY EMPTY"); }
+static int battery_within(uint32_t ms, const char *want)         /* the message appears within ms of frames */
+{
+    uint32_t i;
+    for (i = 0; i < ms / 16u; i++) {
+        frame();
+        if (msg_is(want)) return 1;
+    }
+    return 0;
+}
+static int battery_never(uint32_t ms)                             /* no battery message in ms of frames */
+{
+    uint32_t i;
+    for (i = 0; i < ms / 16u; i++) {
+        frame();
+        if (shows_battery()) return 0;
+    }
+    return 1;
+}
+static int test_battery(void)
+{
+    int bad = 0, ok;
+    uint32_t cfg = usb.config, susp = usb.suspended;
+    ui_power_on();
+    usb.config = 0; usb.suspended = 0;
+    song.batt_raw = 620;                                          /* 3 bars */
+    bad += check("BATTERY: full on the battery: no message in 30 s", battery_never(30000u));
+    song.batt_raw = 570;                                          /* 2 bars */
+    bad += check("  two bars: none", battery_never(30000u));
+    song.batt_raw = 540;                                          /* 1 bar */
+    ok = battery_never(4000u);
+    bad += check("  one bar: nothing before it has held for 5 s", ok);
+    bad += check("  .. then BATTERY LOW, shown ~2 s (not the usual 40 frames)", battery_within(3000u, "BATTERY LOW") && ui.msg_t >= 100u);
+    frames(2200u);                                                /* (the message goes) */
+    bad += check("  .. no repeat for the next 100 s", battery_never(100000u));
+    bad += check("  .. again after 2 minutes", battery_within(30000u, "BATTERY LOW"));
+    song.batt_raw = 500;                                          /* empty: dropped a bar */
+    ui.msg_t = 0;
+    bad += check("  dropping to 0 bars: BATTERY EMPTY at once", battery_within(500u, "BATTERY EMPTY"));
+    song.batt_raw = 620;
+    ui.msg_t = 0;
+    ok = battery_never(10000u);
+    song.batt_raw = 540;
+    bad += check("  recovered, low again: announced again (after 5 s)", ok && battery_within(6000u, "BATTERY LOW"));
+    usb.config = 1; usb.suspended = 0;                            /* a USB host powers the unit */
+    ui.msg_t = 0;
+    bad += check("  with a USB host: none, whatever the level", battery_never(60000u));
+    usb.config = 0;
+    bad += check("  unplugged: announced again (5 s)", battery_within(7000u, "BATTERY LOW"));
+    song.batt_raw = 0;                                            /* no reading yet / the emulator */
+    ui.msg_t = 0;
+    bad += check("  no reading (the emulator): none", battery_never(200000u));
+    ui_power_on();
+    song.batt_raw = 620;
+    frames(64u);                                                  /* (the notice starts over) */
+    song.batt_raw = 540;
+    frames(4800u);                                                /* the level has held for 4.8 s */
+    ui.msg_t = 0;
+    ui_message("LIKED 1/16");                                     /* up while the 5 s pass */
+    frames(400u);
+    bad += check("  never over another message: waits for it to end", msg_is("LIKED 1/16") && battery_within(3000u, "BATTERY LOW"));
+    usb.config = (uint8_t)cfg; usb.suspended = (uint8_t)susp;
+    song.batt_raw = 0;
+    return bad;
+}
+
 static int test_style(void)
 {
     int bad = 0, ok;
@@ -7301,6 +7391,7 @@ int main(void)
     bad += test_rec_layer();
     bad += test_seq_tools();
     bad += test_menu_prefs();
+    bad += test_battery();
     bad += test_style();
     bad += test_head_centres();
     bad += test_head_metronome();

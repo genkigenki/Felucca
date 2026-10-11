@@ -27,6 +27,7 @@ static void settings_save(void) {}
 int main(void)
 {
     persist_t original = {0}, p;
+    assert(settings_leds == LEDS_AUTO);                 /* the default: DIM LO on the battery, DIM HI on USB */
     original.magic = PERSIST_MAGIC;
     original.palette = 4; original.bold = original.lowcut = original.zoom = 1;   /* old id 4: MONO, now GREY */
     original.panel = PANEL_DEFAULT; original.panel.enc[0] = 3;
@@ -101,46 +102,48 @@ int main(void)
         settings_hold = 2;
         assert(settings_import(&p, 8 + sizeof(panel_t)) == 2 && settings_hold == HOLD_DEF);
     }
-    {   /* LEDS: in the retired zoom field; older records (zoom 0 / 1) are DIM, and stay as saved; idempotent */
+    {   /* LEDS: in the retired zoom field; older records (zoom 0 / 1) are AUTO (the default: DIM LO on the battery, DIM HI on
+         * USB) and stay as saved; DIM HI is a choice of its own (LEDS_TAG | 0); idempotent */
         persist_t q;
         p = original;                                   /* zoom 1: an older record's large readout */
-        assert(settings_import(&p, sizeof p) == 1 && settings_leds == LEDS_DIM);
-        q = p; settings_export(&q); assert(q.zoom == 1u);                  /* DIM: kept as saved */
+        assert(settings_import(&p, sizeof p) == 1 && settings_leds == LEDS_AUTO);
+        q = p; settings_export(&q); assert(q.zoom == 1u);                  /* AUTO: kept as saved */
         settings_leds = LEDS_INV;
         settings_export(&p);
         assert(p.zoom == (LEDS_TAG | LEDS_INV) && leds_stored_ok(p.zoom));
         q = p; settings_export(&q); assert(!memcmp(&q, &p, sizeof q));   /* a second save: the same record */
-        settings_leds = LEDS_DIM;
+        settings_leds = LEDS_AUTO;
         assert(settings_import(&p, sizeof p) == 1 && settings_leds == LEDS_INV);
         q = p; assert(settings_import(&q, sizeof q) == 1 && !memcmp(&q, &p, sizeof q));   /* import twice: the same */
-        settings_leds = LEDS_DIM;
+        settings_leds = LEDS_AUTO;
         settings_export(&p);
-        assert(p.zoom == 0u && settings_import(&p, sizeof p) == 1 && settings_leds == LEDS_DIM);
-        assert(leds_stored_ok(0u) && leds_stored_ok(1u) && !leds_stored_ok(2u) && leds_stored_ok(LEDS_TAG | 2u) &&
-               leds_stored_ok(LEDS_TAG | 3u) && !leds_stored_ok(LEDS_TAG + 4u) && leds_from_stored(LEDS_TAG + 4u) == LEDS_DIM &&
-               leds_from_stored(7u) == LEDS_DIM && leds_from_stored(2u) == LEDS_DIM);
-        /* the modes appended (append-only: DIM 0, INV 1 as before): OFF 2, DIM LO 3, each saved and read back,
-         * twice the same */
+        assert(p.zoom == 0u && settings_import(&p, sizeof p) == 1 && settings_leds == LEDS_AUTO);
+        assert(leds_stored_ok(0u) && leds_stored_ok(1u) && !leds_stored_ok(2u) && leds_stored_ok(LEDS_TAG) &&
+               leds_stored_ok(LEDS_TAG | 2u) && leds_stored_ok(LEDS_TAG | 3u) && !leds_stored_ok(LEDS_TAG + 4u) &&
+               leds_from_stored(LEDS_TAG + 4u) == LEDS_AUTO && leds_from_stored(7u) == LEDS_AUTO &&
+               leds_from_stored(2u) == LEDS_AUTO && leds_from_stored(LEDS_TAG) == LEDS_DIM);
+        /* the modes (append-only: DIM 0, INV 1 as before): OFF 2, DIM LO 3, AUTO 4 (no form of its own: the bare 0), each
+         * saved and read back, twice the same; DIM HI is TAG | 0 (older firmware reads that as DIM HI, as it did) */
         {
             uint32_t m;
-            static const uint32_t ADDED[2] = {LEDS_OFF, LEDS_DIM_LO};
-            assert(LEDS_DIM == 0 && LEDS_INV == 1 && LEDS_OFF == 2 && LEDS_DIM_LO == 3 && LEDS_COUNT == 4);
-            for (m = 0; m < 2u; m++) {
-                settings_leds = (uint8_t)ADDED[m];
+            static const uint32_t SAVED[3] = {LEDS_DIM, LEDS_OFF, LEDS_DIM_LO};
+            assert(LEDS_DIM == 0 && LEDS_INV == 1 && LEDS_OFF == 2 && LEDS_DIM_LO == 3 && LEDS_AUTO == 4 && LEDS_COUNT == 5);
+            for (m = 0; m < 3u; m++) {
+                settings_leds = (uint8_t)SAVED[m];
                 settings_export(&p);
-                assert(p.zoom == (LEDS_TAG | ADDED[m]) && leds_stored_ok(p.zoom));
+                assert(p.zoom == (LEDS_TAG | SAVED[m]) && leds_stored_ok(p.zoom));
                 q = p; settings_export(&q); assert(!memcmp(&q, &p, sizeof q));
-                settings_leds = LEDS_DIM;
-                assert(settings_import(&p, sizeof p) == 1 && settings_leds == ADDED[m]);
+                settings_leds = LEDS_AUTO;
+                assert(settings_import(&p, sizeof p) == 1 && settings_leds == SAVED[m]);
             }
-            settings_leds = LEDS_DIM;
+            settings_leds = LEDS_AUTO;
             settings_export(&p);
             assert(p.zoom == 0u);
         }
-        p = original; p.magic = 0x50455231u;           /* PER1: no zoom field, DIM */
+        p = original; p.magic = 0x50455231u;           /* PER1: no zoom field, AUTO */
         memcpy((uint8_t *)&p + 8, &PANEL_DEFAULT, sizeof(panel_t));
         settings_leds = LEDS_INV;
-        assert(settings_import(&p, 8 + sizeof(panel_t)) == 2 && settings_leds == LEDS_DIM);
+        assert(settings_import(&p, 8 + sizeof(panel_t)) == 2 && settings_leds == LEDS_AUTO);
     }
 #ifdef FELUCCA_FAVORITES
     {   /* 1.1 CLICK / CLICK LEVEL / COUNT-IN (ui.c ui_rec_prefs, favorites.factory[15][28]): 0 in every older record
