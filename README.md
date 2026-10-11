@@ -18,7 +18,7 @@ The sequencer editing, presets and projects, engine pages, web editor and the ot
 
 ## Docs
 
-- [docs/SPEC.md](docs/SPEC.md): the spec digest and a map of the docs
+- [docs/SPEC.md](docs/SPEC.md): **start here**, the current spec in one self-contained page (English), and a map of the docs
 - [docs/AMBIENT.md](docs/AMBIENT.md): the spec (Japanese)
 - [docs/MAKU.md](docs/MAKU.md): design notes of the generator under it (Japanese)
 - [docs/VOICES_RATING.md](docs/VOICES_RATING.md): the voice catalog and how it is rated (Japanese)

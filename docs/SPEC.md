@@ -1,36 +1,120 @@
-# MAKU spec digest
+# MAKU spec (read this first)
 
-A short map. The full spec is [AMBIENT.md](AMBIENT.md) (Japanese); this page only says what the project is and where each thing lives.
+A self-contained summary of the current spec, written so a reader with no other context (a chat, a new session) can get
+the whole picture from this one file. The full spec is [AMBIENT.md](AMBIENT.md) (Japanese) and wins on any conflict.
+Last synced with AMBIENT.md: 2026-10-11.
 
-## In one paragraph
+## What it is
 
-MAKU (幕間機) is firmware for the M-VAVE FM-1, derived from Felucca (GPL-3.0-only). Power on and an ambient world is already
-playing; nothing is saved, every boot (and every HOME hold) is a new random world. Four parts: pulse (kick, DRUM), floor
-(drone, PHYS), haze (shimmer, GRAIN), voice (arpeggio phrase, PHYS). KNOB 1-4 are the part volumes and move the focus;
-SELECT / PRESETS / ALGORITHM are the focused part's three macros; each button is one verb that works while held and
-exposes three parameters of its own.
+MAKU (幕間機) is firmware for the M-VAVE FM-1 (a 240x240 screen, 4 knobs + master, 2 rows of buttons, a key bed),
+derived from Felucca (Leo Kuroshita, GPL-3.0-only). It is an always-on ambience machine for DJ-event interludes: power
+it on and a new, random, in-key world is already playing. Nothing is saved; every boot, and every HOME hold, is a new
+world. Status: host tests and the browser emulator only; **not yet verified on hardware**.
 
 ## Principles
 
 - It plays from power-on; there is no setup step.
-- No saving. Boot parameters are random.
-- Fine control of one parameter has no value; turning a knob should move things in a good direction.
+- No saving; boot parameters are random.
+- Fine control of one parameter has no value; turning a knob should move things in a good direction (right = livelier).
 - No page navigation and no menu (only a small settings menu on HOME + OCT-); one button, one verb, an immediate sound.
+
+## The four parts
+
+| # | Part | Content | Steps |
+| --- | --- | --- | --- |
+| 1 | pulse (脈) | kick, DRUM engine; the PULSE kick crossfades into ECG-monitor beeps as TONE rises (from 80, pure at 110+) | 16 |
+| 2 | floor (床) | drone chords, PHYS (9 voicings of engine + preset + articulation) | 57 |
+| 3 | haze (霞) | shimmer, GRAIN (5 voicings) | 13 |
+| 4 | voice (声) | arpeggiated phrase, PHYS (10 voicings); 32-place phrase table with rests, random runs of 3..8 | 29 |
+
+A boot picks the voicings, root, scale, tempo (about 70-90 BPM) and every macro at random. Step counts 57 / 13 / 29 are
+coprime and none is a multiple of 16, so the parts keep drifting out of phase. Notes are always in the scale
+(`maku_note()` only returns scale degrees). The kick ducks the other parts (depth set by DUCK).
+
+Articulations (set per world, `maku_voices.c`): STRK struck, SOFT soft strike, SWEL swell (~2 s, held to the next note),
+BOW bowed, HOLD (~1.4 s, held until the chord changes). The floor and haze are held (tie) in most worlds and at least one
+of them always is. Voice shares per part: floor 3, held haze 2, voice 2, kick 1 (8 voices total).
+
+## Controls
+
+- **KNOB 1-4**: volume of parts 1-4, and the turned part gets the focus. **MASTER**: output volume (hardware).
+- **SELECT / PRESETS / ALGORITHM**: the focused part's three macros, each moving several parameters; right = livelier.
+
+| Part | SELECT | PRESETS (tone) | ALGORITHM |
+| --- | --- | --- | --- |
+| 1 pulse | DENS (kick density) | TONE | WASH |
+| 2 floor | OPEN (chord voices 2-4; below 64: let the chord ring) | TONE | SWAY |
+| 3 haze | GRAIN (density / size; below the middle: sparser, longer) | TONE | AIR |
+| 4 voice | LOOSE (re-rolls, octave up; below the middle: sparser) | TONE | TRAIL |
+
+- **Keys** play the focused part's sound, unquantized (not snapped to the scale). Every played note also melts into the
+  voice's phrase (the latest 8 are remembered and fade). When the pulse has focus the keys are a 16-step kick sequencer
+  (white keys = steps, ACC = accent; the black keys are eight noise pads). Hand-set kicks always play; DENS only adds ghosts.
+- **Kick density** (DENS): 4-39 a hint on step 1, 40-67 step 9 joins, 68-95 steps 5 and 13, **96+ four on the floor is
+  certain**; above 96 hats are added on the same DRUM lanes (open hat on the off-beats from 96, closed hat from 104).
+- **HOME**: held = a new random world. HOME + OCT-: settings menu (colour, screen off, calibration); HOME closes it.
+
+### Upper row: six verbs of change (work only while held; three own parameters on SELECT / PRESETS / ALGORITHM)
+
+| Button | Verb | Axis | What it does | Parameters |
+| --- | --- | --- | --- | --- |
+| FX | SINK 潜る | depth | kick fades out, reverb / delay / reverse sends deepen in ~0.75 s, reverb feedback towards 0.995, dry voices step back; release ~3 s | SINK / WASH / HUSH |
+| SCL | CASCADE 降り注ぐ | range, note count | the arp plays every step (rests too), octave +1 / +2 and a third above stack | DENSE / SPAN / HARM |
+| ENV | SWELL 膨らむ | time | longer attack / release; held voices keep the chord, struck ones repeat it | ATTACK / RELEASE / STAY |
+| LFO | WOBBLE 揺れる | motion | filter LFO faster and deeper, chorus send up, pitch wobble | RATE / DEPTH / PITCH |
+| EDIT | LIFT 持ち上げる | timbre | all TONE macros up, distortion (not the kick), master high-pass up | TONE / EDGE / THIN |
+| GLO | SCRAMBLE 崩す | order | the arp jumps around, more re-rolls, kick ghosts, more swing | ARP / KICK / SWING |
+
+Pairs: SINK vs LIFT, SWELL vs SCRAMBLE, CASCADE vs WOBBLE. A verb's amount rises in ~0.3 s and falls in ~0.6 s (SINK has its own).
+Values stay until the next world.
+
+### Lower row: operations that keep
+
+| Button | What it does |
+| --- | --- |
+| ARP | tap steps the scale MAJ MIN LYD DOR MIX PHRY PEN MPEN; held, a pressed key sets the root and the knobs are ROOT / SCALE / REG (drone register) |
+| SEQ | held: SELECT = BPM (follows MIDI clock), PRESETS = SWING, ALGORITHM = DUCK (64 = default dip) |
+| OCT- / OCT+ | modulate a fifth down / up around the circle of fifths (a key-signature change: notes already sounding or in the phrase keep their pitch) |
+| PLAY | tap = DRIFT on/off (green LED while on); held: RATE / RANGE / REACH. While on, the 12 macros random-walk within RANGE/2 of where it was switched on; REACH 43+ also the space, 86+ also tempo / SWING / DUCK. A value turned by hand becomes the new anchor; a new world switches it off |
+| SAVE / REC | no function |
+
+MIDI: USB and TRS in, clock follow only; CC20 (any channel) is the kick density. USB also carries the stereo audio input.
+
+## Screen
+
+240x240 split into four 120x120 quadrants matching the knobs' physical 2x2: top-left (MASTER's place) = waveform + BPM +
+four volume bars + the focused part; the other three show the name, value and gauge of what SELECT / PRESETS / ALGORITHM
+move now (the verb's own three while a verb is held). At most three parameters per mode, no paging.
+
+## Sound design notes
+
+Space (all in `fx.c`): ensemble chorus, tape delay, ROOM reverb with pre-delay and moving combs, SPRING, reverse reverb
+(amount from the haze's AIR). INSERT (Felucca 1.5): a per-world PHASR / CHOR (floor) or FLANG / CHOR (haze), kept on trial.
+CPU estimate: worst case ~51 % of the device (host-derived, not measured on hardware); overload protection drops voices.
+
+## Kept / dropped
+
+- Dropped: sequencer editing, saving (presets, projects, RESTORE LAST), the sound-editing pages and most engines (FM6,
+  SAMPLE, SLICE, LOFI, WHEEL, VOICE, TRIO, PHASE, NOISE), the menu, the web editor and its protocol.
+- Kept: the generator, the 4-track mixer, 8 voices, ducking, the space effects and limiter, MIDI clock in, the firmware
+  update path (needed to return to the official firmware), the browser emulator.
+
+## Open
+
+Boot-randomness ranges (by ear), ducking between all four volumes, ghost kicks shown dimly on the LEDs, removing unused
+engines from the build (~28 KB of flash, but ui_test.c depends on them), and everything on real hardware.
 
 ## Where things are
 
 | Topic | File |
 | --- | --- |
-| Controls, verbs, screen layout, what is kept / dropped | [AMBIENT.md](AMBIENT.md) |
-| Generator design (kick rungs, arp table, ducking) | [MAKU.md](MAKU.md) (written for the earlier "mode" form; AMBIENT.md wins on conflict) |
+| The full spec: controls, verbs, screen, kept / dropped | [AMBIENT.md](AMBIENT.md) (Japanese) |
+| Generator design (kick rungs, arp table, ducking); written for the earlier "mode" form, AMBIENT.md wins | [MAKU.md](MAKU.md) |
+| How the verbs were regrouped (history) | [VERBS_PLAN.md](VERBS_PLAN.md) |
 | Voice catalog, articulations, rating tool | [VOICES_RATING.md](VOICES_RATING.md) |
 | Decisions, newest last | [decisions.md](decisions.md) |
-| Code | `firmware/src/maku.c`, `maku_voices.c`, `ui_maku.c`, `ui_input.c` |
-| Tests | `tests/maku_test.c` |
+| Code | `firmware/src/maku.c`, `maku_voices.c`, `ui_maku.c`, `ui_input.c`, `fx.c` |
+| Tests / build | `tests/maku_test.c`, `tests/run_tests.sh`; [../BUILDING.md](../BUILDING.md) |
+| Browser emulator | `web/emu/`; live at https://okumurari2.github.io/Felucca/ |
 
-## Kept / dropped
-
-- Dropped: sequencer editing, saving (presets, projects, RESTORE LAST), the sound-editing pages and most engines, the web editor.
-- Kept: the generator, 4-track mixer, 8 voices, ducking, the space effects and limiter, MIDI clock in, the firmware update path (needed to return to the official firmware), the browser emulator.
-
-When the spec changes, update AMBIENT.md first, then this digest.
+When the spec changes, update AMBIENT.md first, then this page (and the "Last synced" date above).
