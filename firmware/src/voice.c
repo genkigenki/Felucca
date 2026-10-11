@@ -82,6 +82,14 @@ static uint32_t trk_nvoice(const track_t *t)
     uint32_t c = ENGINES[t->engine]->poly;
     return c && c < NVOICE ? c : NVOICE;
 }
+/* GHOULBOX: UNISON's voices, its detune spread and its level stay those of 8 voices (the budget, NVOICE, is 12):
+ * a saved UNISON sound plays as before */
+#define UNISON_N 8u
+static uint32_t trk_nunison(const track_t *t)
+{
+    uint32_t n = trk_nvoice(t);
+    return n < UNISON_N ? n : UNISON_N;
+}
 
 /* the part's voice mode: P_VOICE, POLY for an engine of hits (engine_t.oneshot: DRUM) */
 static uint32_t trk_vmode(const track_t *t)
@@ -304,18 +312,18 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
  * engine's voice cap, spread by DETUNE over the same width) */
 static void mono_play(track_t *t, uint32_t note, uint32_t vel, int retrig, int glide)
 {
-    uint32_t mode = (uint32_t)t->p[P_VOICE], nv = mode == V_UNISON ? trk_nvoice(t) : 1u, i;
+    uint32_t mode = (uint32_t)t->p[P_VOICE], nv = mode == V_UNISON ? trk_nunison(t) : 1u, i;
     for (i = 0; i < nv; i++) {
         voice_t *v = &t->v[i];
         int32_t k = 2 * (int32_t)i - (int32_t)(nv - 1u);   /* -7 .. 7 */
-        if (nv > 1u && nv < NVOICE)
-            k = k * (NVOICE - 1) / (int32_t)(nv - 1u);      /* fewer voices: the outer ones as wide */
+        if (nv > 1u && nv < UNISON_N)
+            k = k * ((int32_t)UNISON_N - 1) / (int32_t)(nv - 1u);   /* fewer voices: the outer ones as wide */
         v->fine = nv > 1u ? k * t->p[P_DETUNE] * 56 / 889 : 0;   /* up to ~±40 cents */
         if (retrig || !v->active || !v->gate) {
             if ((!v->active || v->stage == 4u) && !voice_room(t, i > 0))
                 continue;                                   /* no room for this extra UNISON voice */
             /* level: about the same sum for 8 or 4 voices at random phases */
-            voice_start(t, v, note, nv >= NVOICE ? vel * 36u / 100u : nv > 1u ? vel / 2u : vel, glide);
+            voice_start(t, v, note, nv >= UNISON_N ? vel * 36u / 100u : nv > 1u ? vel / 2u : vel, glide);
             v->side = (uint8_t)(i & 1u);                    /* SPREAD: the detuned voices alternate */
             if (nv > 1u && i && !ENGINES[t->engine]->sampled) {   /* random start phases: */
                 static uint32_t seed = 0x1234567u;          /* in phase they stack, evenly spread they cancel */
@@ -418,7 +426,7 @@ static void trk_note_off(track_t *t, uint32_t note)
     t->xp_n = (uint8_t)k;
     mono_remove(t, note);                              /* a mode change must not retain a released key */
     if (mode != V_POLY) {
-        uint32_t nv = mode == V_UNISON ? trk_nvoice(t) : 1u;
+        uint32_t nv = mode == V_UNISON ? trk_nunison(t) : 1u;
         if (t->mono_note == note) {
             uint32_t next = mono_pick(t);
             if (next) {                                 /* fall back to a held note, legato */

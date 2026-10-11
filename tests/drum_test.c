@@ -641,7 +641,10 @@ static void lane_budget(void)
 {
     static const uint8_t KIT[6] = {36, 38, 39, 42, 45, 56};
     static const uint8_t TOM[4] = {41, 43, 45, 47};
+    static const uint8_t SYN[6] = {48, 60, 52, 64, 55, 67};   /* (GHOULBOX: the synth fills the rest of the budget) */
+    const uint32_t nsyn = NVOICE - NELEM(KIT);
     uint32_t i, p, owner, kills, bad = 0;
+    _Static_assert(NVOICE - 6u <= 6u, "lane_budget: SYN holds the synth notes");
     host_tracks_init();
     memset(eng_mem, 0, sizeof eng_mem);
     for (p = 0; p < NPART; p++)
@@ -650,8 +653,8 @@ static void lane_budget(void)
     host_preset(&trk[1], 0, 0);
     trk[1].p[P_VOICE] = V_POLY;
     trk[1].p[P_SUS] = 127;
-    trk_note_on(&trk[1], 48, 100);
-    trk_note_on(&trk[1], 60, 100);
+    for (i = 0; i < nsyn; i++)
+        trk_note_on(&trk[1], SYN[i], 100);
     for (i = 0; i < NELEM(KIT); i++)
         trk_note_on(&trk[0], KIT[i], 110);
     blocks_peak(2);
@@ -662,9 +665,9 @@ static void lane_budget(void)
         trk_note_on(&trk[0], TOM[i % NELEM(TOM)], 110);
         bad += drum_kit_of(&trk[0])[DV_TOM].owner != owner || voices_busy() != NVOICE || voice_kills != kills;
         blocks_peak(1);
-        bad += voices_on(&trk[1]) != 2u || voices_on(&trk[0]) != NELEM(KIT);
+        bad += voices_on(&trk[1]) != nsyn || voices_on(&trk[0]) != NELEM(KIT);
     }
-    printf("drum_test: tom fill at the 8-voice budget: same lane voice, both synth notes and other drums kept: %s\n",
+    printf("drum_test: tom fill at the full budget: same lane voice, the synth notes and other drums kept: %s\n",
            bad ? "FAIL" : "ok");
     fails += bad != 0;
     /* A new track can still take a drum voice: no permanent reservation for the kit. */

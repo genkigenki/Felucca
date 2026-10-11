@@ -90,7 +90,8 @@ static void overload(void)
     trk[0].p[P_VOICE] = V_UNISON;
     trk_note_on(&trk[0], 55, 100);
     shed_voice(); mix_block(out, CTL);
-    check("UNISON loses an extra voice and retains its lead", trk[0].v[0].active && trk[0].v[0].gate && voices_busy() == NVOICE - 1u);
+    check("UNISON loses an extra voice and retains its lead", trk[0].v[0].active && trk[0].v[0].gate &&
+          voices_busy() == UNISON_N - 1u);                  /* (GHOULBOX: UNISON 8 voices of the budget of 12) */
 
     for (mode = V_MONO; mode <= V_LEGATO; mode++) {
         fresh(); trk[0].p[P_VOICE] = V_POLY;

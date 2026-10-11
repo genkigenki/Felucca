@@ -18,7 +18,7 @@
  *    per sample counted by the kernel (proc_pid_rusage ri_instructions: the same on every run within
  *    ~1 %, unlike wall time), compared with CPU_FILE (tests/cpu_baseline.txt) at +-25 %; ns per
  *    sample printed for information. A count over the budget fails, one far under it only warns.
- * 4. voices: the shared budget of 8 across 4 parts, stolen voices fade (no step), MONO / LEGATO /
+ * 4. voices: the shared budget (NVOICE: 12 in GHOULBOX) across 4 parts, stolen voices fade (no step), MONO / LEGATO /
  *    UNISON keep their note under pressure, the VOICE engine's 4-voice cap, release frees voices, and
  *    no hanging note after the note-offs on any routing (USB channels 1..4, others while the
  *    selected track changes, the keys while the selected track changes, with ARP and the voice modes).
@@ -538,7 +538,7 @@ static int chk_retrigger_budget(char *msg, uint32_t n)
         }
         for (i = 0; i < NELEM(NOTES); i++)
             trk_note_on(&trk[0], NOTES[i], 100);
-        for (i = 0; i < 3u; i++)
+        for (i = 0; i < NVOICE - 5u; i++)                  /* (the budget full with part 4's note: 3 of 8, 7 of 12) */
             trk_note_on(&trk[1], 64u + 3u * i, 100);
         trk_note_on(&trk[2], 74, 100);
         blk();
@@ -634,7 +634,7 @@ static int chk_mode_budget(char *msg, uint32_t n)
                 trk_note_on(&trk[0], 48, 100);
             else
                 for (i = 0; i < NVOICE; i++) trk_note_on(&trk[0], 48u + 2u * i, 100);
-            bad += voices_busy() != NVOICE;
+            bad += voices_busy() != (initial ? UNISON_N : NVOICE);   /* (GHOULBOX: UNISON 8 of a budget of 12) */
             trk[0].p[P_VOICE] = (int16_t)mode;
             for (p = 1; p < NPART; p++) {
                 trk_note_on(&trk[p], 72u + p, 100);
@@ -689,6 +689,15 @@ static int chk_mode_release(char *msg, uint32_t n)
                     bad += !parts_free();
                     cases++;
                 }
+    for (to = V_POLY; to <= V_UNISON; to++)              /* GHOULBOX: a POLY chord over the whole budget (12), then */
+        for (order = 0; order < 2u; order++) {           /* MONO / LEGATO / UNISON (8): every key up releases all */
+            mode_release_reset(0, V_POLY);
+            for (i = 0; i < NVOICE; i++) trk_note_on(&trk[0], 48u + i, 100);
+            trk[0].p[P_VOICE] = (int16_t)to;
+            for (i = 0; i < NVOICE; i++) trk_note_off(&trk[0], order ? 48u + NVOICE - 1u - i : 48u + i);
+            bad += mode_release_gates() != 0;
+            cases++;
+        }
     for (mode = V_MONO; mode <= V_UNISON; mode++) {
         mode_release_reset(0, mode);
         trk_note_on(&trk[0], 60, 100);
@@ -703,7 +712,7 @@ static int chk_mode_release(char *msg, uint32_t n)
         cases++;
         for (priority = 0; priority < 3u; priority++) {
             uint32_t lead = priority == 1u ? 72u : 80u, other = priority == 1u ? 80u : 72u;
-            uint32_t want = mode == V_UNISON ? NVOICE : 1u;
+            uint32_t want = mode == V_UNISON ? UNISON_N : 1u;   /* (GHOULBOX: UNISON 8, voice.c UNISON_N) */
             mode_release_reset(0, V_POLY);
             trk_note_on(&trk[0], 48, 100);
             trk_note_on(&trk[0], 64, 100);
@@ -769,7 +778,8 @@ static int chk_sample_end(char *msg, uint32_t n)
 }
 
 /* a stolen voice fades: plain sines (filter open, no sends) on 3 parts; part 1 holds 7 notes, part 2 one,
- * then parts 2 and 3 take voices in turn. The largest sample step in the 2 blocks of each take must stay
+ * then parts 2 and 3 take voices in turn (GHOULBOX: part 1 holds NVOICE - 1, the budget full as with 8). The largest
+ * sample step in the 2 blocks of each take must stay
  * within 1.5 x the largest one in the 0.25 s before it (a hard cut is several times larger) */
 static int chk_steal_fade(char *msg, uint32_t n)
 {
@@ -785,8 +795,8 @@ static int chk_steal_fade(char *msg, uint32_t n)
     for (f = 0; f < frames; f += CTL) {
         uint32_t ms = f * 1000u / FS, k0 = voice_kills;
         if (f == 0)
-            for (i = 0; i < 7u; i++)
-                trk_note_on(&trk[0], N1[i], 90);
+            for (i = 0; i < NVOICE - 1u; i++)
+                trk_note_on(&trk[0], N1[i % 7u] + 12u * (i / 7u), 90);
         if (f == at(0.5))
             trk_note_on(&trk[1], 74, 90);
         if (ms >= 1000u && f % (FS / 2u) < CTL && ms < 3500u)
@@ -1081,7 +1091,7 @@ int main(int argc, char **argv)
 
     /* 4: the voice checks */
     k0 = nj;
-    add(J_CHECK, "voices: budget of 8 across 4 parts")->check = chk_budget;
+    add(J_CHECK, "voices: the budget (NVOICE) across 4 parts")->check = chk_budget;
     add(J_CHECK, "voices: reuse before the stolen tail fades")->check = chk_retrigger_budget;
     add(J_CHECK, "voices: budget after a live mode change")->check = chk_mode_budget;
     add(J_CHECK, "voices: budget after voice mode changes")->check = chk_cap_mode_budget;

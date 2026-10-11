@@ -11,7 +11,7 @@
 #   CPU             instructions / sample per preset and mix (tests/cpu_baseline.txt, +25 %), ns printed;
 #                   target: loop instructions of the render functions in the pi32v2 disassembly
 #                   (tests/target_budget.txt, +10 %; exact, static).
-#   voices          the budget of 8, steal fades, MONO / LEGATO / UNISON keep their note, the VOICE cap,
+#   voices          the budget of 12 (UNISON 8), steal fades, MONO / LEGATO / UNISON keep their note, the VOICE cap,
 #                   no hanging notes on any MIDI / key routing.
 # UI renders (tests/ui_render.c): every screen in every palette from the real drawing code: the layout lint (no text
 #                   off the screen, cut, hidden, overlapping or spilling out of its cell / card; only free text

@@ -10,7 +10,8 @@
  * alongside, at three presets: a chord and a low note held, released, still ringing at the next switch (the
  * fade on the old engine), and once more with the next notes inside the fade (they wait for the switch).
  * Each sequence runs in its own fork()ed child from boot state; its mix is one 64-bit FNV-1a hash. The file
- * holds the hashes from before the shared region (the engines' own arrays): any difference fails. Reviewed, rewritten
+ * holds the hashes from before the shared region (the engines' own arrays; recorded again at NVOICE 12 with the
+ * arrays: the same 8 below differ, nothing else): any difference fails. Reviewed, rewritten
  * with the region: the 8 DRUM -> GRAIN / PHYS / FM6 / SLICE -> DRUM at presets 2 3 4 (a kit change across the switch):
  * the lanes start from rest as at power-on instead of running on (noise and phases: level within 0.5 dB, every band
  * within 1 dB; build/union_demo/drum_grain_drum_old.wav / _new.wav).
