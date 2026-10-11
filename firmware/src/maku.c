@@ -256,23 +256,23 @@ typedef struct { uint8_t p; int16_t lo, hi; } mm_t;
 static const struct { const char *name; mm_t m[3]; } MAKU_MAC[4][3] = {
     {   /* 1 KICK */
         {"DENS", {{MM_NONE, 0, 0}, {MM_NONE, 0, 0}, {MM_NONE, 0, 0}}},
-        {"TONE", {{P_E2, 30, 110}, {P_E4, 10, 100}, {P_E3, 120, 70}}},
-        {"WASH", {{P_REV, 20, 100}, {P_DLY, 0, 40}, {P_E7, 0, 60}}},
+        {"TONE", {{P_E2, 0, 127}, {P_E4, 0, 127}, {P_E3, 127, 30}}},
+        {"WASH", {{P_REV, 0, 127}, {P_DLY, 0, 80}, {P_E7, 0, 100}}},
     },
     {   /* 2 DRONE */
         {"OPEN", {{MM_NONE, 0, 0}, {MM_NONE, 0, 0}, {MM_NONE, 0, 0}}},
-        {"TONE", {{P_E2, 40, 127}, {P_E6, 40, 127}, {P_IMIX, 20, 110}}},   /* (the INSERT's MIX; a world with none: inert) */
-        {"SWAY", {{P_CHOR, 0, 90}, {P_LD_FLT, 0, 50}, {P_REL, 60, 110}}},
+        {"TONE", {{P_E2, 0, 127}, {P_E6, 0, 127}, {P_IMIX, 0, 127}}},   /* (the INSERT's MIX; a world with none: inert) */
+        {"SWAY", {{P_CHOR, 0, 127}, {P_LD_FLT, 0, 100}, {P_REL, 30, 127}}},
     },
     {   /* 3 SHIMMER */
-        {"GRAIN", {{P_E3, 30, 127}, {P_E2, 120, 40}, {P_IMIX, 0, 90}}},   /* (.. and here) */
-        {"TONE", {{P_E7, 40, 127}, {P_E5, 10, 90}, {P_E6, 0, 60}}},
-        {"AIR", {{P_REV, 60, 127}, {P_DLY, 0, 70}, {P_ATK, 60, 127}}},
+        {"GRAIN", {{P_E3, 0, 127}, {P_E2, 127, 20}, {P_IMIX, 0, 127}}},   /* (.. and here) */
+        {"TONE", {{P_E7, 0, 127}, {P_E5, 0, 127}, {P_E6, 0, 100}}},
+        {"AIR", {{P_REV, 0, 127}, {P_DLY, 0, 110}, {P_ATK, 30, 127}}},
     },
     {   /* 4 ARP */
         {"LOOSE", {{MM_NONE, 0, 0}, {MM_NONE, 0, 0}, {MM_NONE, 0, 0}}},
-        {"TONE", {{P_E2, 40, 120}, {P_E3, 110, 50}, {P_E5, 60, 127}}},
-        {"TRAIL", {{P_DLY, 20, 110}, {P_REV, 40, 120}, {P_REL, 30, 90}}},
+        {"TONE", {{P_E2, 0, 127}, {P_E3, 127, 20}, {P_E5, 20, 127}}},
+        {"TRAIL", {{P_DLY, 0, 127}, {P_REV, 0, 127}, {P_REL, 10, 127}}},
     },
 };
 

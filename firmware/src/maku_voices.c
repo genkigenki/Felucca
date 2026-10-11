@@ -31,16 +31,16 @@ static const struct { uint8_t a, d, s, r; } MAKU_ART[] = {
 };
 
 /* the engines' parameter choices that recur below */
-#define T_PHYS_BOW {{P_E2, 40, 110}, {P_E6, 50, 110}, {0, 0, 0}}           /* BRIT, BOW: a bowed sound opens and bows harder */
-#define T_ANALOG {{P_E4, 35, 105}, {P_E5, 10, 45}, {0, 0, 0}}              /* CUT, RES: a pad opens, without screaming */
-#define T_GRAIN {{P_E2, 70, 127}, {P_E7, 60, 127}, {0, 0, 0}}              /* SIZE, TONE */
-#define T_SOFT {{P_E2, 20, 90}, {P_E3, 110, 60}, {P_E5, 30, 70}}           /* BRIT, DAMP, ACC: a soft strike stays soft */
-#define T_ANALOG_LINE {{P_E4, 40, 110}, {P_E5, 0, 40}, {MM_NONE, 0, 0}}
+#define T_PHYS_BOW {{P_E2, 0, 127}, {P_E6, 20, 127}, {0, 0, 0}}           /* BRIT, BOW: a bowed sound opens and bows harder */
+#define T_ANALOG {{P_E4, 10, 127}, {P_E5, 0, 70}, {0, 0, 0}}              /* CUT, RES: a pad opens, without screaming */
+#define T_GRAIN {{P_E2, 30, 127}, {P_E7, 20, 127}, {0, 0, 0}}              /* SIZE, TONE */
+#define T_SOFT {{P_E2, 0, 110}, {P_E3, 127, 30}, {P_E5, 10, 100}}           /* BRIT, DAMP, ACC: a soft strike stays soft */
+#define T_ANALOG_LINE {{P_E4, 10, 127}, {P_E5, 0, 70}, {MM_NONE, 0, 0}}
 
 static const maku_voice_t MAKU_V_DRA[] = {          /* the floor */
     {"DRONE STRING", ENGI_PHYS, 7, ART_STRK, 3},
     {"HARP", ENGI_PHYS, 8, ART_STRK, 2},
-    {"BOWED METAL", ENGI_PHYS, 3, ART_BOW, 3, .t = {{P_E2, 40, 110}, {P_E6, 60, 127}, {0, 0, 0}}},
+    {"BOWED METAL", ENGI_PHYS, 3, ART_BOW, 3, .t = {{P_E2, 0, 127}, {P_E6, 30, 127}, {0, 0, 0}}},
     {"BOWED STRING", ENGI_PHYS, 2, ART_BOW, 2, V1(85), 0, 0, {0, 0, V1(50), V1(110), 0, 0, V1(70), 0},   /* the string model (the preset's), bowed */
         T_PHYS_BOW},
     {"GLASS", ENGI_PHYS, 0, ART_BOW, 2, V1(95), 0, V1(105), {0, V1(34), V1(60), 0, 0, 0, V1(50), 0}, T_PHYS_BOW},
