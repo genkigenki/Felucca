@@ -17,7 +17,12 @@ static const struct { uint8_t count, notes[12]; } EXPECTED[] = {
     {7, {0, 2, 3, 5, 7, 9, 11}}, {6, {0, 3, 5, 6, 7, 10}},
     {6, {0, 2, 4, 6, 8, 10}}, {8, {0, 1, 3, 4, 6, 7, 9, 10}},
     {8, {0, 2, 3, 5, 6, 8, 9, 11}},
+    /* GHOULBOX: appended (stored values 16 .. 18): Phrygian dominant, Hungarian minor, double harmonic */
+    {7, {0, 1, 4, 5, 7, 8, 10}}, {7, {0, 2, 3, 6, 7, 8, 11}}, {7, {0, 1, 4, 5, 7, 8, 11}},
 };
+/* the names in their stored order: the first 16 Felucca's (a saved SCL keeps its scale), GHOULBOX's after them */
+static const char *const NAMES[] = {"CHR", "MAJ", "MIN", "DOR", "MIX", "PEN", "MPEN", "HARM", "PHRY", "LYD", "LOC", "MEL",
+                                    "BLUES", "WHOLE", "DIMHW", "DIMWH", "PHDOM", "HUNG", "DHARM"};
 
 static void mapping_test(void)
 {
@@ -25,6 +30,9 @@ static void mapping_test(void)
     uint32_t s, k, w;
     int root, oct, trans;
     assert(TP[P_SCALE].max + 1 == sizeof EXPECTED / sizeof EXPECTED[0]);
+    assert(sizeof NAMES / sizeof NAMES[0] == sizeof EXPECTED / sizeof EXPECTED[0]);
+    for (s = 0; s <= (uint32_t)TP[P_SCALE].max; s++)
+        assert(str_eq(TP[P_SCALE].names[s], NAMES[s]));
     assert(sizeof SCALE_MASK / sizeof SCALE_MASK[0] == sizeof EXPECTED / sizeof EXPECTED[0]);
     t->p[P_QUANT] = 2;
     for (s = 0; s <= (uint32_t)TP[P_SCALE].max; s++) {
@@ -72,7 +80,7 @@ static void mapping_test(void)
     t->p[P_TRANS] = 0;
     song.octave = 0;
     assert(kb_map(t, 11) == 63u && kb_map(t, 10) == 63u && kb_map(t, 7) == 60u && kb_map(t, 8) == 60u);
-    puts("scales: all 16 scales, 12 roots, octave/transpose ranges, bypass, drums and SNAP ok");
+    puts("scales: all 19 scales (GHOULBOX's PHDOM HUNG DHARM appended), 12 roots, octave/transpose ranges, bypass, drums and SNAP ok");
 }
 
 static void key_events_test(void)

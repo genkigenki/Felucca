@@ -30,7 +30,12 @@ static const uint16_t SCALE_MASK[] = {
     (1 << 0) | (1 << 2) | (1 << 4) | (1 << 6) | (1 << 8) | (1 << 10),              /* WHOLE */
     (1 << 0) | (1 << 1) | (1 << 3) | (1 << 4) | (1 << 6) | (1 << 7) | (1 << 9) | (1 << 10), /* DIMHW */
     (1 << 0) | (1 << 2) | (1 << 3) | (1 << 5) | (1 << 6) | (1 << 8) | (1 << 9) | (1 << 11), /* DIMWH */
+    /* GHOULBOX (appended: stored values keep their scale): the dungeon scales */
+    (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5) | (1 << 7) | (1 << 8) | (1 << 10),   /* PHDOM: Phrygian dominant */
+    (1 << 0) | (1 << 2) | (1 << 3) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 11),   /* HUNG: Hungarian minor */
+    (1 << 0) | (1 << 1) | (1 << 4) | (1 << 5) | (1 << 7) | (1 << 8) | (1 << 11),   /* DHARM: double harmonic */
 };
+_Static_assert(sizeof SCALE_MASK / sizeof SCALE_MASK[0] == 19u, "a mask per SCL value (params.c N_SCALE)");
 
 #define KB_SILENT 255u
 static uint32_t kb_prev;

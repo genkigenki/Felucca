@@ -960,10 +960,10 @@ static void layer_glo(void)
     }
 }
 static void layer_scl(void)                             /* KNOB 2's scales, 4 x 4, the one now selected */
-{
-    uint32_t i, sc = (uint32_t)TSEL->p[P_SCALE];
-    for (i = 0; i < 16u && i <= (uint32_t)TP[P_SCALE].max; i++) {
-        int32_t x = LC_X(i % 4u), y = 4 + 29 * (int32_t)(i / 4u);
+{                                                        /* (GHOULBOX: 19: the 16 holding it, 0..15 or 16..) */
+    uint32_t i, sc = (uint32_t)TSEL->p[P_SCALE], first = sc / 16u * 16u;
+    for (i = first; i < first + 16u && i <= (uint32_t)TP[P_SCALE].max; i++) {
+        int32_t x = LC_X((i - first) % 4u), y = 4 + 29 * (int32_t)((i - first) / 4u);
         uint16_t ink, fill = lc_fill(i == sc ? LS_SEL : LS_OFF, &ink);
         fill = lc_box(x, y, LC_W, 25, fill);
         GFX_HOOK_ALIGN(x, y, x + LC_W, y + 25, AL_HV, "scale cell name centred");

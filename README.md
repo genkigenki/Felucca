@@ -438,8 +438,9 @@ kits are never quantized).
 Available scales: chromatic (CHR), major (MAJ), natural minor (MIN), Dorian (DOR),
 Mixolydian (MIX), major pentatonic (PEN), minor pentatonic (MPEN), harmonic minor
 (HARM), Phrygian (PHRY), Lydian (LYD), Locrian (LOC), ascending melodic minor (MEL),
-minor blues (BLUES), whole tone (WHOLE), half-whole diminished (DIMHW), and
-whole-half diminished (DIMWH). Scales with other than seven notes continue across
+minor blues (BLUES), whole tone (WHOLE), half-whole diminished (DIMHW),
+whole-half diminished (DIMWH), and GHOULBOX's Phrygian dominant (PHDOM), Hungarian minor (HUNG) and
+double harmonic (DHARM). Scales with other than seven notes continue across
 the white keys without repeating notes; their roots need not fall on every C key.
 Drum kits and incoming MIDI keep their own note mapping.
 
