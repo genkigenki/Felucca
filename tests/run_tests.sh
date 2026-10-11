@@ -153,6 +153,9 @@ run "flash storage (A/B, torn writes)" "$OUT/storage_test"
 $CC -o "$OUT/upreset_test" tests/upreset_test.c
 run "user presets (UP_PUT parser, bank round trip, versions, PHYS DRUM and SAMPLE PERC -> DRUM, grid records, DIGITAL kept)" "$OUT/upreset_test"
 
+$CC -o "$OUT/bootguard_test" tests/bootguard_test.c
+run "boot guard (GHOULBOX, after dinghy): two failed boots -> the USB RESCUE, a reset there -> UBOOT, power-on clears, OCT- alone" "$OUT/bootguard_test"
+
 $CC -o "$OUT/input_test" tests/input_test.c
 run "keys and buttons: fast press, long release, bouncy contacts (one note each), glitches, encoders" "$OUT/input_test"
 

@@ -96,6 +96,7 @@
 #if FELUCCA_OTA
 #include "ota.c"
 #include "ota_hw.c"
+#include "rescue.c"              /* the USB RESCUE: two failed boots, or OCT- held at power-on (main.c) */
 #include "editor.c"              /* web editor SysEx (needs the OTA SysEx plumbing) */
 #endif
 #if FELUCCA_CDC

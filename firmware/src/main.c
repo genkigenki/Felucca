@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* FELUCCA boot and main loop. Boot order: WDT first, boot-loop guard, fatal vectors,
- * guards; then LCD, input (TIMER5 IRQ, 10 kHz), audio (ALNK0 IRQ). */
+ * guards; then LCD, input (TIMER5 IRQ, 10 kHz), audio (ALNK0 IRQ). GHOULBOX: two failed boots or OCT- held at
+ * power-on start the USB RESCUE instead (rescue.c, bootguard.h). */
 extern uint32_t _data_start[], _data_end[], _data_load[], _bss_start[], _bss_end[];
 extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];
 
@@ -270,26 +271,23 @@ static void fm1_main(void)
 
 void fm1_cstart(void)
 {
-    uint32_t *s, *d, p3, src, wdt;
+    uint32_t *s, *d, p3, src, wdt, boot_mode;
     fm1_time_init();
     fm1_reset_reason();
     p3 = fm1_boot.p3_rst;
     src = fm1_boot.rst_src;
     wdt = fm1_boot.wdt_con;
     fm1_wdt_arm(0x0D);
-    if (bootguard.magic != BOOTGUARD_MAGIC) {
-        bootguard.magic = BOOTGUARD_MAGIC;
-        bootguard.failed = 0;
-        bootguard.pending = 0;
+    bootguard_reset(&bootguard, p3);            /* GHOULBOX (after dinghy): a power-on starts the count again */
+    boot_mode = bootguard_begin(&bootguard);    /* the second failed boot in a row: the USB RESCUE; one in it: UBOOT */
+#if !FELUCCA_OTA
+    if (boot_mode == BOOT_RECOVERY) {           /* (no updater to rescue with: UBOOT, as before) */
+        bootguard_clear(&bootguard);
+        boot_mode = BOOT_ROM;
     }
-    if (bootguard.pending)
-        bootguard.failed++;
-    bootguard.pending = 1;
-    if (bootguard.failed >= 2u) {
-        bootguard.failed = 0;
-        bootguard.pending = 0;
+#endif
+    if (boot_mode == BOOT_ROM)
         fm1_enter_uboot();
-    }
     fm1_irq_init();
     for (d = _bss_start; d < _bss_end; d++)
         *d = 0;
@@ -304,6 +302,10 @@ void fm1_cstart(void)
     fm1_boot.p3_rst = (uint8_t)p3;
     fm1_boot.rst_src = src;
     fm1_boot.wdt_con = (uint8_t)wdt;
+#if FELUCCA_OTA
+    if (boot_mode == BOOT_RECOVERY || rescue_key())
+        rescue_main();                          /* (never returns: the updater, or UBOOT) */
+#endif
     fm1_main();
     for (;;)
         ;

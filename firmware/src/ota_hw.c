@@ -3,8 +3,15 @@
 /* The firmware side of ota.c (FELUCCA_OTA): clock and watchdog, erases and writes only inside the
  * OTA area, the progress screen, the commit (record into RAM, core reset). The host test
  * (ota_test.c) provides its own. */
+static uint8_t rescue_active;                           /* the USB RESCUE (rescue.c): no TIMER5, no palette */
+static void rescue_poll(void);
 static uint32_t ota_now_ms(void) { return fm1_ms; }
-static void ota_idle(void) { fm1_wdt_feed(); }
+static void ota_idle(void)
+{
+    fm1_wdt_feed();
+    if (rescue_active)
+        rescue_poll();                                  /* (its USB poll and milliseconds) */
+}
 static int ota_in_area(uint32_t off, uint32_t n) { return FL_IN(off, n, OTA_AREA, OTA_AREA + OTA_AREA_LEN); }
 static int ota_erase(uint32_t off)
 {
@@ -25,6 +32,8 @@ static void ota_show(uint32_t step, int32_t code)
 {
     static const char *const STEP[] = {"", "PACKAGE", "CHECK HEAD", "LOADER", "CONFIRM", "RESTART"};
     char b[24];
+    if (rescue_active)
+        return;                                         /* (the rescue's screen stays: no palette there) */
     lcd_fill(0, 0, 240, 240, T_BG);
     draw_text_box(0, 92, 240, &AF_M, "UPDATE", T_TEXT, 1);
     if (step < 9u) {
