@@ -106,8 +106,11 @@ In Chrome or Edge on a computer, with the FM-1 on a USB **data** cable and no ot
 
 **[jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/)**
 
-Press Install. The installer saves a full backup of your music, sounds and settings before it writes
-anything. If it stops after "update mode", replug the USB cable and press Install again: the FM-1 stays in
+First save a backup: the installer doesn't make one. Open the
+[web editor](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/webapp/editor/), connect, and on its
+Settings tab press **Save backup** (your music, sounds, samples and settings, to your computer).
+
+Then press Install. If it stops after "update mode", replug the USB cable and press Install again: the FM-1 stays in
 update mode until the install is finished.
 
 To go back, install Felucca from [its installer](https://hugelton.github.io/Felucca/) and restore the
@@ -182,7 +185,7 @@ Multi-engine synthesizer firmware for the M-VAVE FM-1. Please report what you fi
 - **Thirteen engines** (below), each with its own factory presets; every factory sound has a category (BASS, LEAD,
   PAD, PLUCK, KEYS, DRUM, FX, OTHER) to browse by
 - **Four tracks**, one synth part each with its own engine and sound (drums are the DRUM engine);
-  8 voices shared between them. ALGORITHM selects the track on every page
+  12 voices shared between them. ALGORITHM selects the track on every page
 - **Sequencer:** 64 steps per track with chords, ties, accent, slide, per-step chance and ratchets
   (a step played 2, 3 or 4 times in its length); a piano roll of the steps; a drum grid (white keys =
   steps, black keys = lanes); automation: recording of knob moves per step (an automation icon marks the cards it

@@ -113,7 +113,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <li>27 · Glossary</li>
   <li>28 · Credits and licence</li>
 </ol>
-<div class="note">GHOULBOX is a hobby project, tested on one FM-1. Install it at your own risk. The installer backs up your FM-1 first, and you can always go back to Felucca or M-VAVE's own firmware.</div>
+<div class="note">GHOULBOX is a hobby project, tested on one FM-1. Install it at your own risk. Save a backup in the web editor first (the installer doesn't), and you can always go back to Felucca or M-VAVE's own firmware.</div>
 </section>
 
 <!-- ============================================================ PART I -->
@@ -158,7 +158,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <tr><td>Size</td><td>161.5 × 96.5 × 28.6 mm</td></tr>
   <tr><td>Weight</td><td>251 g</td></tr>
   <tr><td>Battery</td><td>3.7 V lithium-polymer, 2000 mAh, charged over USB-C</td></tr>
-  <tr><td>Sound under GHOULBOX</td><td>44.1 kHz stereo; four tracks sharing 8 voices</td></tr>
+  <tr><td>Sound under GHOULBOX</td><td>44.1 kHz stereo; four tracks sharing 12 voices</td></tr>
 </table>
 <div class="note">Look after it as you would a phone: keep it dry, don't leave it in a hot car, and charge it now and then if it sits unused for months, so the battery never runs completely flat.</div>
 </section>
@@ -173,14 +173,14 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 </ul>
 <h3>Install</h3>
 <ol>
-  <li>Open <span class="path">jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth</span> (it opens the installer at its https address).</li>
-  <li>Connect the FM-1, switch it on, and press <b>Install</b>. Allow MIDI access when the browser asks.</li>
-  <li>The installer saves a <b>backup</b> of your music, sounds and settings first, then switches the FM-1 to update mode and writes GHOULBOX.</li>
+  <li>Connect the FM-1 and switch it on. <b>Save a backup first</b>, because the installer doesn't make one: open the web editor at <span class="path">jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/webapp/editor</span>, allow MIDI access, and on the <b>Settings</b> tab press <b>Save backup</b>. Your music, sounds, samples and settings go to your computer.</li>
+  <li>Open <span class="path">jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth</span> (it opens the installer at its https address) and press <b>Install</b>. Allow MIDI access when the browser asks.</li>
+  <li>The installer switches the FM-1 to update mode and writes GHOULBOX.</li>
   <li>When it says done, the FM-1 restarts with the GHOULBOX skull. Hold <span class="k">HOME</span> › SYSTEM › ABOUT shows the version.</li>
 </ol>
 <div class="note">If the installer stops after it says "update mode", unplug the USB cable, plug it back in, and press Install again. The FM-1 stays in update mode until the install is finished, so nothing is lost.</div>
 <h3>Updating later</h3>
-<p>Run the installer again. It backs up first each time, and your projects and sounds stay where they are.</p>
+<p>Save a backup in the web editor, then run the installer again. Your projects and sounds stay where they are.</p>
 <h3>Going back</h3>
 <p>To return to Felucca, install it from <span class="path">hugelton.github.io/Felucca</span> and restore your backup in its editor. Its <b>Return to official V15</b> button puts back M-VAVE's own firmware.</p>
 <h3>Your old music</h3>
@@ -271,7 +271,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h3>Engines</h3>
 <p>The FM-1 under GHOULBOX has <b>13 engines</b>: thirteen different ways of making the raw sound. ANALOG copies the classic synthesizers of the 1970s and 80s; VOICE sings vowels; GURDY models a hurdy-gurdy; SAMPLE plays recordings of real instruments. Each engine comes with ready-made settings called <b>presets</b> (or sounds), 59 of them in all.</p>
 <h3>Tracks</h3>
-<p>GHOULBOX has <b>four tracks</b>, like four musicians. Each has its own engine and sound, its own notes in the sequencer, and its own settings. The <span class="k">ALGORITHM</span> knob chooses which track you are playing and editing; the screen shows T1–T4. All four share <b>8 voices</b> (8 notes sounding at once), so a big chord on one track can cut short a long note on another.</p>
+<p>GHOULBOX has <b>four tracks</b>, like four musicians. Each has its own engine and sound, its own notes in the sequencer, and its own settings. The <span class="k">ALGORITHM</span> knob chooses which track you are playing and editing; the screen shows T1–T4. All four share <b>12 voices</b> (12 notes sounding at once), so a big chord on one track can cut short a long note on another.</p>
 <div class="try"><b class="t">TRY THIS · Hear the parts</b>
 <ol>
   <li>Press <span class="k">PLAY</span>. Turn <span class="k">ALGORITHM</span> to T2 (the pad).</li>
@@ -416,7 +416,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <li><b>PRIO</b> (mono only): when several keys are held, which one plays: the LAST pressed, the LOW one or the HIGH one.</li>
   <li><b>VOICE 2</b> (tap EDIT again): <b>DTUNE</b> (how far apart the unison voices are), <b>PAN</b> (where the track sits from left to right) and <b>MUTE</b>.</li>
 </ul>
-<div class="note">The four tracks share 8 voices in all. A UNI track uses several voices for each note, so with long chords on other tracks, some notes may be cut short. If notes drop out, use MONO where a part only needs one note at a time.</div>
+<div class="note">The four tracks share 12 voices in all. A UNI track uses several voices for each note, so with long chords on other tracks, some notes may be cut short. If notes drop out, use MONO where a part only needs one note at a time.</div>
 <div class="try"><b class="t">TRY THIS · A singing lead</b>
 <ol>
   <li>Choose T1 (the hurdy-gurdy) and turn <span class="k">PRESETS</span> to <b>LOFI FLUTE</b> or <b>TENOR RECORD</b>.</li>
@@ -911,7 +911,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <tr><th>Problem</th><th>What to try</th></tr>
   <tr><td>No sound</td><td>Turn up MASTER; check the track isn't muted (GLO › MIXER) and its level isn't at zero; headphones in the jack silence the speaker.</td></tr>
   <tr><td>Sound from the speaker even with headphones in</td><td>Use a stereo (TRS) plug; a headset (TRRS) plug may not switch the speaker off.</td></tr>
-  <tr><td>Notes cut off or missing</td><td>All four tracks share 8 voices. Use MONO on parts that play one note at a time, fewer UNI tracks, or shorter releases.</td></tr>
+  <tr><td>Notes cut off or missing</td><td>All four tracks share 12 voices. Use MONO on parts that play one note at a time, fewer UNI tracks, or shorter releases.</td></tr>
   <tr><td>A key plays nothing</td><td>QNT is on WHITE: the black keys are silent. Set QNT to OFF on <span class="k">SCL</span> for the full keyboard.</td></tr>
   <tr><td>The keys play the wrong notes</td><td>Check SCL (ROOT, QNT, TRN) and the octave (OCT− / OCT+).</td></tr>
   <tr><td>"STOP TO EDIT" / "STOP TO SAVE"</td><td>Stop playback first. Songs and saving need the transport stopped.</td></tr>
