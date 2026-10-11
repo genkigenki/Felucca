@@ -8,7 +8,8 @@
  *              steps that key through NONE and the effects (it holds the new one at once), EDIT puts the key's default
  *              back; kept with the settings (fx_keys) when the layer closes
  *   GLO  SET   black keys 1..4 (F#3 G#3 A#3 C#4) T1..T4 MUTE (latched; lit = sounding), F3..B3 SOLO T1..T4 while
- *              held (HOLD cells, a corner triangle), C4 UNMUTE ALL, F4 TAP tempo; KNOB 1..4 T1..T4 LEVEL;
+ *              held (HOLD cells, a corner triangle), C4 UNMUTE ALL, F4 TAP tempo, GHOULBOX: black keys 6..9 (F#4 G#4
+ *              A#4 C#5) T1..T4 LATCH (the drone, seq.c; not kept); KNOB 1..4 T1..T4 LEVEL;
  *              GLO + PLAY: from the top without stopping
  *   SCL  SET   any key: its note name is ROOT; KNOB 1..4 ROOT SCL CHRD VOIC (LY_SCL: the SCL page's first two,
  *              the CHORD page's two; QNT TRN stay on SCL); the LEDs show the root lit and the scale's notes breathing
@@ -605,6 +606,27 @@ static uint32_t eqa_sig(void)
     return h;
 }
 
+/* GHOULBOX: GLO's black keys 6..9 (F#4 G#4 A#4 C#5, the MUTE keys an octave up): T1..T4 LATCH (seq.c latch_on: the
+ * drone). Not on a DRUM track; with the ARP on its HOLD latches (the switch waits for the ARP off) */
+#define GLO_LT 5u
+static __attribute__((noinline)) uint32_t glo_lt(void)   /* bit t: T(t + 1) latched; bit 4 + t: a DRUM track (none) */
+{
+    uint32_t t, m = 0;
+    for (t = 0; t < NTRK; t++)
+        m |= (uint32_t)(lt[t].on & 1u) << t | (uint32_t)drum_track(&trk[t]) << (4u + t);
+    return m;
+}
+static void glo_latch(uint32_t t)
+{
+    if (drum_track(&trk[t])) {
+        ui_message("DRUM: NO LATCH");
+        return;
+    }
+    lt[t].on = (uint8_t)!lt[t].on;
+    if (lt[t].on && trk[t].p[P_AMODE])
+        ui_message("ARP ON: HOLD LATCHES");
+}
+
 /* a key pressed in layer l (k: 0 = F3 .. 26 = G5) */
 static void layer_key(uint32_t l, uint32_t k)
 {
@@ -616,6 +638,8 @@ static void layer_key(uint32_t l, uint32_t k)
         if (key_black(k)) {
             if (p < NTRK)
                 trk[p].p[P_MUTE] = (int16_t)!trk[p].p[P_MUTE];
+            else if (p >= GLO_LT && p < GLO_LT + NTRK)
+                glo_latch(p - GLO_LT);
         } else if (p < NTRK) {
             lys.solo |= 1u << k;                        /* (layer_masks: perf_solo while held) */
         } else if (p == 4u) {
@@ -791,7 +815,7 @@ static int rec_clearable(void) { return !seq_is_empty(TSEL) || motion_count(TSEL
 static uint32_t layer_leds(uint32_t *br)
 {
     uint32_t k, m = 0, n = 0, l = ui.layer, held = perf_held | perf_latched, ok = perf_avail();
-    uint32_t mask = scale_mask(TSEL), root = (uint32_t)TSEL->p[P_ROOT] % 12u;
+    uint32_t mask = scale_mask(TSEL), root = (uint32_t)TSEL->p[P_ROOT] % 12u, lt = l == LAYER_GLO ? glo_lt() : 0u;
     const eqa_t *a;
     for (k = 0; k < 27u; k++) {
         uint32_t p = key_place(k), b = (uint32_t)key_black(k), on = 0, can = 0, e;
@@ -800,8 +824,9 @@ static uint32_t layer_leds(uint32_t *br)
             can = e < PF_N && ((ok >> e) & 1u);
             on = can && ((held >> e) & 1u);
         } else if (l == LAYER_GLO) {                    /* sounding lit; SOLO held lit, the others, C4, F4 breathe */
-            on = b ? p < NTRK && glo_sounding(p) : p < NTRK && ((lys.solo >> k) & 1u);
-            can = !b && (p < NTRK || p == 4u || (p == 7u && !song.g[G_CLOCK]));
+            e = p - GLO_LT;                             /* (LATCH: on lit, off breathes, a DRUM track dark) */
+            on = b ? (p < NTRK && glo_sounding(p)) || (e < NTRK && ((lt >> e) & 1u)) : p < NTRK && ((lys.solo >> k) & 1u);
+            can = !b ? p < NTRK || p == 4u || (p == 7u && !song.g[G_CLOCK]) : e < NTRK && !((lt >> (4u + e)) & 1u);
         } else if (l == LAYER_SCL) {                    /* the root lit, the scale's notes breathe */
             e = (k + 5u + 12u - root) % 12u;
             on = e == 0u;
@@ -944,18 +969,19 @@ static void layer_fx(void)
 }
 static void layer_glo(void)
 {
-    uint32_t e;
+    uint32_t e, lt = glo_lt();
     char n[3] = {0, 0, 0};
     for (e = 0; e < NTRK; e++) {                        /* F3 .. B3: SOLO while held */
         n[0] = W_NOTE[e];
         lcell(LC_X(e), 4, LC_H, n, trk_icon(e, 0), 0, "SOLO", (perf_solo >> e) & 1u ? LS_HELD : LS_OFF, 1);
     }
-    n[0] = 'C';
-    lcell(LC_X(0), 50, LC_H, n, ICON_MUTE, 0, "ALL", LS_OFF, 0);   /* (unmute all) */
+    n[0] = 'C';                                         /* (GHOULBOX: a 20 px row, LATCH's under it) */
+    lcell(LC_X(0), 50, 20, n, ICON_MUTE, 0, "ALL", LS_OFF, 0);   /* (unmute all) */
     n[0] = 'F';
-    lcell(LC_X(3), 50, LC_H, n, ICON_TEMPO, 0, "TAP", song.g[G_CLOCK] ? LS_DIM : LS_OFF, 0);
+    lcell(LC_X(3), 50, 20, n, ICON_TEMPO, 0, "TAP", song.g[G_CLOCK] ? LS_DIM : LS_OFF, 0);
     for (e = 0; e < NTRK; e++) {                        /* the black keys 1..4: MUTE, latched */
         bnote(n, e);
+        lcell(LC_X(e), 74, 18, n, ICON_MUTE, 0, "LTCH", (lt >> (4u + e)) & 1u ? LS_DIM : (lt >> e) & 1u ? LS_SEL : LS_OFF, 0);
         lcell(LC_X(e), LM_Y, LM_H, n, ICON_MUTE, trk_icon(e, 0), 0, trk[e].p[P_MUTE] ? LS_MUTE : LS_OFF, 0);
     }
 }
@@ -1147,7 +1173,8 @@ static void draw_layer(void)
     }
     else if (l == LAYER_GLO)
         sig += perf_solo * 31u + (uint32_t)song.g[G_CLOCK] * 5u +
-               (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 | trk[3].p[P_MUTE] << 3) * 131u;
+               (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 | trk[3].p[P_MUTE] << 3) * 131u +
+               glo_lt() * 1031u;
     else if (l == LAYER_SCL)
         sig += (uint32_t)TSEL->p[P_SCALE] * 31u;
     else if (l == LAYER_REC)

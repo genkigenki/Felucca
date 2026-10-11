@@ -10,7 +10,7 @@
  * POLY part that is not its lowest note. A voice taken from another part fades out
  * over one block (stage 4: the envelope goes to 0, the block's amplitude ramp
  * declicks it); one of the part's own is restarted in place, as before. Extra UNISON
- * voices only start when there is room. */
+ * voices only start when there is room. GHOULBOX: a latched note's voice is not taken (lt_voice). */
 static uint32_t vage;                                   /* voice ages: one clock for every part */
 static int32_t lfo_wave(track_t *t, uint32_t ph)
 {
@@ -116,12 +116,24 @@ static uint32_t lowest_held(const track_t *t)           /* index of the lowest h
     return low;
 }
 
+/* GHOULBOX: a held voice of a latched note (seq.c latch_on; not one at a silent sustain) is never given up while at
+ * most LT_KEEP of them hold: then, with each part's bass, one voice of the budget is always left to take. More: the
+ * oldest go first, as any held voice */
+#define LT_KEEP (NVOICE - NPART)
+static int lt_voice(const track_t *t, const voice_t *v)
+{
+    return v->gate && v->note < 128u && ((lt[t - trk].m[v->note >> 5] >> (v->note & 31u)) & 1u) && (v->stage != 2u || v->env_out);
+}
+
 /* the voice to give up for a new one (see the top); soft: only released voices and
  * extra voices of other non-POLY parts (also ones left after a mode change).
  * Returns its index, *pp its part; NVOICE = none */
 static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
 {
-    uint32_t p, i, best = NVOICE, cat = 4;
+    uint32_t p, i, best = NVOICE, cat = 4, nlt = 0;
+    for (p = 0; p < NPART; p++)
+        for (i = 0; i < NVOICE; i++)
+            nlt += trk[p].v[i].active && trk[p].v[i].stage != 4u && lt_voice(&trk[p], &trk[p].v[i]);
     for (p = 0; p < NPART; p++) {
         track_t *t = &trk[p];
         uint32_t mode = trk_vmode(t);
@@ -137,8 +149,8 @@ static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
                 c = 1;                                  /* released */
             else if (mode != V_POLY && i > 0)
                 c = 2;                                  /* extra UNISON, or a voice left by a mode / cap change */
-            else if (!soft && mode == V_POLY && i != low)
-                c = 3;                                  /* held, not the bass */
+            else if (!soft && mode == V_POLY && i != low && (nlt > LT_KEEP || !lt_voice(t, v)))
+                c = 3;                                  /* held, not the bass (nor a latched note) */
             else
                 continue;
             if (c < cat || (c == cat && v->age < (*pp)->v[best].age)) {
@@ -420,6 +432,8 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
 static void trk_note_off(track_t *t, uint32_t note)
 {
     uint32_t i, k = 0, mode = trk_vmode(t);
+    if (note < 128u && ((lt[t - trk].m[note >> 5] >> (note & 31u)) & 1u))
+        return;                                         /* GHOULBOX: a latched note: only the drone's end lets go */
     for (i = 0; i < t->xp_n; i++)                       /* not sounding yet (engine switch): forget it */
         if (t->xp_note[i] != note) {
             t->xp_note[k] = t->xp_note[i];

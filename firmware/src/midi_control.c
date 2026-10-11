@@ -183,6 +183,8 @@ static void midi_silence_track(uint32_t track)
 {
     track_t *t = &trk[track];
     uint32_t i;
+    latch_end(t);                             /* (GHOULBOX: the drone too, seq.c) */
+    lt[track].phys = lt[track].stop = 0;
     trk_all_off(t);
     t->nheld = t->arp_phys = t->rh_n = 0;
     arp_forget(t);
@@ -261,6 +263,9 @@ static void midi_control(uint32_t ch, uint32_t cc, uint32_t value)
         for (i = 0; i < 128u; i++)
             if (midi_notes[ch][i])
                 midi_note_event(ch, i, 0);
+        for (i = 0; i < NTRK; i++)                 /* (GHOULBOX: a latched drone ends, seq.c) */
+            if (mask & (1u << i))
+                latch_end(&trk[i]);
         for (i = 0; i < NTRK; i++)
             if ((mask & (1u << i)) && !midi_track_held(i)) {
                 trk_all_off(&trk[i]);

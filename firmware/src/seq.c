@@ -538,8 +538,44 @@ static __attribute__((noinline)) void cin_keep(track_t *t, uint32_t note, uint32
     cin_up[i] &= (uint8_t)~(1u << k);
 }
 
+/* GHOULBOX: the drone latch (GLO + F#4..C#5, core.h latch_t): on a synth track with the ARP off (its HOLD latches
+ * there), the live notes (keys, MIDI in) sound on after they are let go: the drone. With no key down, a new note
+ * starts a new chord (the drone ends first: as ARP HOLD); a note of the drone instead ends it, and the notes of that
+ * press stay silent until every key is up. The sequencer's notes never latch, nor end a latched one (voice.c
+ * trk_note_off), nor do the pedal (CC64) or the key's note-off; the drone ends with the latch off, a sound, engine or
+ * project load (panic_req), CC120 / CC123. Its voices are not taken by other parts (voice.c lt_voice). What is
+ * recorded is what the keys did; the keys' MIDI OUT note-offs wait for the drone's end */
+static int lt_has(const uint32_t *m, uint32_t n) { return (int)((m[n >> 5] >> (n & 31u)) & 1u); }
+static int latch_on(const track_t *t) { return lt[trk_index(t)].on && !t->p[P_AMODE] && !drum_track(t); }
+static void latch_end(track_t *t)                   /* the drone lets go */
+{
+    latch_t *l = &lt[trk_index(t)];
+    uint32_t n, mc = trk_midi_ch(trk_index(t));
+    if (!(l->m[0] | l->m[1] | l->m[2] | l->m[3]))
+        return;
+    for (n = 0; n < 128u; n++) {
+        if (!lt_has(l->m, n))
+            continue;
+        l->m[n >> 5] &= ~(1u << (n & 31u));
+        trk_note_off(t, n);
+        if (lt_has(l->out, n))
+            midi_out_event(0x08u | (0x80u | mc) << 8 | n << 16);
+    }
+    memset(l->out, 0, sizeof l->out);
+}
+
 static void input_on(track_t *t, uint32_t note, uint32_t vel)
 {
+    latch_t *l = &lt[trk_index(t)];
+    if (latch_on(t)) {                              /* the first note of a press: a new chord, or the drone's end */
+        if (!l->phys++) {
+            l->stop = (uint8_t)lt_has(l->m, note);
+            latch_end(t);
+        }
+        if (l->stop)
+            return;
+        l->m[note >> 5] |= 1u << (note & 31u);
+    }
     last_note = (uint8_t)note;
     if (cin_left)
         cin_keep(t, note, vel);
@@ -555,6 +591,9 @@ static int midi_note_held(const track_t *t, uint32_t note);
 static int midi_local_held(const track_t *t, uint32_t note);
 static void input_off(track_t *t, uint32_t note)
 {
+    latch_t *l = &lt[trk_index(t)];
+    if (latch_on(t) && l->phys && !--l->phys)
+        l->stop = 0;                             /* (every key up: the next press plays) */
     if (midi_note_held(t, note))
         return;
     if (cin_left) {                                 /* a kept note let go before step 1: recorded, then let go */
@@ -635,7 +674,8 @@ static void key_on(uint32_t k, track_t *t)
         if (midi_local_held(t, x))
             continue;
         input_on(t, x, 100);
-        midi_out_event(0x09u | (0x90u | mc) << 8 | x << 16 | 100u << 24);
+        if (!lt[trk_index(t)].stop)                 /* (a press that ended the drone: silent, MIDI OUT too) */
+            midi_out_event(0x09u | (0x90u | mc) << 8 | x << 16 | 100u << 24);
     }
     kb_chn[k] = (uint8_t)n;
     last_note = kb_note[k];                         /* (step entry, the SAMPLE zone: the key's note) */
@@ -644,14 +684,18 @@ static void key_on(uint32_t k, track_t *t)
 /* key k is up: the notes it started end, but those another key still holds */
 static void key_off(uint32_t k, track_t *t)
 {
-    uint32_t n = kb_chn[k], i, mc = trk_midi_ch(trk_index(t));
+    uint32_t n = kb_chn[k], i, mc = trk_midi_ch(trk_index(t)), quiet;
     kb_chn[k] = 0;
     for (i = 0; i < n; i++) {
         uint32_t x = kb_chord[k][i];
         if (midi_local_held(t, x))
             continue;
+        quiet = lt[trk_index(t)].stop;
         input_off(t, x);
-        midi_out_event(0x08u | (0x80u | mc) << 8 | x << 16);
+        if (lt_has(lt[trk_index(t)].m, x))          /* latched: its note-off with the drone's end (latch_end) */
+            lt[trk_index(t)].out[x >> 5] |= 1u << (x & 31u);
+        else if (!quiet)
+            midi_out_event(0x08u | (0x80u | mc) << 8 | x << 16);
     }
 }
 
@@ -1183,6 +1227,11 @@ static void events_block(uint32_t n)
     }
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
+        if (((pr >> i) & 1u) || lt[i].onp != latch_on(t)) {   /* GHOULBOX: the drone ends (panic, or the latch */
+            latch_end(t);                             /* off: GLO, ARP on, a DRUM engine); a press from scratch */
+            lt[i].phys = lt[i].stop = 0;
+            lt[i].onp = (uint8_t)latch_on(t);
+        }
         if ((pr >> i) & 1u) {
             midi_forget_track(i);
             trk_all_off(t);

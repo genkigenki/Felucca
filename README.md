@@ -64,6 +64,10 @@ Felucca's sequencer, song mode, effects, editor and backups all work as they do 
 - **Ambience** (FX > TAPE, KNOB 3 and 4): **AMB** adds a cave's low wind to the mix and **CRKL** a torch's
   crackle, with no track and no voice, playing even with the song stopped. AMB 0 (the default) is off; it saves
   with the project. CAVE WIND and TORCH are still there as sounds when you want them on a track.
+- **Drone latch** (hold GLO, then F#4, G#4, A#4 or C#5 for tracks 1–4): a latched track keeps sounding the chord
+  you play after you let go, so you can select another track and play over the drone. A new chord replaces it;
+  pressing a note of the drone stops it. Other tracks never steal its voices (up to 8). The latch isn't saved,
+  and it does nothing on a DRUM track or with the ARP on (ARP HOLD does that job there).
 - **GURDY**, a hurdy-gurdy engine: a bowed melody string, drones you tune, and the trompette's buzzing
   bridge struck in time, in six sounds.
   - **Crank mode:** set COUP to **CRANK** and SELECT becomes the wheel's crank. The keys pick the notes; turning
@@ -313,7 +317,7 @@ The pages by button:
 |---|---|---|
 | HOME | HOME, MIXER, CLOCK (BPM, swing, clock source) | the menu |
 | SEQ | STEP (the piano roll, or the drum grid), AUTOMATION | SEQ TOOLS, on every page |
-| GLO | SONG | the GLO layer (mutes, solos, levels, TAP tempo) |
+| GLO | SONG | the GLO layer (mutes, solos, levels, TAP tempo, drone latch) |
 | SAVE | USER, PHRASES (the pattern loader), PROJECT, TOOLS, PRESETS | UNDO |
 | LFO | LFO, LFO 2, LFO DEST, MOD | MOMENTARY (with a knob) |
 | EDIT | EDIT 1, EDIT 2, VOICE, VOICE 2, VOICE 3 (FM6 adds OPERATOR, OP ENV, OPERATOR 2; DRUM LANES; SLICE SLICES) | the EDIT layer (the engines; on DRUM the black keys mute lanes) |
