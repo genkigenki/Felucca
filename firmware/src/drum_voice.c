@@ -19,8 +19,8 @@
  *           speaker (energy above 150 Hz >= -12 dB at the defaults) without touching the fundamental
  *   PULSE   the MAKU pulse's kick, crossfaded by TONE between two voices: a thick, heavy kick (a long round body, a
  *           shallow sweep, strong 2nd and 3rd harmonics, a soft-clip DRIVE, a soft click) below TONE 40, and an ECG
- *           monitor's beeps (pip, pip, piii: a ~1 kHz sine, 45 + 45 + 170 ms at 0, 130 and 260 ms, with TUNE) from
- *           TONE 110 up; in between, both at once, the kick down and the beeps up (the drive stays on the kick)
+ *           monitor's beeps (pip, pip, piii: a ~600 Hz sine, 45 + 45 + 170 ms at 0, 130 and 260 ms, with TUNE) from
+ *           TONE 110 up; the kick's body shortens from TONE 8 (long) to 40 (a tight cut); in between, both at once, the kick down and the beeps up (the drive stays on the kick)
  *   SNARE   two sines (f, 1.6 f) with a small downward glide under a short shell envelope, plus noise
  *           through a band-pass (TONE: its centre) under a spike and a body envelope and a little
  *           high-passed noise on the spike; soft-clipped. Extra: SNAPPY (the noise level)
@@ -140,7 +140,7 @@ static const struct {
 /* PULSE: TONE below DV_PL_LO is the kick alone, DV_PL_HI and above the beeps alone */
 #define DV_PL_LO 40
 #define DV_PL_HI 110
-#define DV_PL_TUNE 1328                                      /* the beeps' pitch (p16: 83 = B5, 987 Hz) */
+#define DV_PL_TUNE 1222                                      /* the beeps' pitch (p16: 674 Hz at TUNE 0; 600 Hz at the MAKU kick's TUNE) */
 #define DV_PL_LEN 18963u                                     /* the beeps' pattern in samples: 430 ms */
 #define DV_SEED 0x5EED1234
 #define DV_P16(hz_p16) pitch_inc(clamp((hz_p16), 0, 2047))
@@ -356,11 +356,13 @@ static void dv_setup_own(dv_coef_t *c, const dv_param_t *p)
     switch (t) {
     case DVT_PULSE: {
         int32_t ge = clamp(((int32_t)tn - DV_PL_LO) * 32768 / (DV_PL_HI - DV_PL_LO), 0, 32768), g;
+        int32_t m = 256 - (clamp((int32_t)tn, 8, DV_PL_LO) - 8) * 206 / (DV_PL_LO - 8);   /* the kick's body, x1 at TONE 8
+                                                          * down to x0.2 at 40: a long thick kick below, a tight cut above */
         c->hp = ge;                                      /* the beeps' share (Q15); the kick's is 1 - it */
         c->kb[1] = DV_P16(DV_PL_TUNE + p16 - DV_DEF[t].p16);   /* the beeps' increment (follows TUNE) */
         c->span[1] = DV_P16(p16 + 96) - c->inc[0];       /* the sweep: half an octave, slow (tau 45 ms) ... */
         c->k[1] = dv_k(45000);
-        c->kb[0] = dv_kb(tau);
+        c->kb[0] = dv_kb(tau * (uint32_t)m >> 8);
         c->g[0] = 6500;                                  /* ... and strong 2nd and 3rd harmonics (a small speaker) */
         c->g[1] = 9800;
         c->inc[1] = DV_P16(1523);                        /* a soft click: 2 kHz, two cycles */

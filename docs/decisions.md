@@ -48,4 +48,4 @@ One line each, newest last. Reason after the dash.
 
 2026-10-11 SINK stronger still: the dive ramps in ~0.75 s (was ~1.5 s), the reverb send rises to full and the delay send to 0.8, the ATK lift is up to +80.
 
-2026-10-11 The MAKU pulse's kick is DRUM KICK 2 (PULSE, new): TONE crossfades a thick, long, round kick (below 40) into an ECG monitor's beeps, pip pip piii (~1 kHz sine, 45+45+170 ms, following TUNE/ROOT), pure from 110 up; the drive stays on the kick. KICK PUNCH/ROUND are unchanged; PULSE sits outside DVT_COUNT so the per-voice tests keep their tables (tests/drum_test.c pulse()).
+2026-10-11 The MAKU pulse's kick is DRUM KICK 2 (PULSE, new): TONE crossfades a thick, long, round kick (below 40) into an ECG monitor's beeps, pip pip piii (~600 Hz sine, 45+45+170 ms, following TUNE; the kick's body shortens from TONE 8 to 40 for a tight cut), pure from 110 up; the drive stays on the kick. KICK PUNCH/ROUND are unchanged; PULSE sits outside DVT_COUNT so the per-voice tests keep their tables (tests/drum_test.c pulse()).
