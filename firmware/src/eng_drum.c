@@ -45,7 +45,7 @@ static uint32_t drum_kit_plays(int32_t v) { return DK_PLAYS[clamp(v, 0, DK_COUNT
  * 4 BELL -> CYM */
 static const uint8_t DK_SWAP[DV_NKIT] = {0, 4, 1, 0, 2 | 4};
 static const uint8_t DV_TYPE_LANE[DVT_NTYPE] = {
-    DV_KICK, DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_TOM, DV_RIM, DV_RIM, DV_BELL, DV_BELL, DV_KICK,
+    DV_KICK, DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_TOM, DV_RIM, DV_RIM, DV_BELL, DV_BELL, DV_KICK, DV_HATC,
 };
 
 typedef struct {
@@ -79,6 +79,7 @@ static const int8_t DRUM_GM[47][2] = {
 };
 /* the drum of a note (DVT_*, or a model kit's lane: DV_KTYPE) and its semitones; KICK picks the kick; a model kit
  * plays its own piece on the note's lane */
+#define DRUM_BEEP_TONE 95                                /* KICK PULSE: from this TONE (the beep over half there) the hats play as BEEP */
 static uint32_t drum_gm(const int16_t *p, uint32_t note, int32_t *st)
 {
     uint32_t n = note >= 35u && note <= 81u ? note : 36u + (note + 120u - 36u) % 12u, t = (uint32_t)DRUM_GM[n - 35u][0];
@@ -86,6 +87,8 @@ static uint32_t drum_gm(const int16_t *p, uint32_t note, int32_t *st)
     *st = DRUM_GM[n - 35u][1];
     if (kit >= DK_80)
         return DV_KTYPE(kit - DK_80 + 1u, DV_TYPE_LANE[t]);
+    if ((t == DVT_HATC || t == DVT_HATO) && p[P_E6] > 1 && p[P_E2] >= DRUM_BEEP_TONE)   /* PULSE gone over to the beep: the hats are high pips */
+        return DVT_BEEP;
     return t == DVT_PUNCH && p[P_E6] > 0 ? (p[P_E6] > 1 ? DVT_PULSE : DVT_ROUND) : t;
 }
 
@@ -286,7 +289,7 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     if (dv_uses_metal(L->c.type) && (L->v.live || L->v.trig))
         dv_metal_run(&L->mb, mb, n);
     dv_run(&L->c, &L->v, mb, y, n);
-    if (r == DVT_PULSE)                                  /* the beeps stay clean: DRV only drives the kick's share */
+    if (r == DVT_PULSE || r == DVT_BEEP)                 /* the beeps stay clean: DRV only drives the kick's share */
         drv = drv * (32768 - L->c.hp) >> 15;
     if (drv > 0) {                                       /* DRV: x1..x4 into the soft clip, the level kept (Q12) */
         g = 4096 + drv * 3 * 4096 / 127;

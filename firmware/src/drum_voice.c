@@ -21,6 +21,8 @@
  *           shallow sweep, strong 2nd and 3rd harmonics, a soft-clip DRIVE, a soft click) below TONE 80, and an ECG
  *           monitor's beep (a ~600 Hz sine, one pip of 50 ms a hit; TUNE moves it) from
  *           TONE 110 up (from 100 the beep climbs 4 semitones and an octave above it fades in: a monitor's alarm); the kick's body shortens from TONE 8 (long) to 40 (a tight cut); in between, both at once, the kick down and the beeps up (the drive stays on the kick)
+ *   BEEP    PULSE's stand-in for the hats once its TONE has gone over to the beep (eng_drum.c): a high (~2 kHz) pure sine pip,
+ *           DECAY: 30 .. 75 ms, TUNE and the GM note's semitones move it
  *   SNARE   two sines (f, 1.6 f) with a small downward glide under a short shell envelope, plus noise
  *           through a band-pass (TONE: its centre) under a spike and a body envelope and a little
  *           high-passed noise on the spike; soft-clipped. Extra: SNAPPY (the noise level)
@@ -70,7 +72,7 @@ enum { DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_RIM, DV_BELL, DV
 enum {
     DVT_PUNCH, DVT_ROUND, DVT_SNARE, DVT_CLAP, DVT_HATC, DVT_HATO, DVT_TOM, DVT_CONGA, DVT_RIM, DVT_CLAVE,
     DVT_BELL, DVT_CYM, DVT_COUNT,
-    DVT_PULSE = DVT_COUNT, DVT_NTYPE                     /* (PULSE: KICK's third, outside the per-voice tables of the tests) */
+    DVT_PULSE = DVT_COUNT, DVT_BEEP, DVT_NTYPE           /* (PULSE: KICK's third; BEEP: the hats' stand-in under it; both outside the per-voice tables of the tests) */
 };
 /* a lane of a model kit as a type: the kit (1..DV_NKIT) in the high 4 bits, the lane in the low 3 (Felucca's own
  * types: 0 above). Its run (the DVT_* it plays through) is the kit's (DV_KIT) */
@@ -135,7 +137,8 @@ static const struct {
     {1585, 1382, 1715, 30, 32, {64, 64, 64}, 5608},      /* CLAVE  2.5 kHz (1.2..4), tau 3..12 ms */
     {1161, 969, 1353, 300, 59, {64, 64, 64}, 2785},      /* BELL   540 Hz (270..1080), tail tau 30..400 ms */
     {1078, 886, 1270, 3000, 53, {64, 64, 64}, 7583},     /* CYM    metal 400 Hz, ring tau 0.3..3 s */
-    {533, 403, 664, 200, 69, {64, 64, 56}, 3222},        /* PULSE  56 Hz, tau 20..400 ms (the ROUND body); the beeps ~1 kHz */
+    {533, 403, 664, 200, 69, {64, 64, 56}, 3222},        /* PULSE  56 Hz, tau 20..400 ms (the ROUND body); the beeps ~600 Hz */
+    {1525, 1331, 1715, 100, 32, {64, 64, 64}, 2400},     /* BEEP   2 kHz (1.1..3.2), a pip of 30..75 ms by DECAY */
 };
 /* PULSE: TONE below DV_PL_LO is the kick alone, DV_PL_HI and above the beeps alone */
 #define DV_PL_CUT 40                                         /* the kick's body is at its shortest from here */
@@ -355,6 +358,11 @@ static void dv_setup_own(dv_coef_t *c, const dv_param_t *p)
     c->out = (int32_t)(DV_DEF[t].gain * (uint32_t)p->level / 127u);
     c->out += (c->out * acc * 75) >> 14;                 /* 1 + 0.585 a */
     switch (t) {
+    case DVT_BEEP:                                       /* a high pure pip: PULSE's beep alone, higher */
+        c->hp = 32768;
+        c->kb[1] = DV_P16(p16);
+        c->metal = (int16_t)(1323 + (int32_t)d * 35);
+        break;
     case DVT_PULSE: {
         int32_t ge = clamp(((int32_t)tn - DV_PL_LO) * 32768 / (DV_PL_HI - DV_PL_LO), 0, 32768), g;
         int32_t m = 256 - (clamp((int32_t)tn, 8, DV_PL_CUT) - 8) * 206 / (DV_PL_CUT - 8);   /* the kick's body, x1 at TONE 8
@@ -969,6 +977,7 @@ static void dv_run(const dv_coef_t *c, dv_voice_t *v, const int32_t *metal, int3
     }
     switch (c->type) {
     case DVT_PULSE:
+    case DVT_BEEP:
         dv_pulse_run(c, v, y, n);
         break;
     case DVT_PUNCH:
