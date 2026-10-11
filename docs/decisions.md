@@ -47,3 +47,5 @@ One line each, newest last. Reason after the dash.
 2026-10-11 SINK goes deeper: the reverb combs now feed back towards 0.995 (ROOM 32620) and the spring towards 0.99 (32500), and the dive also lengthens the drones' and arp's ATK by up to +40 (maku_block, through maku_over, WASH's share), so the notes lose their bite as the world sinks; both lift with the dive.
 
 2026-10-11 SINK stronger still: the dive ramps in ~0.75 s (was ~1.5 s), the reverb send rises to full and the delay send to 0.8, the ATK lift is up to +80.
+
+2026-10-11 The MAKU pulse's kick is DRUM KICK 2 (PULSE, new): TONE crossfades a thick, long, round kick (below 40) into an ECG monitor's beeps, pip pip piii (~1 kHz sine, 45+45+170 ms, following TUNE/ROOT), pure from 110 up; the drive stays on the kick. KICK PUNCH/ROUND are unchanged; PULSE sits outside DVT_COUNT so the per-voice tests keep their tables (tests/drum_test.c pulse()).

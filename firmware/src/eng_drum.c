@@ -44,8 +44,8 @@ static uint32_t drum_kit_plays(int32_t v) { return DK_PLAYS[clamp(v, 0, DK_COUNT
 /* the model kits' pieces where a lane plays another than its own (the lane's name): 1 TOM -> CONGA, 2 RIM -> CLAVE,
  * 4 BELL -> CYM */
 static const uint8_t DK_SWAP[DV_NKIT] = {0, 4, 1, 0, 2 | 4};
-static const uint8_t DV_TYPE_LANE[DVT_COUNT] = {
-    DV_KICK, DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_TOM, DV_RIM, DV_RIM, DV_BELL, DV_BELL,
+static const uint8_t DV_TYPE_LANE[DVT_NTYPE] = {
+    DV_KICK, DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_TOM, DV_RIM, DV_RIM, DV_BELL, DV_BELL, DV_KICK,
 };
 
 typedef struct {
@@ -63,7 +63,7 @@ static drum_lane_t drum_kit[NPART][DV_NLANE] __attribute__((section(".pool")));
 
 /* 1..3 named as the kit they play: aliases, never shown or offered (EDITOR_PROTOCOL.md: retired values) */
 static const char *const N_DRUM_KIT[] = {"STD", "66", "10", "77", "80", "10", "66", "55", "77"};
-static const char *const N_DRUM_KICK[] = {"PUNCH", "ROUND"};
+static const char *const N_DRUM_KICK[] = {"PUNCH", "ROUND", "PULSE"};
 
 /* General MIDI notes 35..81 -> the drum (DVT_*; DVT_PUNCH: the kick KICK picks) and semitones from its
  * designed pitch */
@@ -86,7 +86,7 @@ static uint32_t drum_gm(const int16_t *p, uint32_t note, int32_t *st)
     *st = DRUM_GM[n - 35u][1];
     if (kit >= DK_80)
         return DV_KTYPE(kit - DK_80 + 1u, DV_TYPE_LANE[t]);
-    return t == DVT_PUNCH && p[P_E6] > 0 ? DVT_ROUND : t;
+    return t == DVT_PUNCH && p[P_E6] > 0 ? (p[P_E6] > 1 ? DVT_PULSE : DVT_ROUND) : t;
 }
 
 /* ----------------------------------------------------- the grid's lanes --- */
@@ -320,7 +320,7 @@ static const engine_t ENG_DRUM = {
         {"DECY", F_PCT, 0, 127, 64, 0, 0},
         {"SNAP", F_PCT, 0, 127, 64, 0, 0},
         {"ACC", F_PCT, 0, 127, 100, 0, 0},
-        {"KICK", F_ENUM, 0, 1, 0, N_DRUM_KICK, 0},
+        {"KICK", F_ENUM, 0, 2, 0, N_DRUM_KICK, 0},
         {"DRV", F_PCT, 0, 127, 0, 0, 0},
     },
     .presets = DRUM_PRESETS,
