@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.jpg" alt="MAKU" width="360"></p>
+
 # MAKU
 
 [![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg)](LICENSE)
