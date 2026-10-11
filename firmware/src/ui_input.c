@@ -1291,9 +1291,33 @@ static void midi_cc_apply(void)
         }
 }
 
+/* GHOULBOX: SELECT is the crank while a track cranks (eng_gurdy.c, COUP CRANK): its clicks, either way, with the
+ * input scan's frame of the last one; the tempo is then GLO + SELECT's (and HOME > CLOCK's). The first turn from a
+ * track that does not crank says so, once while the crank is there. 1: SELECT was the crank's */
+static int crank_select(void)
+{
+    static uint8_t told;
+    uint32_t k;
+    int32_t s;
+    for (k = 0; k < NTRK && !crank_track(&trk[k]); k++)
+        ;
+    if (k == NTRK) {
+        told = 0;
+        return 0;
+    }
+    if ((s = panel_enc(EN_SELECT)) != 0) {
+        if (!told && !crank_track(TSEL))
+            ui_message("SELECT IS THE CRANK");
+        told = 1;
+        crank_clicks((uint32_t)(s < 0 ? -s : s), fm1_in.enc_dfr[panel.enc[EN_SELECT]]);
+    }
+    return 1;
+}
+
 static void ui_input(void)
 {
     midi_cc_apply();                                  /* GHOULBOX: MIDI CCs, in the main loop */
+    crank_idle(fm1_in.frames);                        /* GHOULBOX: the crank slows and stops (every pass) */
     uint32_t pressed = fm1_input_edges(0), notes = fm1_input_note_edges(), now = fm1_ticks(), id, b, k;
     uint32_t home, rec, save;
     uint32_t oct;
@@ -1568,7 +1592,7 @@ static void ui_input(void)
         presets_turn(s);
     if (!lay && (s = panel_enc(EN_ALGO)) != 0)     /* ALGORITHM: the selected track, on every page */
         track_select((uint32_t)clamp((int32_t)song.sel + (s > 0 ? 1 : -1), 0, NTRK - 1));
-    if ((s = glo ? sel : panel_enc(EN_SELECT)) != 0) {   /* SELECT knob = global tempo; */
+    if ((s = glo ? sel : crank_select() ? 0 : panel_enc(EN_SELECT)) != 0) {   /* SELECT knob = global tempo; */
         if (glo || !(ui_prefs & PREF_BPM_LOCK)) {
             song.g[G_BPM] = (int16_t)clamp(song.g[G_BPM] + accel(EN_SELECT, s, 200), GP[G_BPM].min, GP[G_BPM].max);
             ui.bpm_t = 40;                              /* the header's BPM lights up; no message over the header */

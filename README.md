@@ -63,6 +63,11 @@ Felucca's sequencer, song mode, effects, editor and backups all work as they do 
   cheap sampler's bits and rate.
 - **GURDY**, a hurdy-gurdy engine: a bowed melody string, drones you tune, and the trompette's buzzing
   bridge struck in time, in six sounds.
+  - **Crank mode:** set COUP to **CRANK** and SELECT becomes the wheel's crank. The keys pick the notes; turning
+    plays them, louder and brighter the faster you turn, and the strings fall silent when you stop (the key still
+    held: turn again and it sounds). A sharp flick of the wrist kicks the trompette's buzz, as a player's strokes
+    do. WHL becomes **GEAR**: how fast you turn for full pressure. While a track cranks, the tempo is GLO + SELECT
+    (or HOME > CLOCK).
 - **Real recordings**: a bowed psaltery, a Renaissance chamber organ, a baroque tenor recorder and a folk
   harp, sampled from public-domain (CC0) libraries, on the SAMPLE engine.
 - **45 dungeon sounds**: crypt pads, string machines, monk, crypt and glass choirs, a low drone voice, cathedral,

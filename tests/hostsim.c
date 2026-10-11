@@ -27,7 +27,7 @@
 #undef memset
 #undef memcpy
 #undef memcmp
-static struct { volatile uint32_t notes, buttons; } fm1_in;
+static struct { volatile uint32_t notes, buttons; uint32_t frames, enc_dfr[7]; } fm1_in;   /* (GHOULBOX: the crank's) */
 #include "../firmware/src/core.h"
 #include "../firmware/src/engines.c"
 #include "../firmware/src/params.c"

@@ -7,7 +7,10 @@
  *    by its end; at HOLD it is steady; at BUZZ 0 there is none.
  * 3. one wheel: two keys held sound one voice.
  * 4. the corners: every EDIT at 0 and 127, notes C1 .. C7: bounded, no DC.
- * 5. cost (instructions per sample of a voice; the Linux counter). */
+ * 5. cost (instructions per sample of a voice; the Linux counter).
+ * 6. GHOULBOX's crank (COUP CRANK): the speed from SELECT's clicks (their input frames), slowing and stopped; wrist
+ *    strokes on a sharp speed-up only; the sound: silent with the key held and the wheel still, louder and brighter
+ *    turning faster, silent again once stopped and back without a new note; a stroke's buzz; WHL shown as GEAR. */
 #define main hostsim_main
 #include "hostsim.c"
 #undef main
@@ -82,6 +85,45 @@ static double tone(double hz)                           /* Goertzel magnitude of
     return sqrt(s1 * s1 + s2 * s2 - c * s1 * s2) / N;
 }
 static double midi_hz(int n) { return 440.0 * pow(2, (n - 69) / 12.0); }
+
+/* the crank: HURDY GURDY at COUP CRANK (BUZZ b), D4 held; render ms into y (from 0), its RMS and its RMS > 2 kHz
+ * (a first difference, twice) over the last tail ms */
+static void crank_reset(void)
+{
+    memset((void *)&crank, 0, sizeof crank);
+    memset(&crank_m, 0, sizeof crank_m);
+}
+static void crank_start(int16_t b)
+{
+    host_tracks_init();
+    host_preset(&trk[0], ENGI_GURDY, 0);
+    trk[0].p[P_E5] = (int16_t)GURDY_CRANK;
+    trk[0].p[P_E4] = b;
+    trk[0].p[P_E7] = 0;                                 /* (no WOBL: steady levels) */
+    trk[0].p[P_ATK] = 0;
+    trk[0].p[P_SUS] = 127;
+    trk_note_on(&trk[0], 62, 100);
+}
+static double crank_run(uint32_t ms, uint32_t tail, double *hf)
+{
+    static int32_t b[CTL];
+    uint32_t i, k, n = FS * ms / 1000u / CTL * CTL, t0 = FS * tail / 1000u < n ? n - FS * tail / 1000u : 1u;
+    double sum = 0, sh = 0, d0 = 0, d1;
+    for (i = 0; i < n && i < N; i += CTL) {
+        track_render(&trk[0], b, CTL);
+        for (k = 0; k < CTL; k++)
+            y[i + k] = b[k] / 32768.0;
+    }
+    for (i = t0; i < n; i++) {
+        sum += y[i] * y[i];
+        d1 = y[i] - y[i - 1];
+        sh += (d1 - d0) * (d1 - d0);
+        d0 = d1;
+    }
+    if (hf)
+        *hf = sqrt(sh / (n - t0));
+    return sqrt(sum / (n - t0));
+}
 /* the trompette's strokes (COUP 1/8 at 120 BPM): energy > 2 kHz in each stroke's first quarter vs its second
  * half, in dB, for D4 held */
 static double stroke_ratio(const int16_t *e)
@@ -179,6 +221,81 @@ int main(void)
             check(what, c <= 300);
         } else
             printf("gurdy: cost: no instruction counter on this host\n");
+    }
+    {   /* 6 */
+        uint32_t fr = 1000, c, ok;
+        double slow, fast, hs, hf, stopped, back, on, off;
+        crank_reset();
+        crank_clicks(1, fr);
+        ok = crank.speed == 0u;                         /* from a stop: no speed yet */
+        for (c = 0; c < 10u; c++)
+            crank_clicks(1, fr += 25u);                 /* a click every 25 frames: 36.4 clicks/s */
+        ok &= crank.speed == 909u * 16u / 25u && crank.strokes == 0u;
+        crank_clicks(3, fr += 75u);                     /* three in one read: the same speed */
+        ok &= crank.speed == 909u * 16u / 25u;
+        snprintf(what, sizeof what, "crank: speed from the clicks' frames, %u x 1/16 clicks/s (36.4 / s), a read of three the same", crank.speed);
+        check(what, ok);
+        crank_idle(fr + 20u);
+        ok = crank.speed == 909u * 16u / 25u;           /* not late yet */
+        crank_idle(fr + 50u);
+        ok &= crank.speed == 909u * 16u / 50u;          /* late: at most one click over the time since */
+        crank_idle(fr + CRANK_STOP + 1u);
+        check("  slowing: at most a click over the time since the last; 300 ms without one: stopped", ok && crank.speed == 0u);
+
+        crank_reset();
+        for (c = 0, fr = 1000; c < 40u; c++)
+            crank_clicks(1, fr += 25u);
+        ok = crank.strokes == 0u;                       /* steady: none */
+        for (c = 0; c < 4u; c++)
+            crank_clicks(1, fr += 8u);                  /* a wrist stroke: 3 x the speed for 4 clicks */
+        ok &= crank.strokes == 1u;                      /* one (the rest of the burst inside 70 ms) */
+        for (c = 0; c < 12u; c++)
+            crank_clicks(1, fr += 25u);
+        ok &= crank.strokes == 1u;
+        for (c = 0; c < 4u; c++)
+            crank_clicks(1, fr += 8u);
+        ok &= crank.strokes == 2u;
+        crank_idle(fr + CRANK_STOP + 1u);
+        fr += CRANK_STOP + 100u;
+        for (c = 0; c < 10u; c++)
+            crank_clicks(1, fr += 8u);                  /* from a stop straight to 113 clicks/s: a start, no stroke */
+        snprintf(what, sizeof what, "  strokes: a sharp speed-up is one (one per burst, 70 ms apart), steady and a start from a stop none (%u)",
+                 crank.strokes);
+        check(what, ok && crank.strokes == 2u);
+
+        crank_reset();
+        crank_start(0);
+        stopped = crank_run(300, 100, 0);
+        ok = stopped < 1e-6 && busy_now() == 1u;
+        crank.speed = 15u * 16u;                        /* 15 clicks/s, GEAR 80 (full at 30) */
+        slow = crank_run(300, 100, &hs);
+        crank.speed = 40u * 16u;
+        fast = crank_run(300, 100, &hf);
+        snprintf(what, sizeof what, "  sound: still with D4 held silent (%g); 15 clicks/s %.4f, 40 / s %.4f (+%.1f dB), brighter (> 2 kHz %+.1f dB)",
+                 stopped, slow, fast, 20 * log10(fast / slow), 20 * log10((hf / fast) / (hs / slow)));
+        check(what, ok && slow > 0.005 && fast > slow * 1.2 && hf / fast > hs / slow);
+        crank.speed = 0;
+        stopped = crank_run(500, 50, 0);
+        ok = stopped < 1e-6 && busy_now() == 1u;
+        crank.speed = 40u * 16u;
+        back = crank_run(150, 50, 0);
+        snprintf(what, sizeof what, "  stopped: %g 0.45 s on (silent), the key still held; turning again without a new note: %.4f", stopped, back);
+        check(what, ok && back > fast / 2);
+
+        crank_start(127);
+        crank.speed = 40u * 16u;
+        crank_run(500, 100, 0);
+        crank.strokes++;                                /* a stroke */
+        crank_run(40, 40, &on);
+        crank_run(150, 40, &off);                       /* (150 ms on: the burst gone) */
+        snprintf(what, sizeof what, "  a stroke: the buzz > 2 kHz %.1f dB over the wheel's alone, after it", 20 * log10(on / off));
+        check(what, on > off * 2);
+        ok = str_eq(track_desc(&trk[0], P_E3)->label, "GEAR") && str_eq(track_desc(&trk[0], P_E5)->names[5], "CRANK") &&
+             track_desc(&trk[0], P_E5)->max == 5;
+        trk[0].p[P_E5] = 2;
+        check("  COUP's sixth value CRANK (append-only); WHL shown as GEAR at CRANK, WHL at 1/8",
+              ok && str_eq(track_desc(&trk[0], P_E3)->label, "WHL"));
+        crank_reset();
     }
     printf("%s\n", bad ? "GURDY TEST FAILED" : "gurdy test passed");
     return bad != 0;
