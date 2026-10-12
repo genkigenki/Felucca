@@ -76,6 +76,13 @@ static void hexs(char *b, uint32_t v)
 static void smk_grid(void)
 {
     uint32_t l = ui.layer ? ui.layer : ui.ly;
+    if (maku.on) {                                      /* MAKU: the pulse focused, its 16 steps; else the 16 likes */
+        smk_pad_grid = (uint8_t)maku_kick_grid();
+        smk_pad_events = (uint8_t)(maku_knobs_on() && !maku_kick_grid());
+        if (!smk_pad_events)
+            (void)smk_pad_take();                       /* (no hit waits for later) */
+        return;
+    }
     smk_pad_grid = (uint8_t)(grid_on() || (name_on() && !ui.menu) || (l && l != LAYER_SCL));
 }
 
@@ -101,6 +108,18 @@ static void smk_faders(void)
         if (v == last[i])
             continue;
         last[i] = (uint8_t)v;
+        if (maku.on) {                                    /* MAKU: CASCADE, SWELL, SCRAMBLE as standing amounts (maku.c */
+            static const uint8_t V[3] = {VB_CASC, VB_SWELL, VB_SCRAM};   /* maku_vman), SPACE: the space DRIFT adds */
+            static const char *const N[4] = {"CASCADE ", "SWELL ", "SCRAMBLE ", "SPACE "};
+            char b[8];
+            if (i < 3u)
+                maku_vman[V[i]] = (int16_t)(v * 4096u / 127u);
+            else
+                maku.drs = (uint8_t)v;
+            fmt_int(b, v);
+            ui_say(N[i], b);
+            continue;
+        }
         pv = smk_fbank == 1 ? &trk[i].p[P_PAN] : smk_fbank == 2 ? &trk[i].p[P_REV] :
              smk_fbank == 3 ? &trk[i].p[P_DLY] : &trk[i].p[P_LEVEL];
         *pv = (int16_t)(smk_fbank == 1 ? (int32_t)v - 64 : (int32_t)v);   /* (PAN -64..63) */

@@ -333,11 +333,24 @@ static void smk_leds(const uint8_t *nl, const uint8_t *nb, const uint8_t *nm, co
     br = br < 128u ? br * 2u : (255u - br) * 2u;        /* the breath: 0..254 over ~1 s */
     for (c = 0; c < SMK_NLED; c++)
         fm1_led[c] = (uint8_t)(nl[c] | nb[c]);
-    fm1_led[SMK_BTN_FADER_BANK] = smk_fbank != 0u;      /* FADER BANK lit off bank A */
+    fm1_led[SMK_BTN_FADER_BANK] = !maku.on && smk_fbank != 0u;   /* FADER BANK lit off bank A (MAKU: no banks) */
     if (smk_btn_free(SMK_BTN_KNOB_BANK))
         fm1_led[SMK_BTN_KNOB_BANK] = ui.menu != 0;      /* KNOB BANK lit while the menu is up */
     if ((int32_t)(fm1_ms - padled_hold_until) < 0)      /* (console padtest has them) */
         return;
+    if (maku.on && !maku_kick_grid()) {                 /* MAKU: pad i is like i, in the floor's colour: the like this */
+        uint32_t f = mk_col(MAKU_DRA);                   /* world is bright, the others a quarter, an empty pad dark */
+        r = (f >> 11) << 3 | (f >> 13), g = ((f >> 5) & 0x3Fu) << 2 | ((f >> 9) & 3u), b = (f & 0x1Fu) << 3 | ((f >> 2) & 7u);
+        for (c = 0; c < SMK_NPAD; c++) {
+            uint32_t lv = c >= maku_fav.n ? 0u : c == smk_like_cur ? 256u : 48u;
+            padled_set(c, (uint8_t)(r * lv >> 8), (uint8_t)(g * lv >> 8), (uint8_t)(b * lv >> 8));
+        }
+        return;
+    }
+    if (maku.on) {                                      /* MAKU, the pulse focused: its steps in the pulse's colour */
+        uint32_t f = mk_col(MAKU_KICK);
+        r = (f >> 11) << 3 | (f >> 13), g = ((f >> 5) & 0x3Fu) << 2 | ((f >> 9) & 3u), b = (f & 0x1Fu) << 3 | ((f >> 2) & 7u);
+    }
     for (c = 0; c < SMK_NPAD; c++) {                    /* white key c on its pad (the top row first) */
         uint32_t id = LED_KEY0 + SMK_WHITE_NOTE[c];
         uint32_t lv = nl[id] ? 256u : nb[id] ? br + 2u : nm[id] ? 64u : og[id] | sg[id] ? 16u : 0u;
@@ -1264,6 +1277,11 @@ static void maku_buttons(uint32_t pressed, uint32_t notes)
     for (k = 0; k < 27u; k++)                             /* the keys always melt into the field (not the kick's grid: its keys are steps) */
         if (((notes >> k) & 1u) && !maku_kick_grid())
             maku_pick(kb_map(TSEL, k));
+#if BOARD_SMK37
+    for (k = smk_pad_take(), i = 0; k; k >>= 1, i++)    /* SMK-37 Pro: a pad is a like (smk_grid: not while the pulse */
+        if (k & 1u)                                     /* has focus, its pads are its steps) */
+            maku_like_recall(i);
+#endif
 }
 
 /* MAKU's REC (maku_fav.c): let go before MAKU_FAV_CLEAR_MS, the world now is a like; held that long, every like is
@@ -1281,25 +1299,36 @@ static void maku_rec(uint32_t now, int on)
         } else if (!(t0 & 2u) && now - (t0 & ~3u) > MAKU_FAV_CLEAR_MS * 1000u * FM1_TICKS_PER_US) {
             t0 |= 2u;
             maku_fav_clear();
+#if BOARD_SMK37
+            smk_like_cur = 0xFF;
+#endif
         }
         return;
     }
-    if (t0 && !(t0 & 2u))
+    if (t0 && !(t0 & 2u)) {
         maku_fav_like();
+#if BOARD_SMK37
+        if (maku_fav.liked)
+            smk_like_cur = (uint8_t)(maku_fav.n - 1u);   /* (its pad: the newest) */
+#endif
+    }
     t0 = 0;
 }
 #if BOARD_SMK37
 /* SMK-37 Pro < / >: the previous / next page of the page's family (its button tapped again, both ways); on HOME, >
  * is HOME tapped (MIXER, CLOCK) */
+static void maku_world_back(void);
 static void smk_page_step(int32_t d)
 {
     uint32_t n, i = ui.page, fam;
-    if (ui.home) {
-        if (d > 0)
-            home_tap();
+    if (maku_knobs_on()) {                              /* MAKU: < the world before, > a new world (HOME held) */
+        if (d < 0)
+            maku_world_back();
+        else
+            maku_world_new();
         return;
     }
-    if (page_over)
+    if (ui.home || page_over)
         return;
     fam = cur_page()->fam;
     for (n = 0; n < NPAGES; n++) {
@@ -1328,7 +1357,7 @@ static void ui_input(void)
     uint32_t smk_kb = ((pressed >> SMK_BTN_KNOB_BANK) & 1u) && smk_btn_free(SMK_BTN_KNOB_BANK);
     int32_t smk_lr = ((pressed >> SMK_BTN_RIGHT) & 1u) && smk_btn_free(SMK_BTN_RIGHT) ? 1 :
                      ((pressed >> SMK_BTN_LEFT) & 1u) && smk_btn_free(SMK_BTN_LEFT) ? -1 : 0;
-    if (pressed & 1u << SMK_BTN_FADER_BANK) {           /* SMK-37 Pro FADER BANK: what the four faders set */
+    if ((pressed & 1u << SMK_BTN_FADER_BANK) && !maku.on) {   /* SMK-37 Pro FADER BANK: what the four faders set (MAKU: free) */
         static const char *const FB[4] = {"A  LEVEL", "B  PAN", "C  REV", "D  DLY"};
         smk_fbank = (uint8_t)((smk_fbank + 1u) % 4u);
         smk_fbank_new = 1;
@@ -1428,8 +1457,17 @@ static void ui_input(void)
         }
     song.grid = (uint8_t)keys_mode();                 /* (the menu, a dialog: the keys play again; NAME: silent) */
 #if BOARD_SMK37
-    if (smk_kb && !lay && home == BT_NONE && !ui.home_t0)
-        home = BT_HOLD;                                 /* SMK-37 Pro KNOB BANK: as HOME held */
+    if (smk_kb && !lay && home == BT_NONE && !ui.home_t0) {   /* SMK-37 Pro KNOB BANK: the settings menu (HOME + OCT-); */
+        if (ui.menu) {                                  /* again: closes it */
+            menu_close();
+        } else {
+            ui.menu = 1;
+            ui.confirm = 0;
+            name_close();
+            ui.force = 1;
+            song.seq_mode = 0;
+        }
+    }
 #endif
     if (home == BT_TAP && ui.menu) {                    /* HOME (pressed, or held) closes the menu, from ABOUT too; */
         menu_close();                                   /* the release of the hold that opened it is no tap */

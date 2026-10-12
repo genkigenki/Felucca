@@ -67,12 +67,13 @@ Build options (environment, `0` or `1`; defaults in `firmware/src/felucca.c`, `c
 `FELUCCA_USB_LAYOUT` (`0` to `3`, default `0`) picks other USB descriptor layouts for testing; see
 `firmware/src/usb.c`.
 
-Target board: `BOARD=smk37 ./build.sh` (or `./build.sh --board smk37`) builds Felucca for the M-Vave
+Target board: `BOARD=smk37 ./build.sh` (or `./build.sh --board smk37`) builds MAKU37, MAKU for the M-Vave
 SMK-37 Pro: `-DBOARD_SMK37=1` for the app and the update loader, identity `SMK-37 Pro_900` (release
-`SMK-37 Pro_9XY`), the SMK flash layout (PRCT 0x9D000, the stock region table with USRTRIM / USRFLASH) and the
-package `build/felucca-smk37.fwsc`. The intermediate files (`build/felucca.bin`, `build/loader/ota.bin`,
-`build/felucca.dis`) are shared: build the FM-1 again before `tests/run_tests.sh`. The default stays the FM-1,
-byte for byte.
+`SMK-37 Pro_9XY`, package `build/release-X.Y/maku37-X.Y.fwsc`), the SMK flash layout (PRCT 0x9D000, the stock region
+table with USRTRIM / USRFLASH), the store owner tag `MAKU`, and the package `build/maku37.fwsc`. The intermediate files
+(`build/felucca.bin`, `build/loader/ota.bin`, `build/felucca.dis`) are shared: build the FM-1 again before
+`tests/run_tests.sh`. The default stays the FM-1, byte for byte. The controls and the flash map: [docs/SMK37.md](docs/SMK37.md);
+the decisions behind them: [docs/smk37-port.yaml](docs/smk37-port.yaml).
 
 ## Samples
 

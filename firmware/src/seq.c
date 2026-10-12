@@ -698,6 +698,8 @@ static void ext_keys_block(void)
         mc = trk_midi_ch(sel);
         input_on(&trk[sel], n, v);
         midi_out_event(0x09u | (0x90u | mc) << 8 | n << 16 | v << 24);
+        if (maku.on && sel != MAKU_KICK)
+            maku_pick(n);                           /* (MAKU: a played note melts into the phrase, as the middle keys' do) */
     }
 }
 #endif
@@ -1070,6 +1072,13 @@ static void smk_wheels_block(void)
     static int32_t lb = 0x7FFFFFFF;
     uint32_t sel = song.sel % NTRK, mc = trk_midi_ch(sel), m = smk_modw;
     int32_t b = smk_bend14;
+    if (maku.on) {                                  /* MAKU (docs/smk37-port.yaml): the pitch wheel is a verb that springs back,
+                                                     * down SINK, up LIFT; the mod wheel WOBBLE's standing amount (maku.c maku_vman) */
+        maku_vman[VB_SINK] = (int16_t)(b < 0 ? -b * 4096 / 8192 : 0);
+        maku_vman[VB_LIFT] = (int16_t)(b > 0 ? b * 4096 / 8191 : 0);
+        maku_vman[VB_WOB] = (int16_t)(m * 4096u / 127u);
+        return;
+    }
     if (sel != prev) {
         if (prev < NTRK) {
             midi_bend_target[prev] = 0;

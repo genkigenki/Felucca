@@ -60,25 +60,27 @@ static uint32_t st_crc32(const void *p, uint32_t n)   /* zlib CRC-32, 4 bits per
 }
 
 #if BOARD_SMK37
-/* SMK-37 Pro (see the fm1-to-smk37 guide): every object in FL_DATA 0x9D000..0xBAFFF (the stock VM),
- * A/B neighbours: projects 0x9D000..0xA4FFF, user preset banks 0xA5000..0xA8FFF, autosave 0xA9000 /
- * 0xAA000, the user presets' FM6 patches (OBJ_UPFM6, the pair of the retired OBJ_FM6BANK) 0xAB000 / 0xAC000,
- * settings 0xAD000 / 0xAE000; the store owner tag 0xAF000 (st_owner_check), the FM6 voice bank 0xB0000
- * (fm6_vbank.c FVB_HOME); 0xB1000..0xBAFFF spare. Never near BTIF / USRTRIM (0xC0000..0xC1FFF) or key_mac
- * (0xFF000). The same places as the other ported Felucca-family firmwares use, so the owner tag sits at the
- * same offset in all of them. */
+/* SMK-37 Pro (see the fm1-to-smk37 guide): every object in FL_DATA 0x9D000..0xBAFFF (the stock VM), A/B neighbours:
+ * projects 0x9D000..0xA4FFF, user preset banks 0xA5000..0xA8FFF, the autosave's pair 0xA9000 / 0xAA000 (MAKU's likes,
+ * OBJ_MAKUFAV, share it under their own type, as on the FM-1: MAKU never writes an autosave), the user presets' FM6
+ * patches 0xAB000 / 0xAC000, settings 0xAD000 / 0xAE000; the store owner tag 0xAF000 (st_owner_check, family MAKU),
+ * 0xB0000 the FM6 voice bank's place in the other ports (cleared with a foreign store); 0xB1000..0xBAFFF spare. Never
+ * near BTIF / USRTRIM (0xC0000..0xC1FFF), USR (0xF4000..0xFDFFF) or key_mac (0xFF000). MAKU writes only the settings
+ * and the likes. */
 #define ST_SMK_BASE 0x9D000u
 #define ST_SMK_PAIRS 9u
 #define ST_SMK_SECTORS (2u * ST_SMK_PAIRS)
-#define ST_SMK_VBANK 0xB0000u                  /* the FM6 voice bank (fm6_vbank.c), one sector */
-_Static_assert(OBJ_COUNT == 10u && OBJ_UPFM6 == OBJ_FM6BANK + 1u, "SMK store: a new object needs a place");
+#define ST_SMK_VBANK 0xB0000u                  /* the FM6 voice bank of the other ports, one sector */
+_Static_assert(OBJ_COUNT == 11u && OBJ_UPFM6 == OBJ_FM6BANK + 1u && OBJ_MAKUFAV == OBJ_AUTOSAVE + 1u,
+               "SMK store: a new object needs a place");
 _Static_assert(ST_SMK_BASE + ST_SMK_SECTORS * ST_SECTOR == 0xAF000u, "SMK store: the objects end at the owner tag");
 _Static_assert(ST_SMK_VBANK >= 0xAF000u + ST_SECTOR && ST_SMK_VBANK + ST_SECTOR <= 0xBB000u, "SMK store: past FL_DATA");
+_Static_assert(ST_SMK_BASE >= FL_DATA_LO && ST_SMK_VBANK + ST_SECTOR <= FL_DATA_HI, "SMK store: inside FL_DATA");
 static uint32_t st_sector(uint32_t obj, uint32_t copy)  /* flash offset of copy A (0) / B (1) */
 {
     static const uint8_t ORDER[OBJ_COUNT] = {
         [OBJ_PROJECT0] = 0, [OBJ_PROJECT0 + 1] = 1, [OBJ_PROJECT0 + 2] = 2, [OBJ_PROJECT0 + 3] = 3,
-        [OBJ_UPRESET0] = 4, [OBJ_UPRESET0 + 1] = 5, [OBJ_AUTOSAVE] = 6, [OBJ_FM6BANK] = 7, [OBJ_UPFM6] = 7,
+        [OBJ_UPRESET0] = 4, [OBJ_UPRESET0 + 1] = 5, [OBJ_AUTOSAVE] = 6, [OBJ_MAKUFAV] = 6, [OBJ_FM6BANK] = 7, [OBJ_UPFM6] = 7,
         [OBJ_SETTINGS] = 8};
     return ST_SMK_BASE + (ORDER[obj % OBJ_COUNT] * 2u + (copy & 1u)) * ST_SECTOR;
 }
@@ -86,7 +88,7 @@ static uint32_t st_sector(uint32_t obj, uint32_t copy)  /* flash offset of copy 
 /* The owner of the store. Several FM-1 firmwares are ported to the SMK-37 Pro with the same board layer and this
  * same store area, each with its own object formats: a firmware must never parse another's data. The sector after
  * the objects (0xAF000, the same place in every port) holds "SMK37DATA" + the firmware family
- * (FELUCCA_DATA_FAMILY, build.py; the SMK build: FELUCCA). Ours: load as ever. None (erased): data written before the
+ * (FELUCCA_DATA_FAMILY, build.py; the SMK build: MAKU). Ours: load as ever. None (erased): data written before the
  * tag existed, kept only with FELUCCA_DATA_UNTAGGED_OK (0 here: the SMK build never had untagged data, so an erased tag
  * with objects present is another firmware's). Another family's: clear the objects (0x9D000..0xAEFFF) and the FM6
  * voice bank (0xB0000) and take the store. User samples (FL_SMP) validate themselves. Calibration, BT pairing and

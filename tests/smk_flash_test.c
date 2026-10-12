@@ -67,8 +67,10 @@ int main(void)
                 for (o2 = 0; o2 < OBJ_COUNT; o2++)
                     for (c2 = 0; c2 < 2u; c2++)
                         if ((o != o2 || c != c2) && st_sector(o, c) == st_sector(o2, c2) &&
-                            !(c == c2 && (o == OBJ_FM6BANK || o == OBJ_UPFM6) && (o2 == OBJ_FM6BANK || o2 == OBJ_UPFM6)))
-                            distinct = 0;                 /* (the retired FM6 bank and OBJ_UPFM6 share a pair, as on the FM-1) */
+                            !(c == c2 && (o == OBJ_FM6BANK || o == OBJ_UPFM6) && (o2 == OBJ_FM6BANK || o2 == OBJ_UPFM6)) &&
+                            !(c == c2 && (o == OBJ_AUTOSAVE || o == OBJ_MAKUFAV) && (o2 == OBJ_AUTOSAVE || o2 == OBJ_MAKUFAV)))
+                            distinct = 0;                 /* (the retired FM6 bank and OBJ_UPFM6 share a pair, as on the FM-1;
+                                                           * MAKU's likes the autosave's, as on the FM-1) */
         check("storage.c: every object (A/B) in FL_DATA, no two share a sector", in_store && distinct);
         for (o = 0, distinct = 1; o < OBJ_COUNT; o++)
             for (c = 0; c < 2u; c++)
@@ -78,6 +80,9 @@ int main(void)
     }
     check("storage.c: settings 0xAD000/0xAE000, projects from 0x9D000",
           st_sector(OBJ_SETTINGS, 0) == 0xAD000u && st_sector(OBJ_SETTINGS, 1) == 0xAE000u && st_sector(OBJ_PROJECT0, 0) == 0x9D000u);
+    check("storage.c: MAKU's likes 0xA9000/0xAA000 (the autosave's pair, below the owner tag)",
+          st_sector(OBJ_MAKUFAV, 0) == 0xA9000u && st_sector(OBJ_MAKUFAV, 1) == 0xAA000u &&
+          st_sector(OBJ_MAKUFAV, 0) == st_sector(OBJ_AUTOSAVE, 0));
     check("FL_PLAIN_LO = the VM start 0x9D000", FL_PLAIN_LO == 0x9D000u);
     check("FL_JEDEC_OK: the SMK part 0xEB6014 and 0x856014 only", FL_JEDEC_OK(0xEB6014u) && FL_JEDEC_OK(0x856014u) &&
           !FL_JEDEC_OK(0u) && !FL_JEDEC_OK(0xFFFFFFu) && !FL_JEDEC_OK(0xEB6015u));

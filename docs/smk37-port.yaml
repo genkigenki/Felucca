@@ -1,0 +1,117 @@
+# smk37-port.yaml: every decision of the MAKU37 port (MAKU on the M-Vave SMK-37 Pro), in one place.
+# From the fm1-to-smk37 kit (github.com/genkigenki/fm1-to-smk37), filled from the owner's answers. Change this file
+# first, then the code. The controls as built: docs/SMK37.md.
+
+firmware:
+  name: MAKU37
+  upstream: https://github.com/okumurari2/maku
+  base: MAKU 64cb7e4 (Felucca ac6bfcb, v1.1.5.1-1); board layer from hugelton/Felucca#237 (b4038b2)
+  family: felucca
+  priorities:
+    - MAKU unchanged first: it plays at power-on, the verbs, the likes; the FM-1 manual still applies
+    - the SMK's extra controls only add (pads, faders, wheels, outer keys, the four extra buttons)
+
+delivery:
+  mode: fork                # a branch first; a pull request to MAKU later (everything behind BOARD_SMK37), an own release possible
+  usb_name: Felucca         # MAKU keeps Felucca's USB name; every installer knows it
+  data_family: MAKU         # the SMK store owner tag at 0xAF000 ("SMK37DATAMAKU"): another port's store (Felucca too) is cleared, never read
+  boot_logo: none           # MAKU's own power-on (the swell from silence)
+  credit: ""
+
+models:
+  - pro                     # the SMK-37 Pro only for now (the Felucca board layer has no MODEL switch yet)
+
+keys:
+  middle: fm1               # keys 5..31 (F3..G5) = the FM-1's 27 keys: the focused part's sound; the pulse focused: 16 steps
+  outer: extend             # more notes for the focused part, unquantized; they melt into the voice's phrase as the middle keys' do
+  outer_drums: {}
+  velocity: factory         # the unit's own key curves (USRTRIM, read only)
+
+pads:
+  pattern: custom           # the likes (MAKU's ring holds exactly 16)
+  order: reading            # pad i = like i, the oldest first (the HAL's pad numbering, the same for the LEDs and the hits)
+  colours: screen           # the floor's colour (MAKU's part colours); the pulse focused: the pulse's colour
+  idle: dark                # an empty pad is dark; a kept like a quarter; the like the world now is bright
+  playhead: bright
+  picker:
+    enabled: false
+  velocity: false           # a pad picks a like; in the pulse's steps the white keys' velocity
+  notes: >-
+    Tap a lit pad: that like's world, exactly as it was liked (no mutation; the world before goes into the history).
+    REC fills the next pad (a 17th like pushes the oldest out, as on the FM-1). While the pulse has focus the pads are
+    its 16 steps (MAKU's white keys), in the pulse's colour.
+
+faders:
+  pattern: macros           # not the volumes: MAKU's knobs carry them already (K5-K8 = KNOB 1-4), the owner asked for no doubles
+  takeover: soft            # a fader acts only once it moves
+  bank_button: ""
+  banks: {}
+  fixed:                    # what no MAKU control sets directly yet: a standing amount of the three verbs the wheels do not
+    - CASCADE amount        # carry (the button's RISE / HOLD / FADE goes on top, up to full), and the space DRIFT adds
+    - SWELL amount
+    - SCRAMBLE amount
+    - SPACE (the space DRIFT adds: the sends rise, the master's low-pass closes; a new world starts at 0, DRIFT walks it on)
+  screen: none              # the message line names the fader and its value (MAKU has no fader screen)
+
+wheels:
+  pitch:
+    target: macro           # a verb that springs back: down SINK, up LIFT (its amount follows the wheel)
+    range_semitones: 0
+    applies_to: all
+  mod:
+    target: macro
+    detail: WOBBLE's standing amount (stays where it is left)
+  calibration: auto
+
+knobs:
+  layout: custom            # exactly MAKU's: the FM-1's MASTER, SELECT, PRESETS, ALGORITHM, KNOB 1-4 in reading order
+  K1: master                # a virtual MASTER pot
+  K2: select                # the focused part's first macro (DENS / OPEN / GRAIN / LOOSE); a verb held: RISE
+  K3: presets               # its TONE; a verb held: HOLD
+  K4: algorithm             # WASH / SWAY / AIR / TRAIL; a verb held: FADE
+  K5: volume 1 (pulse)      # MAKU's KNOB 1-4: the volume, and the focus moves to that part
+  K6: volume 2 (floor)
+  K7: volume 3 (haze)
+  K8: volume 4 (voice)
+  step: detent
+  pages: {}
+
+buttons:
+  map: custom               # by row, as MAKU groups them on the FM-1 (the printed names do not)
+  top_row:                  # ARP, NOTE REPEAT, SCALE, CHORD, GLOBE, BT
+    - SINK (FM-1 FX)
+    - CASCADE (SCL)
+    - SWELL (ENV)
+    - WOBBLE (LFO)
+    - LIFT (EDIT)
+    - SCRAMBLE (GLO)
+  bottom_row:               # PATCH, PARA, FX, SEQ, SEQ PLAY, SEQ REC
+    - HOME (held: a new world; + OCTAVE-: the settings menu)
+    - the key (FM-1 ARP)
+    - nothing (FM-1 SAVE)
+    - SEQ (tempo, swing, duck)
+    - DRIFT (FM-1 PLAY)
+    - LIKE (FM-1 REC)
+  octave: OCTAVE- / OCTAVE+ = a fifth down / up
+  extra:
+    KNOB BANK: the settings menu (again: closes it)
+    FADER BANK: ""
+    "<": the world before (a history of 8, RAM only)
+    ">": a new world (as HOME held)
+
+screen:
+  style: keep               # MAKU's screen as it is
+  colours: MAKU's part colours (pulse red-orange, floor amber, haze green, voice blue), on the pads too
+  rules:
+    - MAKU's docs/UI_RULES.md
+    - the screen shows what you touch first (a fader or a pad: the message line)
+    - no hidden modes; play first
+
+pedal: none
+
+midi:
+  trs_in: none              # the SMK's jack is MIDI OUT (PH8 is a key row): clock follow over USB only (owner: accepted)
+
+open_questions:
+  - the pad numbering (top row first) is the HAL's; to confirm on the unit that pad 1 (like 1) is the top left
+  - the faders' choice (three verb amounts + SPACE) is ours, from "no doubles": to try by ear

@@ -11,6 +11,10 @@
 #error "build with -DBOARD_SMK37=1"
 #endif
 #include "fm1_flash_map.h"
+#ifndef FELUCCA_DATA_FAMILY
+#define FELUCCA_DATA_FAMILY "FELUCCA"           /* (run_tests.sh: MAKU's, as build.py sets it for the SMK) */
+#endif
+static const char TAG[16] = "SMK37DATA" FELUCCA_DATA_FAMILY;   /* (zero padded) */
 
 static uint8_t nor[0x100000];
 static int bad_write;
@@ -59,18 +63,26 @@ int main(void)
     fill();
     memcpy(nor + 0xAF000, "SMK37DATASLOOP\0", 16);
     st_owner_check();
-    check("another family's store (SLOOP): cleared, tagged FELUCCA", store_erased() && st_owner_cleared &&
-          !memcmp(nor + 0xAF000, "SMK37DATAFELUCCA", 16));
+    check("another family's store (SLOOP): cleared, tagged with ours", store_erased() && st_owner_cleared &&
+          !memcmp(nor + 0xAF000, TAG, 16));
     check("... calibration (USRTRIM) and samples untouched", others_kept());
     fill();
-    memcpy(nor + 0xAF000, "SMK37DATAFELUCCA", 16);
+    memcpy(nor + 0xAF000, TAG, 16);
     st_owner_cleared = 0;
     st_owner_check();
     check("our own store: kept as it is", nor[0x9D000] == 0x11 && nor[0xB0000] == 0x22 && !st_owner_cleared);
     fill();
     st_owner_check();
     check("an untagged store (FELUCCA_DATA_UNTAGGED_OK 0): cleared, tagged", store_erased() &&
-          !memcmp(nor + 0xAF000, "SMK37DATAFELUCCA", 16) && others_kept());
+          !memcmp(nor + 0xAF000, TAG, 16) && others_kept());
+    if (strcmp(FELUCCA_DATA_FAMILY, "FELUCCA")) {   /* another port of the family (Felucca on the SMK): its store is not ours */
+        fill();
+        memcpy(nor + 0xAF000, "SMK37DATAFELUCCA", 16);
+        st_owner_cleared = 0;
+        st_owner_check();
+        check("Felucca's store (FELUCCA) under another family: cleared, tagged with ours", store_erased() &&
+              st_owner_cleared && !memcmp(nor + 0xAF000, TAG, 16) && others_kept());
+    }
     check("nothing written outside FL_DATA's objects, the voice bank and the tag", bad_write == 0);
     printf("%s\n", bad ? "SMK OWNER TEST FAILED" : "smk owner test passed");
     return bad != 0;
