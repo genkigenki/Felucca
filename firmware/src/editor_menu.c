@@ -29,6 +29,7 @@ static const uint8_t ED_MENU[][2] = {
     {MI_MIDIIN, 22},                                   /* 1.2: the project's G_ROUTE (was GLO > SYSTEM ROUT), MIDI */
     {MI_TUNE, 23},                                     /* 1.2: the project's G_TUNE (was GLO > GLOBAL), AUDIO */
     {MI_HOME, 24},                                     /* 1.3 (Discussions #112, #134): HOME SCOPE / TRACKS, DISPLAY */
+    {MI_NAMES, 25},                                    /* GHOULBOX 2.1: NOTE NAMES ON / OFF, CONTROL */
 };
 #define ED_MENU_N NELEM(ED_MENU)
 

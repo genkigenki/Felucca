@@ -9,7 +9,9 @@
  * 4. SPLIT at C4 (the default): B3 plays KTRK only, C4 the selected track only; SPLT moves the split.
  * 5. MODE changed while a key is held: its key-up still ends what it started (both, in LAYER).
  * 6. the SEQ pages (step entry): the keys play the selected track only.
- * 7. the project: KEYS saved and loaded (FUN10's tail, PROJ_KEYS_OFF); a project without them (the word 0): OFF. */
+ * 7. the project: KEYS saved and loaded (FUN10's tail, PROJ_KEYS_OFF); a project without them (the word 0): OFF.
+ * 8. NOTE NAMES (2.1, ui_input.c names_notice): the names of notes and chords, in the header while keys are held, never
+ *    over another message, none with MENU > CONTROL > NOTE NAMES OFF. */
 #define UI_TEST_NO_MAIN 1
 #include "ui_test.c"
 
@@ -148,6 +150,46 @@ int main(void)
     memset(&q, 0, sizeof q);
     bad += check("  a project from before 2.1 (word 0): KEYS OFF, T4, C4, 0", proj_import(&q, &st, (int)sizeof st) &&
                  q.g[G_KMODE] == 0 && q.g[G_KTRK] == 3 && q.g[G_KSPLIT] == 4 && q.g[G_KOCT] == 2);
+
+    {   /* 8 */
+        static const struct { uint8_t n[4]; const char *name; } NN[] = {
+            {{60, 64, 67}, "C"}, {{57, 60, 64}, "Am"}, {{64, 67, 72}, "C/E"}, {{62, 65, 69, 72}, "Dm7"},
+            {{55, 60, 62}, "Gsus4"}, {{50, 57}, "D5"}, {{62}, "D4"}, {{57, 61, 64, 67}, "A7"}, {{58, 62, 65}, "Bb"},
+            {{62, 63}, "D Eb"}, {{59, 62, 65}, "Bdim"},
+        };
+        char b[16];
+        uint32_t i, j, m;
+        int ok = 1;
+        for (i = 0; i < NELEM(NN); i++) {
+            for (m = 0, j = 0; j < 4u && NN[i].n[j]; j++)
+                m |= 1u << (NN[i].n[j] % 12u);
+            names_of(m, NN[i].n[0], b);
+            if (!str_eq(b, NN[i].name)) { printf("  %s: got %s\n", NN[i].name, b); ok = 0; }
+        }
+        bad += check("NOTE NAMES: D4, D5, C, Am, Bb, Bdim, Gsus4, A7, Dm7, C/E (a bass not the root), D Eb (no chord)", ok);
+    }
+    k_reset();
+    keys(1u << 7 | 1u << 11 | 1u << 14); names_notice();          /* C4 E4 G4 */
+    bad += check("  held keys: their chord in the header (C)", ui.msg_t && str_eq(ui.msg, "C"));
+    keys(1u << 7 | 1u << 11 | 1u << 14 | 1u << 17); names_notice();   /* + A#4 */
+    bad += check("  a key added: the name follows (C7)", str_eq(ui.msg, "C7"));
+    ui_message("STOP TO EDIT"); names_notice();
+    bad += check("  another message: it stays, the name waits", str_eq(ui.msg, "STOP TO EDIT"));
+    keys(0); ui.msg_t = 0;
+    ui_prefs2 |= (uint8_t)(PREF_NAMES_OFF >> 16);
+    keys(1u << 7); names_notice();
+    bad += check("  NOTE NAMES OFF: nothing named", !ui.msg_t);
+    keys(0); ui_prefs2 &= (uint8_t)~(PREF_NAMES_OFF >> 16);
+    ui.msg_t = 0;
+    menu_put(MI_NAMES, 1);                              /* the MENU row itself: OFF */
+    keys(1u << 7); names_notice();
+    bad += check("  MENU > CONTROL > NOTE NAMES: OFF from the row silences the names, ON back",
+                 menu_get(MI_NAMES) == 1u && !ui.msg_t && MI_TAB[MI_NAMES] == MTAB_CONTROL);
+    keys(0);
+    menu_put(MI_NAMES, 0);
+    keys(1u << 7); names_notice();
+    bad += check("  .. and ON from the row names again", menu_get(MI_NAMES) == 0u && ui.msg_t && str_eq(ui.msg, "C4"));
+    keys(0);
 
     usb.config = 0;
     printf("%s\n", bad ? "KEYS TEST FAILED" : "keys test passed");
