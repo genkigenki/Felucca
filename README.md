@@ -31,6 +31,10 @@ medieval and fantasy synth music, from Old Tower and Hole Dweller to Mortiis-era
 - **Three dungeon scales**: Phrygian dominant, Hungarian minor and double harmonic.
 - **A USB rescue.** If GHOULBOX fails to start twice in a row, or you hold OCT- while switching on, the FM-1
   starts in a rescue mode with no sound and no menu, where the installer still works.
+- **Play it in your browser** at [ghoulbox.messy.quest](https://ghoulbox.messy.quest): the same firmware on a
+  drawn FM-1, played with the mouse or the computer keys, before you install anything.
+- **A [demo of what's new](https://youtu.be/NMSw1_wnCwQ)**, rendered by the firmware's own sound and screen
+  code: the cave, the latch, the crank, the tunings and the scales.
 
 Your saved projects, user presets and settings load as before.
 
