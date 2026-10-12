@@ -6,13 +6,25 @@
 [Felucca](https://github.com/hugelton/Felucca) by Hügelton Instruments (1.4.1), tuned for dark ambient,
 medieval and fantasy synth music, from Old Tower and Hole Dweller to Mortiis-era dungeon synth.
 
-**Latest: 2.0.** [Play it in your browser](https://ghoulbox.messy.quest/) ·
+**Latest: 2.1.** [Play it in your browser](https://ghoulbox.messy.quest/) ·
 [install it](https://ghoulbox.messy.quest/webapp/installer/) ·
 [hear every sound](https://ghoulbox.messy.quest/sounds/) ·
 [watch the 2.0 demo](https://youtu.be/NMSw1_wnCwQ) ·
-[read the guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.0.pdf)
+[read the guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.1.pdf)
 
 ## What's new
+
+### 2.1
+
+- **Two sounds at once.** A new KEYS page (tap HOME on HOME: MIXER, CLOCK, KEYS) plays two tracks from the keys:
+  **LAYER** stacks them on every key (a recorder doubled by strings), **SPLIT** divides the keyboard (a drone or bass
+  in the left hand, the tune in the right). Pick the second track, the split point and its octave; saved with
+  the project.
+- **Note and chord names.** While you play, the top of the screen names what you're playing: D4, Dm, A7, Gsus4,
+  C/E. Turn it off in MENU > CONTROL > NOTE NAMES.
+- **Your music comes back at power-on.** RESTORE LAST is ON again, so the FM-1 wakes up with what you were playing
+  (stop for a few seconds before switching off). A new FM-1 still starts with the power-on scene; set RESTORE LAST
+  to OFF to have the scene every time. Updating switches it ON once; your choice is kept after that.
 
 ### 2.0
 
@@ -123,9 +135,9 @@ Felucca's sequencer, song mode, effects, editor and backups all work as they do 
 - **An old-RPG screen**: VT323 pixel type, stone windows, a sword cursor, flickering wall torches, and the
   CRYPT palette (stone, bone, torch amber, blood red), a blackletter wordmark and a skull at boot.
 
-Version 2.0 (HOME held > ABOUT). A hobby project, tested on one FM-1: **install at your own risk.**
+Version 2.1 (HOME held > ABOUT). A hobby project, tested on one FM-1: **install at your own risk.**
 
-**[User guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.0.pdf):** a 49-page manual: the FM-1's hardware and
+**[User guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.1.pdf):** a 51-page manual: the FM-1's hardware and
 installing; synth basics in plain words (oscillators, filters, envelopes, LFOs, effects, sequencing), each
 with a hands-on exercise; a full reference to every page and all 59 sounds; a first piece built step by
 step, a minor-key chord cheat sheet and dungeon recipes; recording, troubleshooting and a glossary.

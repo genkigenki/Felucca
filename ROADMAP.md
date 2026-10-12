@@ -37,6 +37,11 @@ icon for the GURDY engine.
 GHOULBOX on Felucca 1.4.1, 12 voices, a drone latch, the hurdy-gurdy's crank, medieval tunings (TEMP), a cave
 ambience (AMB, CRKL), three dungeon scales and a USB rescue for a firmware that won't start.
 
+## Done: 2.1
+
+Two sounds from the keys (KEYS: LAYER and SPLIT), note and chord names on the screen, and the last session back
+at power-on (RESTORE LAST ON). All three from owners' requests.
+
 ## Next
 
 - small screen polish
