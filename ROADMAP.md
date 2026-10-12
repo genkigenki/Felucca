@@ -17,7 +17,7 @@ recorder and a folk harp; and a BAGPIPE preset. (Neither of the CC0 libraries us
 ## Done: 1.2
 
 Four more dungeon patterns (MARCH, LAMENT, ARPEGGIO, ANTIPHON), a LOW DRONE voice and a SHAWM, and a page to
-[hear every sound](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/sounds/) before installing. From the
+[hear every sound](https://ghoulbox.messy.quest/sounds/) before installing. From the
 Reddit thread: drums are back as a dungeon kit (CRYPT, with a TOMBBEAT pattern), MIDI CC control from a keyboard
 or DAW, and USB SERIAL off by default.
 

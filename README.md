@@ -6,8 +6,9 @@
 [Felucca](https://github.com/hugelton/Felucca) by Hügelton Instruments (1.4.1), tuned for dark ambient,
 medieval and fantasy synth music, from Old Tower and Hole Dweller to Mortiis-era dungeon synth.
 
-**Latest: 2.0.** [Install it](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/) ·
-[hear every sound](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/sounds/) ·
+**Latest: 2.0.** [Play it in your browser](https://ghoulbox.messy.quest/) ·
+[install it](https://ghoulbox.messy.quest/webapp/installer/) ·
+[hear every sound](https://ghoulbox.messy.quest/sounds/) ·
 [watch the demo](https://github.com/jasonpersinger/ghoulbox-fm1-dungeon-synth/releases/download/ghoulbox-v1.3/ghoulbox-demo-1.3.mp4) ·
 [read the guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.0.pdf)
 
@@ -129,10 +130,10 @@ step, a minor-key chord cheat sheet and dungeon recipes; recording, troubleshoot
 
 In Chrome or Edge on a computer, with the FM-1 on a USB **data** cable and no other music app open:
 
-**[jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/)**
+**[ghoulbox.messy.quest/webapp/installer](https://ghoulbox.messy.quest/webapp/installer/)**
 
 First save a backup: the installer doesn't make one. Open the
-[web editor](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/webapp/editor/), connect, and on its
+[web editor](https://ghoulbox.messy.quest/webapp/editor/), connect, and on its
 Settings tab press **Save backup** (your music, sounds, samples and settings, to your computer).
 
 Then press Install. If it stops after "update mode", replug the USB cable and press Install again: the FM-1 stays in
