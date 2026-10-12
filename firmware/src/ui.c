@@ -1295,74 +1295,10 @@ static void maku_world(uint32_t seed)
 #include "maku_fav.c"                                  /* the likes: REC keeps a world, a new world is drawn from them */
 /* HOME held: a new world, from the time since boot and the knobs' last turns; with likes kept, often one of them
  * (maku_world_pref) */
-#if BOARD_SMK37
-/* SMK-37 Pro: the worlds left behind (< goes back to them, newest last; RAM only, as every world), and a world named
- * by a like (its pad), both exactly as they were: maku_fav_capture / maku_fav_apply, no mutation. smk_like_cur: the
- * like the world now is (its pad bright), 0xFF none */
-#define MAKU_HIST 8u
-static maku_fav_t maku_hist[MAKU_HIST] __attribute__((section(".pool")));
-static uint8_t maku_hist_n, smk_like_cur = 0xFF;
-static void maku_hist_push(void)
-{
-    maku_fav_t e;
-    uint32_t i;
-    if (!maku_fav_capture(&e))
-        return;
-    if (maku_hist_n >= MAKU_HIST) {
-        for (i = 1; i < MAKU_HIST; i++)
-            maku_hist[i - 1u] = maku_hist[i];
-        maku_hist_n = MAKU_HIST - 1u;
-    }
-    maku_hist[maku_hist_n++] = e;
-}
-static void maku_world_to(const maku_fav_t *e, const char *msg)
-{
-    maku_fav_tidy();                                  /* MANNER:rec-preerase (as maku_world_new) */
-    maku_setup();
-    maku_fav_apply(e, e->seed);
-    maku_fav.liked = 0;
-    perf_kill = 1;
-    perf_latched = 0;
-    ui_message(msg);
-    ui.force = 1;
-}
-/* <: the world before this one */
-static void maku_world_back(void)
-{
-    if (!maku_hist_n) {
-        ui_message("NO EARLIER WORLD");
-        return;
-    }
-    maku_hist_n--;
-    maku_world_to(&maku_hist[maku_hist_n], "EARLIER WORLD");
-    smk_like_cur = 0xFF;
-}
-/* a pad: like i (0 the oldest), as it was liked */
-static void maku_like_recall(uint32_t i)
-{
-    char b[12] = "LIKE ";
-    if (i >= maku_fav.n) {
-        ui_message("NO LIKE HERE");
-        return;
-    }
-    maku_hist_push();
-    if (i >= 9u)
-        b[5] = (char)('0' + (i + 1u) / 10u), b[6] = (char)('0' + (i + 1u) % 10u), b[7] = 0;
-    else
-        b[5] = (char)('1' + i), b[6] = 0;
-    maku_world_to(&maku_fav.e[i], b);
-    maku_fav.liked = 1;
-    smk_like_cur = (uint8_t)i;
-}
-#endif
 static void maku_world_new(void)
 {
     static uint32_t n;
     uint32_t seed = fm1_ms * 0x9E3779B1u + ++n * 0x85EBCA6Bu, liked;
-#if BOARD_SMK37
-    maku_hist_push();
-    smk_like_cur = 0xFF;
-#endif
     maku_fav_tidy();                                  /* MANNER:rec-preerase (after a REC: the stale copy erased now, under the change of world) */
     maku_setup();
     liked = maku_world_pref(seed);
