@@ -10,6 +10,7 @@ medieval and fantasy synth music, from Old Tower and Hole Dweller to Mortiis-era
 [install it](https://ghoulbox.messy.quest/webapp/installer/) ·
 [hear every sound](https://ghoulbox.messy.quest/sounds/) ·
 [watch the 2.0 demo](https://youtu.be/NMSw1_wnCwQ) ·
+[learn it in five video lessons](https://www.youtube.com/playlist?list=PLMUs0QD7QfOw) ·
 [read the guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.1.pdf)
 
 ## What's new
@@ -137,7 +138,7 @@ Felucca's sequencer, song mode, effects, editor and backups all work as they do 
 
 Version 2.1 (HOME held > ABOUT). A hobby project, tested on one FM-1: **install at your own risk.**
 
-**[User guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.1.pdf):** a 51-page manual: the FM-1's hardware and
+**[User guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.1.pdf):** a 52-page manual: the FM-1's hardware and
 installing; synth basics in plain words (oscillators, filters, envelopes, LFOs, effects, sequencing), each
 with a hands-on exercise; a full reference to every page and all 59 sounds; a first piece built step by
 step, a minor-key chord cheat sheet and dungeon recipes; recording, troubleshooting and a glossary.
