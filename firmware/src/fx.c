@@ -203,9 +203,21 @@ static inline void master_out(int32_t *l, int32_t *r)
 /* length of one division (N_DIV order) in samples at the song tempo */
 static const uint8_t DIV_DEN[6] = {1, 2, 4, 8, 3, 6};    /* original IDs stay fixed; slow rates append */
 static uint32_t midi_beat_samples;                    /* zero until an external clock has a measured tempo */
+/* The breath slope (docs/BREATH_PLAN.md 1): below 70 the BPM value bends into an effective tempo, e = v * (1/3)^(x^2),
+ * x = (70 - v) / 30, in 1/16 BPM for v = 40..69 (70 and up: v itself, with the slope's slope: no step, no kink). */
+static const uint16_t BREATH_E16[30] = {
+    213, 235, 258, 283, 308, 336, 364, 394, 425, 458,
+    491, 525, 560, 596, 632, 669, 705, 742, 778, 814,
+    850, 884, 917, 949, 980, 1009, 1036, 1060, 1083, 1103,
+};
+static uint32_t bpm_beat_samples(void)               /* the song tempo's beat, whatever an external clock does */
+{
+    uint32_t v = (uint32_t)song.g[G_BPM], e16 = v >= 70u ? v * 16u : v < 40u ? BREATH_E16[0] : BREATH_E16[v - 40u];
+    return (uint32_t)FS * 960u / e16;
+}
 static uint32_t beat_samples(void)
 {
-    return song.g[G_CLOCK] && midi_beat_samples ? midi_beat_samples : (uint32_t)FS * 60u / (uint32_t)song.g[G_BPM];
+    return song.g[G_CLOCK] && midi_beat_samples ? midi_beat_samples : bpm_beat_samples();
 }
 static uint32_t div_samples(uint32_t div)
 {

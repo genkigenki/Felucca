@@ -799,6 +799,8 @@ static void maku_drift(void)
             continue;
         }
         v = maku_walk(cur, maku.dra[k], k == 12u ? maku.vp[VB_DRIFT][1] * 16 / 127 : span, k == 12u ? 240 : 127);
+        if (k == 12u && v < 70)                         /* the tempo never wanders down the breath slope (BREATH_PLAN 1) */
+            v = cur;
         if (v != cur)
             maku_dr_put(k, v);
         maku.drw[k] = (int16_t)maku_dr_get(k);

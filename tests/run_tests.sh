@@ -178,6 +178,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "RATCH: x1..x4 in a step (notes, chords, drum hits), gates, chance, swing, projects, user presets, CHANCE page" "$OUT/ratchet_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/maku_test" tests/maku_test.c -lm
     run "MAKU: DENSITY rungs of the kick, 57 / 13-step drones, scale-only notes, arp runs, kick follows ROOT, ducking" "$OUT/maku_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/breath_test" tests/breath_test.c -lm
+    run "BREATH: the effective tempo below 70 BPM (no step, 60 / 50 / 40 BPM)" "$OUT/breath_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/insert_test" tests/insert_test.c -lm
     run "INSERT (Felucca 1.5): MIX 0 bit for bit, every TYPE bounded and DC-free, MIX glide, TYPE change fade" "$OUT/insert_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/midi_control_test" tests/midi_control_test.c -lm
