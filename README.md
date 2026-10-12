@@ -3,15 +3,35 @@
 ![GHOULBOX 1.0: boot, HOME, PRESETS, MENU](docs/ghoulbox-1.0.png)
 
 **GHOULBOX** is dungeon-synth firmware for the **M-VAVE FM-1**: a fork of
-[Felucca](https://github.com/hugelton/Felucca) by Hügelton Instruments (1.0.5.2), tuned for dark ambient,
+[Felucca](https://github.com/hugelton/Felucca) by Hügelton Instruments (1.4.1), tuned for dark ambient,
 medieval and fantasy synth music, from Old Tower and Hole Dweller to Mortiis-era dungeon synth.
 
-**Latest: 1.4.** [Install it](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/) ·
+**Latest: 2.0.** [Install it](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/) ·
 [hear every sound](https://jasonpersinger.github.io/ghoulbox-fm1-dungeon-synth/sounds/) ·
 [watch the demo](https://github.com/jasonpersinger/ghoulbox-fm1-dungeon-synth/releases/download/ghoulbox-v1.3/ghoulbox-demo-1.3.mp4) ·
-[read the guide (PDF)](docs/guide/GHOULBOX-User-Guide-1.4.pdf)
+[read the guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.0.pdf)
 
 ## What's new
+
+### 2.0
+
+- **Built on Felucca 1.4.1** (it was 1.0.5.2), with everything Felucca has added since: see
+  [Felucca's releases](https://github.com/hugelton/Felucca/releases).
+- **12 voices** shared by the four tracks (it was 8), so chords on one track cut fewer notes on another.
+- **Drone latch.** Hold GLO and press F#4, G#4, A#4 or C#5 (the top-row keys labelled OP6, PIT, GLO, MONO)
+  to latch tracks 1–4: a chord you play keeps sounding after you let go, and other tracks can't steal its
+  voices. A new chord replaces it; pressing one of its notes stops it.
+- **Turn the hurdy-gurdy's crank.** Set GURDY's COUP to CRANK and the SELECT knob becomes the wheel: the
+  faster you turn, the louder and brighter; a flick of the wrist kicks the trompette's buzz.
+- **Medieval tunings.** TEMP (SCL > CHORD) tunes a track in Pythagorean, meantone or just intonation from
+  its ROOT, for pure fifths and drones that ring without beating.
+- **Cave ambience.** AMB and CRKL (FX > TAPE) lay a low cave wind and a torch's crackle under the music,
+  with no track and no voice used. Off by default.
+- **Three dungeon scales**: Phrygian dominant, Hungarian minor and double harmonic.
+- **A USB rescue.** If GHOULBOX fails to start twice in a row, or you hold OCT- while switching on, the FM-1
+  starts in a rescue mode with no sound and no menu, where the installer still works.
+
+Your saved projects, user presets and settings load as before.
 
 ### 1.4
 
@@ -93,9 +113,9 @@ Felucca's sequencer, song mode, effects, editor and backups all work as they do 
 - **An old-RPG screen**: VT323 pixel type, stone windows, a sword cursor, flickering wall torches, and the
   CRYPT palette (stone, bone, torch amber, blood red), a blackletter wordmark and a skull at boot.
 
-Version 1.4 (HOME held > ABOUT). A hobby project, tested on one FM-1: **install at your own risk.**
+Version 2.0 (HOME held > ABOUT). A hobby project, tested on one FM-1: **install at your own risk.**
 
-**[User guide (PDF)](docs/guide/GHOULBOX-User-Guide-1.4.pdf):** a 48-page manual: the FM-1's hardware and
+**[User guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.0.pdf):** a 49-page manual: the FM-1's hardware and
 installing; synth basics in plain words (oscillators, filters, envelopes, LFOs, effects, sequencing), each
 with a hands-on exercise; a full reference to every page and all 59 sounds; a first piece built step by
 step, a minor-key chord cheat sheet and dungeon recipes; recording, troubleshooting and a glossary.
@@ -487,6 +507,9 @@ If an update is interrupted and the FM-1 stays black, check whether a computer s
 **WL80UBOOT** (or a USB mass-storage device with ID 4C4A:8057). That is the chip's built-in boot mode, and
 the FM-1 can be brought back:
 
+- If GHOULBOX itself won't start, switch the FM-1 off, then on again while holding **OCT-**: it starts in
+  GHOULBOX's USB rescue (no sound, no menu), and the web installer can install again from there. Two failed
+  starts in a row open the rescue on their own.
 - First try another USB data cable, and close every other app that uses MIDI, then run the web installer again.
 - If it stays in boot mode, [FM-1 Transporter](https://github.com/kurogedelic/FM-1-transporter) reads and
   writes the FM-1's flash from a Mac through a Seeed XIAO RP2040 (three wires to the FM-1's USB lines). Back up

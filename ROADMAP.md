@@ -32,6 +32,11 @@ delay and chorus settings. A 48-page user guide for beginners, and a demo piece 
 A choice of power-on scenes (MENU > SYSTEM > SCENE: DUNGEON, CRYPT, TAVERN, CHAPEL or BLANK) and a hurdy-gurdy
 icon for the GURDY engine.
 
+## Done: 2.0
+
+GHOULBOX on Felucca 1.4.1, 12 voices, a drone latch, the hurdy-gurdy's crank, medieval tunings (TEMP), a cave
+ambience (AMB, CRKL), three dungeon scales and a USB rescue for a firmware that won't start.
+
 ## Next
 
 - small screen polish
