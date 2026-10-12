@@ -9,7 +9,7 @@ medieval and fantasy synth music, from Old Tower and Hole Dweller to Mortiis-era
 **Latest: 2.0.** [Play it in your browser](https://ghoulbox.messy.quest/) ·
 [install it](https://ghoulbox.messy.quest/webapp/installer/) ·
 [hear every sound](https://ghoulbox.messy.quest/sounds/) ·
-[watch the demo](https://github.com/jasonpersinger/ghoulbox-fm1-dungeon-synth/releases/download/ghoulbox-v1.3/ghoulbox-demo-1.3.mp4) ·
+[watch the 2.0 demo](https://youtu.be/NMSw1_wnCwQ) ·
 [read the guide (PDF)](docs/guide/GHOULBOX-User-Guide-2.0.pdf)
 
 ## What's new
