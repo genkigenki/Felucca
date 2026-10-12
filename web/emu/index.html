@@ -32,6 +32,14 @@ main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
 .crest img { image-rendering: pixelated; }
 .tagline { margin: -8px 0 18px; text-align: center; font: 16px/1.4 "DotGothic16", monospace; color: var(--bone);
            letter-spacing: .06em; text-shadow: 0 2px 0 #000; }
+/* the calls under the tagline: Install as the installer's own button (a pixel slab in torch amber) */
+.calls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 24px; margin: 0 0 24px; }
+.slab { display: inline-block; font: 600 18px/1 monospace; letter-spacing: .08em; text-decoration: none; color: var(--night);
+        background: var(--amber); padding: 14px 32px; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .35),
+        inset 0 4px 0 rgba(255, 255, 255, .3), 0 0 0 2px #000; }
+.slab:active { transform: translateY(2px); }
+.slab.bone { background: var(--bone); font-size: 15px; padding: 12px 22px; }
+.calls .plain { font: 14px/1.4 monospace; text-shadow: 0 2px 0 #000; }
 /* the instrument between two torches (the firmware's own, x4: its 4 frames each 120 ms, the right one 2 frames on) */
 .stage { display: grid; grid-template-columns: 48px minmax(0, 1040px) 48px; gap: 40px; align-items: center;
          justify-content: center; isolation: isolate; }   /* (the glow: over the wall, under the torch) */
@@ -117,6 +125,9 @@ footer small { font-size: 11px; opacity: .8; }
   <img class="logo" src="art/logo.png" alt="GHOULBOX">
 </header>
 <p class="tagline">Dungeon synth for the FM-1 · play it here, in your browser</p>
+<nav class="calls"><a class="slab" href="../installer/">Install on your FM-1</a>
+  <a class="slab bone" href="https://ko-fi.com/ghoulbox" target="_blank" rel="noopener">Support on Ko-fi</a>
+  <a class="plain" href="https://github.com/jasonpersinger/ghoulbox-fm1-dungeon-synth/releases/latest">User guide (PDF)</a></nav>
 <div class="stage">
 <div class="torch" aria-hidden="true"></div>
 <div class="device" id="device">

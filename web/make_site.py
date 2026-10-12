@@ -8,6 +8,8 @@
                               JieLi SDK files under Apache-2.0, see LICENSING.md)
   webapp/installer/index.html index_pkg.html, self-contained (fm1pkg.js, fm1ota.js, metadata inlined)
   webapp/editor/index.html    editor.html (+ fukiai.ttf, FUKIAI-LICENSE.txt)
+  webapp/art/                 GHOULBOX: the dungeon's pixel art the installer shows (tools/gen_emu_art.py, from build/gen)
+  webapp/emu/                 GHOULBOX: the browser emulator, build/emu as web/emu/build.sh made it (when it is there)
   src/                        not touched
 
   web/make_site.py build/felucca-X.Y.fwsc X.Y OUT_DIR
@@ -19,6 +21,7 @@ the install.
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -75,6 +78,15 @@ def main(pkg, version, out):
     for doc in ("LICENSE", "LICENSING.md"):
         shutil.copy(HERE.parent / doc, fw / doc)
     shutil.copy(HERE / "editor.html", ed / "index.html")
+    root = HERE.parent                              # GHOULBOX: the art, and the emulator when it was built
+    subprocess.run([sys.executable, str(root / "tools/gen_emu_art.py"), str(root / "build/gen"), str(out / "webapp/art")],
+                   check=True)
+    emu = root / "build/emu"
+    if (emu / "felucca.wasm").exists():
+        shutil.rmtree(out / "webapp/emu", ignore_errors=True)
+        shutil.copytree(emu, out / "webapp/emu", ignore=shutil.ignore_patterns("native*"))
+    else:
+        print("site: no build/emu (web/emu/build.sh): webapp/emu left as it was")
     for f in ("fukiai.ttf", "FUKIAI-LICENSE.txt", "fm1backup.js"):
         if (HERE / f).exists():
             shutil.copy(HERE / f, ed / f)
