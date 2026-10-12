@@ -436,6 +436,13 @@ static const uint8_t *kid_row(uint32_t art, uint32_t ry)
     return o;
 }
 
+#if BOARD_SMK37
+#include "kid_smk.c"                           /* RAINBOW37: the SMK-37's pads, faders, wheels, outer keys, spare buttons */
+#else
+#define KID_WIG kid.wiggle                     /* WIGGLE (the SMK: KNOB 4's and the mod wheel's) */
+#define KID_PRESET_TURN() panel_enc(EN_PRESET)
+#endif
+
 static void kid_sound_to(track_t *t, uint32_t fr);
 
 /* ---------------------------------------------------------------- sound */
@@ -447,7 +454,7 @@ static void kid_knobs(void)                       /* the knobs' state into the f
         return;
     t->p[P_DLY] = (int16_t)clamp(kid.dly0 + kid.echo * 14, 0, 127);
     t->p[P_REV] = (int16_t)clamp(kid.rev0 + kid.echo * 6, 0, 127);
-    t->p[P_LD_PIT] = (int16_t)clamp(KID_SOUND[kid.fr % KID_N].vib + kid.wiggle * 5, -64, 63);
+    t->p[P_LD_PIT] = (int16_t)clamp(KID_SOUND[kid.fr % KID_N].vib + KID_WIG * 5, -64, 63);
     t->p[P_LRATE] = 74;
     t->p[P_CHRD] = kid.chord && !drum_track(t) ? CH_DIA3 : CH_OFF;   /* (a drum friend: one drum a key) */
     t->p[P_VOICE] = kid.chord || kid.mode == KM_STRUM || kid.mode == KM_ACCORD ? V_POLY : kid.voice0;   /* (a mono
@@ -627,6 +634,9 @@ static void kid_master(void)
         return;
     }
     c = KID_VOL_CAP[kid_vol_level() - 1u];
+#if BOARD_SMK37
+    kid_smk_master_cap(c);
+#endif
     if (song.master_q12 > (uint32_t)c)
         song.master_q12 = (uint32_t)c;
     c = (int32_t)song.master_q12 * (int32_t)KID_LIM_X2 / 2;
@@ -1258,6 +1268,9 @@ static void kid_input(void)
     int32_t s;
     uint32_t any = pressed | notes;
     fm6_poll();
+#if BOARD_SMK37
+    any |= (uint32_t)kid_smk_input(pressed);
+#endif
     song.grid = 0;
     perf_kill = 0;
     perf_latch_on = 0;                            /* (held, not latched) */
@@ -1271,7 +1284,7 @@ static void kid_input(void)
                 fm1_irq_on();
             }
     }
-    for (id = 0; id < 14u; id++) {
+    for (id = 0; id < FM1_NBTN; id++) {
         uint32_t b;
         if (!((pressed >> id) & 1u))
             continue;
@@ -1484,7 +1497,7 @@ static void kid_input(void)
         }
         kid_game(lo);
     }
-    if ((s = panel_enc(EN_PRESET)) != 0 && kid.vol_open) {   /* HOME held 1 s: the grown-ups' LOOK-ALIKES */
+    if ((s = KID_PRESET_TURN()) != 0 && kid.vol_open) {   /* HOME held 1 s: the grown-ups' LOOK-ALIKES */
         any = 1u;
         kid_look_set(s < 0);
     } else if (s != 0) {
@@ -1543,6 +1556,9 @@ static void kid_input(void)
     }
 }
 
+#if BOARD_SMK37
+static void kid_leds(void) { kid_smk_leds(); }
+#else
 static void kid_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, nd[FM1_NCOL] = {0};
@@ -1569,6 +1585,7 @@ static void kid_leds(void)
         fm1_led[c] = nl[c];
     }
 }
+#endif
 
 /* -------------------------------------------------------------- drawing */
 static inline uint16_t kid_mix(uint32_t a, uint32_t b, uint32_t t)     /* a .. b, t 0 .. 256 */
@@ -1666,7 +1683,7 @@ static void kid_inst(kid_inst_t *in, int32_t cx, int32_t w, int32_t h, int32_t h
     in->h = (int16_t)h;
     in->invx = (uint16_t)(KID_PW * 256u / (uint32_t)w);
     in->invy = (uint16_t)(KID_PW * 256u / (uint32_t)h);
-    in->wig = (int16_t)(kid.wiggle * w / 96);
+    in->wig = (int16_t)(KID_WIG * w / 96);
     in->x = (int16_t)clamp(cx - w / 2, in->wig, 240 - w - in->wig);           /* never off the screen's sides */
     in->y = (int16_t)clamp(KID_GROUND - h - hop, 0, KID_GROUND - h);         /* .. nor its top */
     in->flip = (kid.fx >> KX_BACK) & 1u;
@@ -1982,7 +1999,7 @@ static uint32_t kid_band_setup(uint32_t now)
         case KH_SIZE: kf.txt = kid.oct < 0 ? "BIG" : kid.oct > 0 ? "SMALL" : "MEDIUM"; v = 4 - kid.oct * 2; break;
         case KH_NIGHT: kf.txt = kid.night >= 5u ? "NIGHT" : kid.night >= 3u ? "SUNSET" : "DAY"; v = kid.night; break;
         case KH_ECHO: v = kid.echo; break;
-        case KH_WIGGLE: v = kid.wiggle; break;
+        case KH_WIGGLE: v = KID_WIG; break;
         case KH_SPEED:
             v = (song.g[G_BPM] - 60) / 15;
             kf.txt = song.g[G_BPM] < 100 ? "SLOW" : song.g[G_BPM] > 135 ? "FAST" : "WALK";
@@ -2504,6 +2521,11 @@ static uint16_t kid_hello_px(int32_t x, int32_t y)
                             (c = kid_hello_line(KID_HELLO_NAME, KID_HELLO_SC, 76, 2u, x, y)) >= 0
                           : (c = kid_hello_line("HI!", 8, 34, 0u, x, y)) >= 0)
         return (uint16_t)c;
+#if BOARD_SMK37
+    if (y >= 190 && ((c = kid_hello_line("RAINBOW37", 3, 196, 3u, x, y)) >= 0 ||
+                     (c = kid_hello_line("SMK-37 PORT BY GENKIGENKI", 1, 226, 12u, x, y)) >= 0))
+        return (uint16_t)c;
+#endif
     if ((c = kid_confetti(x, y, 14u, 5u)) >= 0)
         return (uint16_t)c;
     if ((c = kid_friends_px(x, y)) >= 0)
@@ -2887,7 +2909,7 @@ static void kid_draw(void)
     kid.zz_was = kf.zz_on;
     kid.zx0 = (int16_t)(kf.zz.x - 4);
     kid.zy0 = (int16_t)(kf.zz.y - 4);
-    if (kid.wiggle)
+    if (KID_WIG)
         sig += kf.ph;
     if (y1 > (int32_t)KID_BAND_Y)
         y1 = KID_BAND_Y;

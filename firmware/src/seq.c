@@ -587,7 +587,11 @@ static uint32_t accord_chord(const track_t *t, uint32_t k, int32_t oct, uint8_t 
     return n;
 }
 
-#if BOARD_SMK37
+#ifndef SMK_KEY_VELOCITY
+#define SMK_KEY_VELOCITY 0                          /* RAINBOW37: every key and pad at 100, as on the FM-1 (a small hand's
+                                                     * touch is uneven); 1: the keybed's and the pads' velocity */
+#endif
+#if BOARD_SMK37 && SMK_KEY_VELOCITY
 /* SMK-37 Pro: velocity keys and pads. Key k's velocity (a pad: its white key's, smk_input.h) */
 static uint32_t key_vel(uint32_t k)
 {
@@ -665,6 +669,8 @@ static void ext_keys_block(void)
     int32_t e;
     while ((e = smk_extkey_take()) >= 0) {
         uint32_t k = (uint32_t)e >> 8, v = (uint32_t)e & 0x7Fu, sel = song.sel % NTRK, n, mc;
+        if (v && !SMK_KEY_VELOCITY)
+            v = 100u;
         if (k >= FM1_NKEY)
             continue;
         if (!v) {
