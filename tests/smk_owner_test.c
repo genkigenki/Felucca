@@ -11,6 +11,10 @@
 #error "build with -DBOARD_SMK37=1"
 #endif
 #include "fm1_flash_map.h"
+#ifndef FELUCCA_DATA_FAMILY
+#define FELUCCA_DATA_FAMILY "RAINBOW"            /* tools/build.py SMK_DATA_FAMILY */
+#endif
+#define OURS "SMK37DATA" FELUCCA_DATA_FAMILY
 
 static uint8_t nor[0x100000];
 static int bad_write;
@@ -59,18 +63,24 @@ int main(void)
     fill();
     memcpy(nor + 0xAF000, "SMK37DATASLOOP\0", 16);
     st_owner_check();
-    check("another family's store (SLOOP): cleared, tagged FELUCCA", store_erased() && st_owner_cleared &&
-          !memcmp(nor + 0xAF000, "SMK37DATAFELUCCA", 16));
+    check("another family's store (SLOOP): cleared, tagged " FELUCCA_DATA_FAMILY, store_erased() && st_owner_cleared &&
+          !memcmp(nor + 0xAF000, OURS, 16u));
     check("... calibration (USRTRIM) and samples untouched", others_kept());
     fill();
     memcpy(nor + 0xAF000, "SMK37DATAFELUCCA", 16);
+    st_owner_cleared = 0;
+    st_owner_check();
+    check("a Felucca store (FELUCCA: other settings bytes): cleared, tagged " FELUCCA_DATA_FAMILY,
+          store_erased() && st_owner_cleared && !memcmp(nor + 0xAF000, OURS, 16u));
+    fill();
+    memcpy(nor + 0xAF000, OURS, 16u);
     st_owner_cleared = 0;
     st_owner_check();
     check("our own store: kept as it is", nor[0x9D000] == 0x11 && nor[0xB0000] == 0x22 && !st_owner_cleared);
     fill();
     st_owner_check();
     check("an untagged store (FELUCCA_DATA_UNTAGGED_OK 0): cleared, tagged", store_erased() &&
-          !memcmp(nor + 0xAF000, "SMK37DATAFELUCCA", 16) && others_kept());
+          !memcmp(nor + 0xAF000, OURS, 16u) && others_kept());
     check("nothing written outside FL_DATA's objects, the voice bank and the tag", bad_write == 0);
     printf("%s\n", bad ? "SMK OWNER TEST FAILED" : "smk owner test passed");
     return bad != 0;
