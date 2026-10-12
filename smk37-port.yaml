@@ -1,0 +1,63 @@
+# RAINBOW37: the owner's answers for the SMK-37 port of Rainbow mode (fm1-to-smk37 kit, step 0). Approved.
+
+firmware:
+  name: RAINBOW37
+  upstream: https://github.com/joshbartlettband-web/felucca-rainbow
+  base: Felucca 1.1.5 + Rainbow mode
+  family: felucca
+  board_layer: felucca          # genkigenki/Felucca smk37 (2 commits), adapted to 1.1.5 (no FM6 voice bank)
+  lost_on_smk: [TRS MIDI IN / clock in]
+
+delivery:
+  mode: fork                    # own fork first, an upstream PR later
+  usb_name: Felucca             # unchanged: installers and the editor find it
+  data_family: RAINBOW          # not FELUCCA: Rainbow borrows settings bytes later Felucca releases use
+  boot_logo: Rainbow's hello, with RAINBOW37 and the port credit
+  credit: "SMK-37 port by genkigenki"
+
+models: [pro, elite, mke]       # MODEL=pro|elite|mke; Starrykey 37 Play uses the Pro build
+
+keys:
+  middle: fm1                   # F3..G5 = the FM-1's 27 keys
+  outer: extend                 # more notes on the friend's track
+  velocity: fixed               # 100 for every key and pad (SMK_KEY_VELOCITY 0)
+
+pads:
+  pattern: notes_colour         # the 16 white keys F3..G5, low row bottom
+  colours: KID_NOTE_COL         # C red, D orange, E yellow, F green, G teal, A purple, B pink
+  idle: dim
+  lit: bright                   # held, or lit by FOLLOW / GUESS / CHORDS
+
+faders:
+  fixed: [big/small, day/night, echo, wiggle]   # = KNOB 1-4, allowed double
+  takeover: soft
+
+wheels:
+  pitch: {target: slide, range_semitones: 2}
+  mod: {target: wiggle}         # adds to KNOB 4's wiggle
+  calibration: auto
+
+knobs:
+  K1: master                    # capped by the grown-ups' VOLUME
+  K2: select                    # beat slower / faster
+  K3: algorithm                 # how the keys play
+  K4: presets                   # next / previous friend
+  K5-K8: [big/small, day/night, echo, wiggle]
+
+buttons:
+  map: printed                  # FX SCALE CHORD NOTE-REPEAT PARA GLOBE = HICCUP BACKWARDS SLEEPY SQUEAKY GIANT FREEZE
+  extra:
+    KNOB BANK: surprise friend
+    FADER BANK: next sky
+    "<": previous friend
+    ">": next friend
+  menus_in_toy: none
+
+grown_ups:
+  volume: PATCH (HOME) held 1 s, then OCTAVE- / OCTAVE+
+  look_alikes: PATCH held 1 s, then PRESETS (K4) or < >
+  full_felucca: PATCH + BT (SAVE) held 3 s, until the next power-on
+  hidden: yes                   # on purpose, against the "no hidden modes" rule
+
+screen:
+  style: keep                   # Rainbow's look, same 240x240 screen
