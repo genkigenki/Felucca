@@ -107,7 +107,7 @@ Felucca's sequencer, song mode, effects, editor and backups all work as they do 
   horn, mournful and grim brass, tuba, dark strings, cave wind, torch crackle, a bagpipe, a shawm and five
   hurdy-gurdies, two crypt drum kits, plus the four recordings; seven of them are new 6-operator FM patches.
 - **CRYPT drums**: a dungeon kit on the DRUM engine with the TOMBBEAT pattern.
-- **Nine dungeon patterns** (SEQ > PHRASES), in D minor over the power-on scene's chords: DIRGE, BALLAD,
+- **Nine dungeon patterns** (SAVE > PHRASES), in D minor over the power-on scene's chords: DIRGE, BALLAD,
   CHANT, PEDAL, MARCH, LAMENT, ARPEGGIO, ANTIPHON and TOMBBEAT.
 - **MIDI CC control**: a keyboard or DAW can turn level, pan, envelope, sends, the four engine knobs, the
   LFO, the reverb, delay and chorus settings, CRSH, TAPE and a master low/high-pass filter.

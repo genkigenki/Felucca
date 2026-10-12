@@ -216,10 +216,18 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h3>Three ways to press a button</h3>
 <ul>
   <li><b>Tap</b> a page button for its page, and again for the next page in its group (chapter 14 lists them all). <span class="k">HOME</span> returns to the home screen.</li>
-  <li><b>Hold</b> <span class="k">FX</span>, <span class="k">GLO</span>, <span class="k">SCL</span> or <span class="k">EDIT</span> for a <b>quick layer</b>: shortcuts on the keys and knobs, with a map on the screen. Let go to close it.</li>
-  <li><b>Double-tap</b> one of those four to keep its layer open without holding; tap it again to close.</li>
+  <li><b>Hold</b> <span class="k">FX</span>, <span class="k">GLO</span>, <span class="k">SCL</span>, <span class="k">EDIT</span>, <span class="k">SEQ</span> or <span class="k">REC</span> for a <b>quick layer</b>: shortcuts on the keys and knobs, with a map on the screen. Let go to close it.</li>
+  <li><b>Double-tap</b> one of them to keep its layer open without holding; tap it again to close.</li>
 </ul>
-<p>Other holds: <span class="k">HOME</span> opens the menu, <span class="k">SAVE</span> undoes, <span class="k">SEQ</span> opens the song page, and <span class="k">REC</span> on a sequencer page clears the track's steps (it asks first). In the EDIT layer, each white key picks an engine.</p>
+<p>Other holds: <span class="k">HOME</span> opens the menu and <span class="k">SAVE</span> undoes. What the layers hold:</p>
+<ul>
+  <li><b>FX</b>: performance effects on the keys (chapter 16).</li>
+  <li><b>GLO</b>: the black keys F♯ G♯ A♯ C♯ of the lower octave mute tracks 1–4, the white keys F–B solo them while held, C unmutes all, the upper F taps the tempo, and the upper F♯ G♯ A♯ C♯ latch a drone (chapter 15). KNOB 1–4 are the four tracks' levels; SELECT is the tempo even when BPM LOCK is on.</li>
+  <li><b>SCL</b>: press any key to make it the ROOT; KNOB 1–4 are ROOT, SCL, CHRD and VOIC.</li>
+  <li><b>EDIT</b>: each white key picks an engine.</li>
+  <li><b>SEQ</b> (SEQ TOOLS): the white keys from the lowest F are tools for the selected track's steps: CLEAR, REVERSE, SHIFT ‹, SHIFT ›, RANDOM and COOK (a few notes changed). KNOB 1–4 are LEN, DIV, SWG and GATE (chapter 13).</li>
+  <li><b>REC</b>: the white keys from the lowest F are CLEAR (the selected track's steps and automation, at once; hold SAVE to undo), CLICK, COUNT-IN and CLICK LEVEL; each press steps to the next value.</li>
+</ul>
 <h3>Yes and no</h3>
 <p>Wherever the FM-1 asks something (a dialog, an action page), <span class="k">OCT+</span> means yes / do it and <span class="k">OCT−</span> means no / go back. Their lights show when they answer.</p>
 </section>
@@ -229,7 +237,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <p>GHOULBOX draws Felucca's pages as an old role-playing game would: stone windows, a pixel font, flickering wall torches beside the scope, and a <b>sword</b> that points at what is selected.</p>
 <div class="shots">
   <figure><img src="presets.png" alt="PRESETS list"><figcaption>PRESETS: the sword marks the current sound</figcaption></figure>
-  <figure><img src="menu.png" alt="MENU"><figcaption>The MENU (hold HOME) in four tabs</figcaption></figure>
+  <figure><img src="menu.png" alt="MENU"><figcaption>The MENU (hold HOME) in five tabs</figcaption></figure>
 </div>
 <ul>
   <li><b>The header</b> shows play state, tempo, the track number and battery.</li>
@@ -376,7 +384,8 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <p>An <b>LFO</b> (low-frequency oscillator) is an oscillator too slow to hear. Instead of making sound, it moves a control up and down for you, smoothly and endlessly.</p>
 <ul>
   <li><span class="k">LFO</span> page: <b>RATE</b> (how fast), <b>WAVE</b> (the shape of the movement: SIN and TRI glide smoothly, SQR jumps between two values, SAW ramps, S&amp;H jumps to random values), <b>PHS</b> (where in its cycle each note starts) and <b>FADE</b> (how long it waits to come in after a note starts).</li>
-  <li><span class="k">LFO</span> again for <b>LFO DEST</b>: how much it moves the pitch (PIT), the filter (FLT), the shape (SHP) and the loudness (AMP).</li>
+  <li><span class="k">LFO</span> again for <b>LFO 2</b>: <b>SYNC</b> (OFF, or RATE locked to the tempo as a note length, from 4 bars to 1/32), <b>TRIG</b> (NOTE starts the LFO over with each note, FREE lets it run on) and <b>POL</b> (BI moves both ways, UNI only upward).</li>
+  <li><span class="k">LFO</span> a third time for <b>LFO DEST</b>: how much it moves the pitch (PIT), the filter (FLT), the shape (SHP) and the loudness (AMP).</li>
 </ul>
 <table>
   <tr><th>LFO to…</th><th>Is called</th><th>Sounds like</th></tr>
@@ -385,7 +394,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <tr><td>Filter</td><td>A sweep, a "wah"</td><td>The sound breathing open and closed</td></tr>
 </table>
 <h3>The modulation matrix</h3>
-<p>Tap <span class="k">LFO</span> a third time for <b>MOD</b>: four slots, each connecting a <b>source</b> to a <b>destination</b> with an amount (AMT, which can be negative to turn the movement upside down). KNOB 1 chooses the slot.</p>
+<p>Tap <span class="k">LFO</span> a fourth time for <b>MOD</b>: four slots, each connecting a <b>source</b> to a <b>destination</b> with an amount (AMT, which can be negative to turn the movement upside down). KNOB 1 chooses the slot.</p>
 <ul>
   <li><b>Sources:</b> LFO, ENV (the envelope), VEL (how hard a MIDI key is struck), KEY (how high the note is), RAND (a new random value each note), and from a MIDI controller MODW (the mod wheel), AT (aftertouch) and EXPR (an expression pedal).</li>
   <li><b>Destinations:</b> pitch, cutoff, shape, loudness, pan, the four effect sends, the LFO's own rate, vibrato, and the engine's eight controls (E1–E8).</li>
@@ -393,7 +402,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <div class="try"><b class="t">TRY THIS · Make it breathe</b>
 <ol>
   <li>On T2 with CRYPT PAD, tap <span class="k">LFO</span>: RATE to about a quarter, WAVE to TRI.</li>
-  <li>Tap <span class="k">LFO</span> again (LFO DEST). Turn FLT (KNOB 2) up slowly while holding a chord: the pad starts to swell and fade by itself.</li>
+  <li>Tap <span class="k">LFO</span> twice more (LFO DEST). Turn FLT (KNOB 2) up slowly while holding a chord: the pad starts to swell and fade by itself.</li>
   <li>Set FLT back to 0 and turn PIT (KNOB 1) up only a little: vibrato. Turn RATE up: a nervous warble. Further: a broken tape.</li>
   <li>On <b>MOD</b>, set slot 1 to SRC RAND, DST CUT, a small AMT: each note comes out a little different, as if played by a person.</li>
 </ol></div>
@@ -456,7 +465,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h3>Tempo</h3>
 <p>The <b>tempo</b> is measured in <b>BPM</b>, beats per minute: 60 is one beat a second. Dungeon synth usually sits slow, 50 to 90. Turn <span class="k">SELECT</span> to change it.</p>
 <h3>Steps</h3>
-<p>A <b>step sequencer</b> divides time into equal boxes, <b>steps</b>, and plays what is in each box in turn, round and round. Each track has its own row of up to 64 steps. Two settings on <span class="k">SEQ</span> › PATTERN decide how it moves:</p>
+<p>A <b>step sequencer</b> divides time into equal boxes, <b>steps</b>, and plays what is in each box in turn, round and round. Each track has its own row of up to 64 steps. Two settings decide how it moves; hold <span class="k">SEQ</span> for them (KNOB 1 and 2):</p>
 <ul>
   <li><b>LEN</b>: how many steps before it goes round again.</li>
   <li><b>DIV</b>: how long each step is, as a fraction of a bar (a bar is four beats). 1/4 is one beat per step, 1/8 half a beat, 1/1 a whole bar. The power-on scene uses 1/8.</li>
@@ -492,10 +501,13 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <p>Each page button opens a group of pages; tap it again for the next (it remembers the last one you used). On every page, <span class="k">KNOB 1–4</span> change the four values shown, left to right.</p>
 <table>
   <tr><th>Button</th><th>Page</th><th>KNOB 1 · 2 · 3 · 4</th></tr>
-  <tr><td><span class="k">HOME</span></td><td>HOME</td><td>The engine's four main controls (ANALOG: CUT · RES · ATK · REL)</td></tr>
+  <tr><td rowspan="3"><span class="k">HOME</span></td><td>HOME</td><td>The engine's four main controls (ANALOG: CUT · RES · ATK · REL)</td></tr>
+  <tr><td>MIXER</td><td>The selected track's LEVEL · PAN · REV · MUTE (tap HOME on HOME)</td></tr>
+  <tr><td>CLOCK</td><td>BPM · SWG · CLK (INT, USB, TRS)</td></tr>
   <tr><td rowspan="2"><span class="k">ENV</span></td><td>ENV</td><td>ATK · DEC · SUS · REL</td></tr>
   <tr><td>ENV DEST</td><td>FLT · PIT · SHP (how much the envelope moves each)</td></tr>
-  <tr><td rowspan="3"><span class="k">LFO</span></td><td>LFO</td><td>RATE · WAVE · PHS · FADE</td></tr>
+  <tr><td rowspan="4"><span class="k">LFO</span></td><td>LFO</td><td>RATE · WAVE · PHS · FADE</td></tr>
+  <tr><td>LFO 2</td><td>SYNC · TRIG · POL</td></tr>
   <tr><td>LFO DEST</td><td>PIT · FLT · SHP · AMP</td></tr>
   <tr><td>MOD</td><td>slot (1–4) · SRC · DST · AMT</td></tr>
   <tr><td rowspan="6"><span class="k">FX</span></td><td>FX</td><td>The track's sends: DST · CHO · DLY · REV</td></tr>
@@ -509,21 +521,16 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <tr><td rowspan="3"><span class="k">EDIT</span></td><td>EDIT 1 · EDIT 2</td><td>The engine's eight controls, four per page (chapter 15)</td></tr>
   <tr><td>VOICE</td><td>VCE · GLD · GLMOD · PRIO</td></tr>
   <tr><td>VOICE 2</td><td>ALLOC · DTUNE · PAN · MUTE</td></tr>
-  <tr><td rowspan="3"><span class="k">GLO</span></td><td>MIXER</td><td>Level, pan, reverb and mute of all four tracks</td></tr>
-  <tr><td>GLOBAL</td><td>BPM · SWG · CLK (INT, USB, TRS) · TUNE (±50 cents)</td></tr>
-  <tr><td>SYSTEM</td><td>USB status · SYNC · ROUT (CH1-4, SEL) · CPU load</td></tr>
-  <tr><td rowspan="4"><span class="k">SAVE</span></td><td>USER</td><td>slot (1–32) · LOAD · ERASE · SAVE</td></tr>
+  <tr><td><span class="k">GLO</span></td><td>SONG</td><td>SECTION (the row) · TRACK · PAT (A–D, or – for silent) · REPS (1–16)</td></tr>
+  <tr><td rowspan="5"><span class="k">SAVE</span></td><td>USER</td><td>slot (1–32) · LOAD · ERASE · SAVE</td></tr>
+  <tr><td>PHRASES</td><td>The factory pattern to load</td></tr>
   <tr><td>PROJECT</td><td>SLOT (1–4) · – · LOAD · SAVE</td></tr>
   <tr><td>TOOLS</td><td>PAT (clear the track's steps) · SOUND (reset the sound) · ROW · SONG</td></tr>
-  <tr><td>PRESETS</td><td>sound · engine · mark as favourite · show favourites only</td></tr>
+  <tr><td>PRESETS</td><td>sound · engine · mark as favourite · LIST (ALL, FAV, or one kind: BASS, LEAD, PAD, PLUCK, KEYS, DRUM, FX, OTHER)</td></tr>
   <tr><td rowspan="2"><span class="k">ARP</span></td><td>ARP</td><td>MODE · RATE · OCT · GATE</td></tr>
   <tr><td>ARP 2</td><td>SWG · PROB · HOLD · ORD</td></tr>
-  <tr><td rowspan="5"><span class="k">SEQ</span></td><td>STEP</td><td>STEP · NOTE · TIME (NOTE, TIE, REST) · FLAG (ACC, SLD, A+S); on a drum track STEP · LANE · HIT · ACC</td></tr>
-  <tr><td>PATTERN</td><td>LEN · DIV · SWG · GATE</td></tr>
-  <tr><td>PHRASES</td><td>The factory pattern to load</td></tr>
-  <tr><td>CHANCE</td><td>STEP · CHANCE (%) · RATCH (×1–×4)</td></tr>
-  <tr><td>AUTOMATION</td><td>PLAY (on/off) · EVENT (how many) · – · CLEAR</td></tr>
-  <tr><td>SEQ held</td><td>SONG</td><td>ROW · PAT (A–D) · REPS (1–16)</td></tr>
+  <tr><td rowspan="2"><span class="k">SEQ</span></td><td>STEP</td><td>STEP · NOTE · TIME (NOTE, TIE, REST) · FLAG (ACC, SLD, A+S); on a drum track STEP · LANE · HIT · ACC</td></tr>
+  <tr><td>AUTOMATION</td><td>A list of the track's automation and its steps' CHANCE, RATCH and NUDGE: row · step · parameter · value (chapter 17)</td></tr>
 </table>
 <p><b>Action knobs</b> (LOAD, SAVE, CLEAR and the like): turn the knob right to pick the action, then press <span class="k">OCT+</span> to do it. Anything that would overwrite your work asks first.</p>
 <div class="note">The <span class="k">PRESETS</span> knob changes the sound on every page that is not a list, so you can audition sounds from anywhere. On the SEQ pages it moves the step cursor instead, and on the lists it moves the selection.</div>
@@ -609,7 +616,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h2>17 · Sequencer, patterns and songs</h2>
 <p>Each track has its own sequence of up to 64 steps, with chords, ties, accents, slides, per-step chance and ratchets.</p>
 <h3>Load a factory pattern</h3>
-<p><span class="k">SEQ</span> › PHRASES lists ready-made patterns. Choose one with KNOB 1 (or PRESETS) and press <span class="k">OCT+</span> to load it into the selected track; if the track has notes you wrote, it asks first. GHOULBOX adds nine, all in D minor:</p>
+<p><span class="k">SAVE</span> › PHRASES (tap SAVE twice) lists ready-made patterns. Choose one with KNOB 1 (or PRESETS) and press <span class="k">OCT+</span> to load it into the selected track; if the track has notes you wrote, it asks first. GHOULBOX adds nine, all in D minor:</p>
 <table>
   <tr><th>Pattern</th><th>What it is</th><th>Try it on</th></tr>
   <tr><td>DIRGE</td><td>Slow pad chords</td><td>CRYPT PAD, DARK STRINGS, PIPE ORGAN</td></tr>
@@ -632,22 +639,22 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <li>FLAG (KNOB 4): <b>ACC</b> plays the step louder, <b>SLD</b> slides into the next note, <b>A+S</b> both.</li>
 </ol>
 <h3>Record live</h3>
-<p>Press <span class="k">REC</span> to arm the selected track (from any page), press <span class="k">PLAY</span>, and play: what you play is written into the steps as they pass. The sequence loops, and you can keep adding on each pass (overdub). Press REC again to stop recording. Knob moves on an armed track are recorded too (<b>automation</b>): the sound changes at those steps every time round. <span class="k">SEQ</span> › AUTOMATION turns it off or clears it.</p>
+<p>Press <span class="k">REC</span> to arm the selected track (from any page), press <span class="k">PLAY</span>, and play: what you play is written into the steps as they pass. The sequence loops, and you can keep adding on each pass (overdub). Press REC again to stop recording. Knob moves on an armed track are recorded too (<b>automation</b>): the sound changes at those steps every time round. <span class="k">SEQ</span> › AUTOMATION (tap SEQ twice) lists them; its first row turns them off or clears them.</p>
 <h3>Chance and ratchets</h3>
-<p>On <span class="k">SEQ</span> › CHANCE, give each step a <b>CHANCE</b> (the percentage of times it plays: lower values make a pattern sparse and alive) and a <b>RATCH</b> count (the step played 2, 3 or 4 times within its length: a drum roll).</p>
+<p>A step can have a <b>CHANCE</b> (the percentage of times it plays: lower values make a pattern sparse and alive) and a <b>RATCH</b> count (the step played 2, 3 or 4 times within its length: a drum roll). Add them on <span class="k">SEQ</span> › AUTOMATION: turn KNOB 1 to the last row, <b>+ ADD</b>; choose the step with KNOB 2 and CHANCE or RATCH with KNOB 3, and press <span class="k">OCT+</span> (it starts at 50 % or ×2). KNOB 4 then sets the value. <span class="k">EDIT</span> on a row puts the step back to 100 % or ×1.</p>
 <h3>Length, speed and clearing</h3>
 <ul>
-  <li><span class="k">SEQ</span> › PATTERN: LEN (1–64 steps), DIV (step length, from 4 bars to 1/32), SWG (swing), GATE (how long notes sound within their step).</li>
-  <li><b>Clear</b> the track's steps: hold <span class="k">REC</span> on STEP, PATTERN or CHANCE (or <span class="k">SAVE</span> › TOOLS › PAT); <span class="k">OCT+</span> clears, <span class="k">OCT−</span> cancels. Holding <span class="k">SAVE</span> undoes it.</li>
+  <li>Hold <span class="k">SEQ</span>: KNOB 1–4 are LEN (1–64 steps), DIV (step length, from 4 bars to 1/32), SWG (swing) and GATE (how long notes sound within their step).</li>
+  <li><b>Clear</b> the track's steps: hold <span class="k">REC</span> (or <span class="k">SEQ</span>) and press the lowest F key, CLEAR. It clears at once; holding <span class="k">SAVE</span> undoes it. <span class="k">SAVE</span> › TOOLS › PAT does the same but asks first.</li>
 </ul>
 <h3>Songs</h3>
-<p>A song chains up to four sections into a longer piece. Each section is a <b>saved project</b>: song pattern <b>A</b> is the steps of project 1, <b>B</b> of project 2, <b>C</b> of 3 and <b>D</b> of 4. The song plays them with the sounds currently loaded.</p>
+<p>A song chains up to 16 rows (sections) into a longer piece. Its patterns are <b>saved projects</b>: <b>A</b> is the steps of project 1, <b>B</b> of project 2, <b>C</b> of 3 and <b>D</b> of 4. Each row says, for each track, which of them it plays (or <b>–</b>, silent), so in one section the drone can keep A while the melody moves on to B. The song plays them with the sounds currently loaded.</p>
 <ol>
   <li>Make a section and save it as project 1 (chapter 18). Change the notes for the next section and save it as project 2, and so on.</li>
-  <li>Hold <span class="k">SEQ</span> for the SONG page. KNOB 1 picks a row (up to 16); KNOB 2 sets which section it plays (A–D), KNOB 3 how many times (1–16). Turning KNOB 2 or 3 on the empty row after the last adds a new row.</li>
+  <li>Tap <span class="k">GLO</span> for the SONG page. KNOB 1 picks a row. The last row, <b>+ ADD</b>, makes a new one when you set a pattern there (a new song starts with only + ADD): a copy of the row before, or every track on that pattern for the first. KNOB 2 picks a track and KNOB 3 its pattern (A–D or –); the A, B, C and D keys (the lowest A, B, C and D) set it too. KNOB 4 sets how many times the row plays (1–16).</li>
   <li>Press <span class="k">PLAY</span> on the SONG page to play the song from the top. Edit the sections while stopped.</li>
 </ol>
-<p class="small">For example, rows A ×2, B ×1, A ×2, C ×1 give a verse, a bridge, the verse again and an ending. <span class="k">SAVE</span> › TOOLS › ROW deletes a row and SONG clears the whole song.</p>
+<p class="small">For example, rows A ×2, B ×1, A ×2, C ×1 give a verse, a bridge, the verse again and an ending (each with all four tracks on that letter). <span class="k">SAVE</span> › TOOLS › ROW deletes a row and SONG clears the whole song.</p>
 </section>
 
 <section>
@@ -671,18 +678,19 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <p>Hold <span class="k">SAVE</span> to go back before the last sound load, pattern load or clear (hold again to redo).</p>
 <h3>Backups</h3>
 <p>The web editor (on the installer site) makes a full backup of the FM-1 to your computer and restores it. Do one now and then, and before any experiment you might regret.</p>
-<div class="note">The FM-1 always starts with the power-on scene (MENU › SYSTEM › SCENE), not your last project. Your saved projects stay in their slots; load one from <span class="k">SAVE</span> › PROJECT.</div>
+<div class="note">The FM-1 starts with the power-on scene (MENU › SYSTEM › SCENE), not your last session, unless you set MENU › SYSTEM › RESTORE LAST to ON. Your saved projects stay in their slots; load one from <span class="k">SAVE</span> › PROJECT.</div>
 </section>
 
 <section>
 <h2>19 · The menu</h2>
-<p>Hold <span class="k">HOME</span> for the menu. <span class="k">ALGORITHM</span> moves between its four tabs, <span class="k">PRESETS</span> through the rows, and any knob or <span class="k">OCT−</span> / <span class="k">OCT+</span> changes a value. Press <span class="k">HOME</span> to close it.</p>
+<p>Hold <span class="k">HOME</span> for the menu. <span class="k">ALGORITHM</span> moves between its five tabs, <span class="k">PRESETS</span> through the rows, and any knob or <span class="k">OCT−</span> / <span class="k">OCT+</span> changes a value. Press <span class="k">HOME</span> to close it.</p>
 <table>
   <tr><th>Tab</th><th>Settings</th></tr>
-  <tr><td>DISPLAY</td><td><b>COLOR</b> (palette; GHOULBOX's is CRYPT) · <b>STYLE</b> (FLAT or LINE) · <b>LARGE</b> (bigger knob cards) · <b>ANIM</b> (rolling digits on or off) · <b>LEDS</b> (OFF, DIM LO, DIM HI, INV)</td></tr>
-  <tr><td>CONTROL</td><td><b>HOLD</b> (how long a quick layer takes to open) · <b>KNOB ACCEL</b> (fast turns move further) · <b>FX LATCH</b> · <b>BPM LOCK</b> (SELECT stops changing the tempo)</td></tr>
-  <tr><td>AUDIO</td><td><b>SPEAKER EQ</b> (FLAT, LOWCUT, BASS+; keep FLAT when recording) · <b>USB LEVEL</b> (MASTER or FIXED)</td></tr>
-  <tr><td>SYSTEM</td><td><b>SCENE</b> (what plays at power-on: DUNGEON, CRYPT, TAVERN, CHAPEL or BLANK; chapter 3) · <b>USB SERIAL</b> (OFF from 1.2 on; turn it ON only for Felucca's developer console, and keep it OFF on macOS 13–15 so the USB audio input appears) · HARDWARE CALIBRATION · ABOUT (the version)</td></tr>
+  <tr><td>DISPLAY</td><td><b>COLOR</b> (palette; GHOULBOX's is CRYPT) · <b>STYLE</b> (FLAT or LINE) · <b>LARGE</b> (bigger knob cards) · <b>ANIM</b> (rolling digits ON or OFF; IDLE also plays a light show on the keys when you leave it alone) · <b>LEDS</b> (OFF, DIM LO, DIM HI, INV) · <b>SCREEN OFF</b> (after NEVER, 5, 15, 30 or 60 minutes) · <b>SCOPE</b> (OUT draws the sound after MASTER, MIX before it) · <b>HOME</b> (SCOPE, or TRACKS: all four tracks at a glance)</td></tr>
+  <tr><td>CONTROL</td><td><b>HOLD</b> (how long a quick layer takes to open) · <b>KNOB ACCEL</b> (fast turns move further) · <b>FX LATCH</b> · <b>BPM LOCK</b> (SELECT stops changing the tempo) · <b>SCALE LEDS</b> (the keys light the scale) · <b>STEP PREVIEW</b> (on STEP, the cursor's step sounds as you move to it) · <b>CHORD ENTRY</b> (HOLD writes the keys held together into a step; ADD adds each key to it)</td></tr>
+  <tr><td>AUDIO</td><td><b>SPEAKER EQ</b> (FLAT, LOWCUT, BASS+; keep FLAT when recording) · <b>USB LEVEL</b> (MASTER or FIXED) · <b>CLICK</b> (a metronome: OFF, REC while recording, or ON) · <b>CLICK LEVEL</b> · <b>COUNT-IN</b> (OFF, 1 BAR, 2 BARS before recording) · <b>TUNE</b> (±50 cents, saved with the project)</td></tr>
+  <tr><td>MIDI</td><td><b>MIDI IN</b> (which channels play which track: chapter 20; saved with the project)</td></tr>
+  <tr><td>SYSTEM</td><td><b>SCENE</b> (what plays at power-on: DUNGEON, CRYPT, TAVERN, CHAPEL or BLANK; chapter 3) · <b>USB SERIAL</b> (OFF from 1.2 on; turn it ON only for Felucca's developer console, and keep it OFF on macOS 13–15 so the USB audio input appears) · <b>RESTORE LAST</b> (ON brings back your last session at power-on instead of the scene; GHOULBOX starts with it OFF) · HARDWARE CALIBRATION · <b>INFO</b> (the firmware, the USB connection and the CPU load) · ABOUT (the version)</td></tr>
 </table>
 </section>
 
@@ -693,10 +701,10 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <ul>
   <li><b>A computer</b> over USB: a DAW (music software) can play the FM-1's tracks, and the FM-1's keys send notes back to it. No driver needed.</li>
   <li><b>A MIDI keyboard or controller</b>: over USB through a computer, or into the MIDI IN socket with a 3.5 mm adapter (chapter 1). A bigger keyboard gives you more octaves and touch-sensitive keys.</li>
-  <li><b>Another instrument's clock</b>: <span class="k">GLO</span> › GLOBAL › CLK set to USB or TRS makes the FM-1 follow the tempo and start/stop of a computer or drum machine.</li>
+  <li><b>Another instrument's clock</b>: <span class="k">HOME</span> › CLOCK › CLK (tap HOME twice on HOME) set to USB or TRS makes the FM-1 follow the tempo and start/stop of a computer or drum machine.</li>
 </ul>
 <h3>Channels</h3>
-<p>MIDI has 16 channels, like 16 radio stations on one cable. With <span class="k">GLO</span> › SYSTEM › ROUT on <b>CH1-4</b>, channels 1–4 play tracks 1–4 and 5–16 are ignored: a DAW can play all four tracks at once. With ROUT on <b>SEL</b>, every channel plays the selected track. Pitch bend and the sustain pedal work too.</p>
+<p>MIDI has 16 channels, like 16 radio stations on one cable. With MENU › MIDI › MIDI IN on <b>CH1-4</b>, channels 1–4 play tracks 1–4 and the rest are ignored: a DAW can play all four tracks at once. <b>CH5-8</b>, <b>CH9-12</b> and <b>CH13-16</b> do the same with those channels, to share a cable with other instruments. With <b>SEL</b>, every channel plays the selected track. Pitch bend and the sustain pedal work too.</p>
 <h3>Control changes (CC)</h3>
 <p>Knobs on a MIDI controller send <b>control changes</b>, numbered 0–127. These turn the FM-1's controls: those marked <i>track</i> on the channel's track, the others for the whole mix:</p>
 <table>
@@ -707,6 +715,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <tr><td>76 · 77 · 78</td><td>LFO rate · LFO to pitch (vibrato) · LFO fade-in (track)</td></tr>
   <tr><td>110 · 111</td><td>LFO to filter · LFO to loudness (tremolo) (track)</td></tr>
   <tr><td>21–24</td><td>The four engine knobs (the HOME page's) (track)</td></tr>
+  <tr><td>5 · 71</td><td>Glide · the engine's resonance, where it has one (track)</td></tr>
   <tr><td>85 · 86</td><td>CRSH · TAPE</td></tr>
   <tr><td>102 · 103</td><td>REVERB SIZE · DAMP</td></tr>
   <tr><td>104 · 105 · 106 · 107</td><td>DLY TIME (from 4 bars at 0 to 1/32 at 127) · FDBK · COLR · MIX</td></tr>
@@ -751,18 +760,18 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h3>1. Clear the table</h3>
 <ol>
   <li>Switch the FM-1 on (the power-on scene loads; this walk-through assumes DUNGEON, the default SCENE). Don't press PLAY yet.</li>
-  <li>For each track, T1–T4 (<span class="k">ALGORITHM</span>): go to <span class="k">SEQ</span> › STEP, hold <span class="k">REC</span> and press <span class="k">OCT+</span>. The steps are cleared; the sounds stay.</li>
+  <li>For each track, T1–T4 (<span class="k">ALGORITHM</span>): hold <span class="k">REC</span> and press the lowest F key (CLEAR). The steps are cleared; the sounds stay.</li>
   <li>Turn <span class="k">SELECT</span> to about 66 BPM.</li>
 </ol>
 <h3>2. The drone (track 4)</h3>
 <ol>
   <li>Choose T4. Its sound is DRONE WHEEL, a hurdy-gurdy drone. On <span class="k">EDIT</span>, check DRN is <b>D</b>.</li>
-  <li>Go to <span class="k">SEQ</span> › PHRASES, choose <b>PEDAL</b> and press <span class="k">OCT+</span>. Press PLAY: a low D that never stops. Leave it playing.</li>
+  <li>Tap <span class="k">SAVE</span> twice for PHRASES, choose <b>PEDAL</b> and press <span class="k">OCT+</span>. Press PLAY: a low D that never stops. Leave it playing.</li>
 </ol>
 <h3>3. The chords (track 2)</h3>
 <ol>
   <li>Choose T2 (CRYPT PAD). On <span class="k">SCL</span>: ROOT <b>D</b>, SCL <b>MIN</b>, QNT <b>WHITE</b>.</li>
-  <li><span class="k">SEQ</span> › PATTERN: LEN <b>4</b>, DIV <b>1/1</b>. Four steps, a bar each.</li>
+  <li>Hold <span class="k">SEQ</span> and set LEN (KNOB 1) to <b>4</b> and DIV (KNOB 2) to <b>1/1</b>. Four steps, a bar each.</li>
   <li><span class="k">SEQ</span> › STEP, cursor on step 1 (KNOB 1). Press and release each chord shape in turn; each fills one step:
     <ul>
       <li>C + E + G (D minor)</li>
@@ -775,19 +784,19 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h3>4. The melody (track 1)</h3>
 <ol>
   <li>Choose T1 (HURDY GURDY). On <span class="k">SCL</span>: ROOT D, SCL MIN, QNT WHITE. On <span class="k">EDIT</span>, BUZZ to 0 for now: a plain, sad gurdy.</li>
-  <li><span class="k">SEQ</span> › PATTERN: LEN <b>32</b>, DIV <b>1/8</b> (four bars, the same length as the chords).</li>
+  <li>Hold <span class="k">SEQ</span>: LEN <b>32</b>, DIV <b>1/8</b> (four bars, the same length as the chords).</li>
   <li>Play along with the chords, slowly, until a few notes feel right. Simple is good: a handful of notes, mostly stepping to neighbours, ending on the C key (D).</li>
-  <li>Press <span class="k">REC</span>, wait for the loop to come round, and play it. Press REC again when you're done. Not right? Hold <span class="k">REC</span> on STEP to clear (OCT+), and try again.</li>
+  <li>Press <span class="k">REC</span>, wait for the loop to come round, and play it. Press REC again when you're done. Not right? Hold <span class="k">REC</span> and press the lowest F key to clear, and try again.</li>
 </ol>
 <p class="small">Rather not play it live? Load <b>LAMENT</b> or <b>BALLAD</b> from PHRASES instead, or write it a note at a time on STEP (chapter 17).</p>
 <h3>5. The drum (track 3)</h3>
 <ol>
   <li>Choose T3. Turn <span class="k">PRESETS</span> to <b>TOMB DRUMS</b>. Load <b>TOMBBEAT</b> from PHRASES.</li>
-  <li>Too busy? On <span class="k">SEQ</span> › CHANCE, give a few steps 50%: the beat thins out and never repeats exactly.</li>
+  <li>Too busy? On <span class="k">SEQ</span> › AUTOMATION, add a CHANCE of 50% to a few steps (chapter 17): the beat thins out and never repeats exactly.</li>
 </ol>
 <h3>6. Mix and room</h3>
 <ol>
-  <li><span class="k">GLO</span> › MIXER: bring the drone and drum down until the melody and chords sit on top.</li>
+  <li>Hold <span class="k">GLO</span> and turn KNOB 4 and KNOB 3 (the drone's and the drum's levels) down until the melody and chords sit on top.</li>
   <li><span class="k">FX</span>: give the pad and drum plenty of REV, the melody a little less. <span class="k">FX</span> › REVERB: SIZE high. <span class="k">FX</span> › TAPE: TAPE 60.</li>
 </ol>
 <h3>7. Save it, then make section B</h3>
@@ -799,10 +808,12 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 </ol>
 <h3>8. The song</h3>
 <ol>
-  <li>Hold <span class="k">SEQ</span>. Make the rows: <b>A ×2</b>, <b>B ×1</b>, <b>A ×2</b>.</li>
+  <li>Tap <span class="k">GLO</span> for the SONG page. It shows only <b>+ ADD</b>. Press the <b>A</b> key: the first row, every track on A. Set its REPS (KNOB 4) to 2.</li>
+  <li>Turn KNOB 1 to <b>+ ADD</b> and press the <b>B</b> key: a second row. Its other tracks are still on A: for each one (KNOB 2: T1 to T4) press <b>B</b>. REPS 1.</li>
+  <li>On <b>+ ADD</b> again, press <b>A</b> and set every track back to <b>A</b> the same way; REPS 2. The rows read <b>A ×2</b>, <b>B ×1</b>, <b>A ×2</b>.</li>
   <li>Press <span class="k">PLAY</span> on the SONG page. That's a piece.</li>
 </ol>
-<div class="note">The song plays the steps of each section with the sounds loaded right now, so the BUZZ you added in section B stays on when A comes back. Use the sounds' levels and the mutes on the MIXER rather than sound changes to make sections differ, or set the sound back before saving each section.</div>
+<div class="note">The song plays the steps of each section with the sounds loaded right now, so the BUZZ you added in section B stays on when A comes back. Use the tracks' levels, or a track set to – on a row, rather than sound changes to make sections differ, or set the sound back before saving each section.</div>
 </section>
 
 <section>
@@ -858,7 +869,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h2>24 · Dungeon recipes</h2>
 <p class="lede">Starting points. Load the sound with PRESETS, then adjust.</p>
 <h3>Old Tower-style pad</h3>
-<p>CRYPT PAD or DARK STRINGS on a track, the DIRGE pattern from SEQ › PHRASES, REVERB SIZE high, TAPE around 60. Slow everything down: tempo 60–70, DIV 1/4 or 1/2.</p>
+<p>CRYPT PAD or DARK STRINGS on a track, the DIRGE pattern from SAVE › PHRASES, REVERB SIZE high, TAPE around 60. Slow everything down: tempo 60–70, DIV 1/4 or 1/2.</p>
 <h3>Lone hurdy-gurdy</h3>
 <p>HURDY GURDY with DRN set to your key. Use COUP 1/8 for rhythmic buzz strokes on a dance tune, or BUZZ at zero for a sad, plain drone.</p>
 <h3>Monastery</h3>
@@ -883,7 +894,7 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
   <li>Hold <span class="k">HOME</span> for the menu. On AUDIO, set SPEAKER EQ to <b>FLAT</b> (the other settings colour the recording). For a level that doesn't depend on the MASTER knob, set USB LEVEL to <b>FIXED</b>.</li>
   <li>Connect the FM-1 with a USB data cable. It appears as an audio input named <b>"Felucca"</b>, stereo, 44.1 kHz. No driver is needed on Windows, macOS or Linux. (On a Mac with macOS 13–15, MENU › SYSTEM › USB SERIAL must be OFF; it is, from 1.2 on.)</li>
   <li>In recording software (Audacity is free; any DAW works), choose "Felucca" as the input, stereo, and record while the song plays.</li>
-  <li>Watch the level meter: the loudest moments should stay below the top. If it hits the top, turn the track levels down on <span class="k">GLO</span> › MIXER, or MASTER if USB LEVEL is on MASTER.</li>
+  <li>Watch the level meter: the loudest moments should stay below the top. If it hits the top, turn the track levels down (hold <span class="k">GLO</span>: KNOB 1–4), or MASTER if USB LEVEL is on MASTER.</li>
 </ol>
 <h3>Into a recorder or a mixer</h3>
 <p>Use the 3.5 mm audio out with a stereo cable. Turn MASTER to about three-quarters and set the level on the receiving end.</p>
@@ -909,19 +920,19 @@ dl.gl dd { margin: 0 0 2pt; break-inside: avoid; }
 <h2>26 · Troubleshooting</h2>
 <table>
   <tr><th>Problem</th><th>What to try</th></tr>
-  <tr><td>No sound</td><td>Turn up MASTER; check the track isn't muted (GLO › MIXER) and its level isn't at zero; headphones in the jack silence the speaker.</td></tr>
+  <tr><td>No sound</td><td>Turn up MASTER; check the track isn't muted (HOME › MIXER, or hold GLO: a muted track's black key is dark) and its level isn't at zero; headphones in the jack silence the speaker.</td></tr>
   <tr><td>Sound from the speaker even with headphones in</td><td>Use a stereo (TRS) plug; a headset (TRRS) plug may not switch the speaker off.</td></tr>
   <tr><td>Notes cut off or missing</td><td>All four tracks share 12 voices. Use MONO on parts that play one note at a time, fewer UNI tracks, or shorter releases.</td></tr>
   <tr><td>A key plays nothing</td><td>QNT is on WHITE: the black keys are silent. Set QNT to OFF on <span class="k">SCL</span> for the full keyboard.</td></tr>
   <tr><td>The keys play the wrong notes</td><td>Check SCL (ROOT, QNT, TRN) and the octave (OCT− / OCT+).</td></tr>
   <tr><td>"STOP TO EDIT" / "STOP TO SAVE"</td><td>Stop playback first. Songs and saving need the transport stopped.</td></tr>
   <tr><td>The song won't play</td><td>Each row's section (A–D) needs a saved project in that slot (A = project 1). The SONG page needs at least one row.</td></tr>
-  <tr><td>The tempo won't change</td><td>MENU › CONTROL › BPM LOCK is on, or GLO › GLOBAL › CLK follows an external clock (set it to INT).</td></tr>
+  <tr><td>The tempo won't change</td><td>MENU › CONTROL › BPM LOCK is on, or HOME › CLOCK › CLK follows an external clock (set it to INT).</td></tr>
   <tr><td>The installer can't find the FM-1</td><td>Use a USB data cable, close other music software, use Chrome or Edge.</td></tr>
   <tr><td>The installer stops after "update mode"</td><td>Unplug and replug the USB cable and press Install again. The FM-1 waits in update mode until finished.</td></tr>
   <tr><td>"NO SAMPLE" and a plain tone</td><td>The SAMPLE or GRAIN source is an empty user slot (USR1–3). Pick a built-in set or upload a sample in the web editor.</td></tr>
-  <tr><td>A keyboard or DAW plays the wrong track</td><td><span class="k">GLO</span> › SYSTEM › ROUT: CH1-4 sends channels 1–4 to tracks 1–4 and ignores 5–16; SEL sends every channel to the selected track.</td></tr>
-  <tr><td>A keyboard on MIDI IN plays nothing</td><td>Try the other type of 3.5 mm MIDI adapter (Type A or B), and check the keyboard sends on channel 1–4 (or set ROUT to SEL).</td></tr>
+  <tr><td>A keyboard or DAW plays the wrong track</td><td>MENU › MIDI › MIDI IN: CH1-4 sends channels 1–4 to tracks 1–4 (CH5-8 and the rest: those channels); SEL sends every channel to the selected track.</td></tr>
+  <tr><td>A keyboard on MIDI IN plays nothing</td><td>Try the other type of 3.5 mm MIDI adapter (Type A or B), and check the keyboard sends on a channel MENU › MIDI › MIDI IN listens to (1–4 on CH1-4), or set MIDI IN to SEL.</td></tr>
   <tr><td>No USB audio on a Mac</td><td>MENU › SYSTEM › USB SERIAL OFF (macOS 13–15).</td></tr>
   <tr><td>The recording sounds thin or boomy</td><td>MENU › AUDIO › SPEAKER EQ to FLAT.</td></tr>
   <tr><td>The screen is black after an interrupted update</td><td>If GHOULBOX itself won't start, switch the FM-1 on while holding <span class="k">OCT−</span>: it starts in its USB rescue (no sound, no menu), and the installer can install again from there; two failed starts in a row open it on their own. If the computer sees a device named WL80UBOOT, the FM-1 is in its boot mode and can be recovered: try another cable and run the installer again. Felucca's README describes further recovery.</td></tr>
