@@ -1304,10 +1304,9 @@ static void names_notice(void)
     if (ui_prefs2 & (PREF_NAMES_OFF >> 16))           /* (a bit of ui_prefs2, as CHORD ENTRY's) */
         return;
     m = names_mask(&bass);
-    if (!m) {                                           /* the keys up: the name fades as a message does */
-        said[0] = 0;
+    if (!m)                                             /* the keys up: the name fades as a message does (still this
+                                                         * one's: the next key, played before it has gone, renames it) */
         return;
-    }
     if (ui.msg_t && !str_eq(ui.msg, said))              /* another message showing: it stays */
         return;
     names_of(m, bass, n);

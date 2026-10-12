@@ -173,6 +173,10 @@ int main(void)
     bad += check("  held keys: their chord in the header (C)", ui.msg_t && str_eq(ui.msg, "C"));
     keys(1u << 7 | 1u << 11 | 1u << 14 | 1u << 17); names_notice();   /* + A#4 */
     bad += check("  a key added: the name follows (C7)", str_eq(ui.msg, "C7"));
+    keys(0); names_notice();                            /* let go: the name fades .. */
+    keys(1u << 9); names_notice();                      /* .. and a key played before it has gone renames it (D4) */
+    bad += check("  the next key while the name still fades: the name follows (a melody)", ui.msg_t && str_eq(ui.msg, "D4"));
+    keys(1u << 7 | 1u << 11 | 1u << 14 | 1u << 17); names_notice();
     ui_message("STOP TO EDIT"); names_notice();
     bad += check("  another message: it stays, the name waits", str_eq(ui.msg, "STOP TO EDIT"));
     keys(0); ui.msg_t = 0;
