@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # GHOULBOX: the browser emulator page's pixel art (web/emu/build.sh), in the CRYPT palette (build/gen/ui_palettes.h):
 #   torch.png  the wall torch, the firmware's own (src/ui_graph.c torch_draw): its 4 frames side by side, 12 x 30 each
-#   logo.png   "GHOULBOX" and skull.png, the boot screen's art (build/gen/ghoulbox_art.h GB_LOGO, GB_SKULL: 4-bit alpha)
-#              in its colours (THEME, TEXT)
+#   logo.png   "GHOULBOX" and skull.png, the boot screen's art drawn large (tools/gen_ghoulbox_art.py logo, skull: the
+#              same word and skull as GB_LOGO, GB_SKULL, at 4x their size: smooth, the page shows them at 2x) in its
+#              colours (THEME, TEXT)
 #   wall.png   a tile of grey dungeon blocks, 64 x 32 (16 x 8 blocks, every row half a block along), its own seed
 # The page scales them by whole numbers (image-rendering: pixelated).
 #   gen_emu_art.py build/gen OUTDIR
@@ -13,6 +14,9 @@ import sys
 from pathlib import Path
 
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gen_ghoulbox_art import logo, skull  # noqa: E402
 
 
 def rgb565(v):
@@ -59,19 +63,9 @@ def torch(c):
     return im
 
 
-def art(gen, name, col):
-    h = (gen / "ghoulbox_art.h").read_text()
-    w = int(re.search(rf"#define {name}_W (\d+)u", h).group(1))
-    ht = int(re.search(rf"#define {name}_H (\d+)u", h).group(1))
-    body = re.search(rf"static const uint8_t {name}\[\] = \{{(.*?)\}};", h, re.S).group(1)
-    data = [int(v, 16) for v in re.findall(r"0x[0-9a-fA-F]+", body)]
-    im = Image.new("RGBA", (w, ht), (0, 0, 0, 0))
-    for y in range(ht):                                 # (aa_raster.py pack: 2 px a byte, high nibble first)
-        for x in range(w):
-            i = y * w + x
-            a = (data[i >> 1] >> (0 if i & 1 else 4)) & 15
-            if a:
-                im.putpixel((x, y), col + (a * 17,))
+def tinted(alpha, col):
+    im = Image.new("RGBA", alpha.size, col + (0,))
+    im.putalpha(alpha)
     return im
 
 
@@ -109,8 +103,8 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     c = crypt(gen)
     torch(c).save(out / "torch.png")
-    art(gen, "GB_LOGO", c["theme"]).save(out / "logo.png")
-    art(gen, "GB_SKULL", c["text"]).save(out / "skull.png")
+    tinted(logo(896, 208), c["theme"]).save(out / "logo.png")      # (GB_LOGO is logo(224, 52))
+    tinted(skull(192, 224), c["text"]).save(out / "skull.png")      # (GB_SKULL is skull(48, 56))
     wall().save(out / "wall.png")
 
 
