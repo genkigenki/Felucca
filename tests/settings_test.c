@@ -47,18 +47,23 @@ int main(void)
         assert((favorites.factory[15][30] & GB_SERIAL_OFF) && (favorites.factory[15][28] & GB_MIG_SERIAL));
         puts("settings: GHOULBOX USB SERIAL off once (unmarked ON -> OFF; marked ON kept; OFF kept; fresh OFF)");
     }
-    {   /* GHOULBOX 1.5: RESTORE LAST off once (the SCENE plays at power-on), favorites.factory[15][28] bit 1 marks it */
+    {   /* GHOULBOX 1.5 set RESTORE LAST OFF once (factory[15][28] bit 1); 2.1 sets it back ON once (bit 2), after it */
         persist_t q = original;
+        uint8_t all = GB_MIG_SERIAL | GB_MIG_RESTORE | GB_MIG_RESTORE_ON;
         q.favorites.factory[15][30] = 0;  q.favorites.factory[15][28] = GB_MIG_SERIAL;   /* GHOULBOX 1.4: ON, unmarked */
-        assert(settings_import(&q, sizeof q) == 1 && (favorites.factory[15][30] & GB_RESTORE_OFF) &&
-               (favorites.factory[15][28] & GB_MIG_RESTORE) && (favorites.factory[15][28] & GB_MIG_SERIAL));
-        q = original; q.favorites.factory[15][30] = GB_SERIAL_OFF;                      /* chose ON since: kept */
+        assert(settings_import(&q, sizeof q) == 1 && !(favorites.factory[15][30] & GB_RESTORE_OFF) &&
+               favorites.factory[15][28] == all);
+        q = original; q.favorites.factory[15][30] = GB_SERIAL_OFF | GB_RESTORE_OFF;     /* 1.5 .. 2.0: OFF: ON once */
         q.favorites.factory[15][28] = GB_MIG_SERIAL | GB_MIG_RESTORE;
-        assert(settings_import(&q, sizeof q) == 1 && favorites.factory[15][30] == GB_SERIAL_OFF);
+        assert(settings_import(&q, sizeof q) == 1 && favorites.factory[15][30] == GB_SERIAL_OFF &&
+               favorites.factory[15][28] == all);
+        q = original; q.favorites.factory[15][30] = GB_SERIAL_OFF | GB_RESTORE_OFF;     /* chose OFF since 2.1: kept */
+        q.favorites.factory[15][28] = all;
+        assert(settings_import(&q, sizeof q) == 1 && favorites.factory[15][30] == (GB_SERIAL_OFF | GB_RESTORE_OFF));
         memset(&favorites, 0, sizeof favorites);
-        settings_fresh();                                                               /* a device never saved */
-        assert((favorites.factory[15][30] & GB_RESTORE_OFF) && (favorites.factory[15][28] & GB_MIG_RESTORE));
-        puts("settings: GHOULBOX RESTORE LAST off once (unmarked -> OFF; marked ON kept; fresh OFF)");
+        settings_fresh();                                                               /* a device never saved: ON */
+        assert(!(favorites.factory[15][30] & GB_RESTORE_OFF) && favorites.factory[15][28] == all);
+        puts("settings: GHOULBOX RESTORE LAST ON once in 2.1 (1.4 ON; 1.5..2.0 OFF -> ON; OFF chosen since kept; fresh ON)");
     }
     p = original;
     assert(settings_import(&p, sizeof p) == 1); settings_init();
@@ -189,13 +194,14 @@ int main(void)
         }
         p = original; assert(settings_import(&p, sizeof p) == 1);
     }
-    {   /* 1.2 RESTORE LAST (ui.c PREF_RESTORE_OFF, bit 7 of MENU's flags, favorites.factory[15][30]): GHOULBOX: an
-         * older record (no GB_MIG_RESTORE mark) gets OFF once (Felucca: clear = ON); set = OFF, kept as saved with the
-         * other flags */
+    {   /* 1.2 RESTORE LAST (ui.c PREF_RESTORE_OFF, bit 7 of MENU's flags, favorites.factory[15][30]): GHOULBOX 2.1: an
+         * older record (no GB_MIG_RESTORE_ON mark) ends ON (clear, Felucca's default) once; set = OFF, kept as saved
+         * with the other flags once the marks say it was chosen */
         persist_t q;
         p = original; p.magic = 0x50455233u;
-        assert(settings_import(&p, sizeof p - sizeof p.favorites) == 2 && (favorites.factory[15][30] & 128u));
+        assert(settings_import(&p, sizeof p - sizeof p.favorites) == 2 && !(favorites.factory[15][30] & 128u));
         p = original; p.favorites.factory[15][30] = 128u | 64u | 1u;
+        p.favorites.factory[15][28] |= GB_MIG_SERIAL | GB_MIG_RESTORE | GB_MIG_RESTORE_ON;
         assert(settings_import(&p, sizeof p) == 1 && favorites.factory[15][30] == (128u | 64u | 1u));
         q = p; settings_export(&q); assert(q.favorites.factory[15][30] == (128u | 64u | 1u));
         p = original; assert(settings_import(&p, sizeof p) == 1);

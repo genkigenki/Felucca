@@ -101,6 +101,9 @@ enum {                          /* global parameters */
                                  * them 0 (project.c proj_drums_to_part) */
     G_AMB, G_CRKL,              /* GHOULBOX: the ambience on the mix (ambience.c): its level, its crackle. Appended:
                                  * a project keeps them in FUN10's tail (project.c PROJ_AMB_OFF), not the header */
+    G_KMODE, G_KTRK, G_KSPLIT, G_KOCT,   /* GHOULBOX 2.1: HOME > KEYS, what the keys play (seq.c keyboard_block): OFF,
+                                 * LAYER (the selected track and KTRK together) or SPLIT (KTRK below key 3 + KSPLIT);
+                                 * KOCT KTRK's octave (0..4: -2..+2). Appended: FUN10's tail (project.c PROJ_KEYS_OFF) */
     G_COUNT
 };
 

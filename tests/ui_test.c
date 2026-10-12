@@ -2741,7 +2741,8 @@ static int test_page_cycles(void)
         uint32_t f = PAGES[i].fam;
         ok &= f != FAM_SEQ || PAGES[i].graph == GR_ROLL || PAGES[i].graph == GR_EVENTS;
         ok &= f != FAM_GLO || PAGES[i].graph == GR_SONG;   /* (1.2: GLO's only page) */
-        ok &= f != FAM_TRK || PAGES[i].graph == GR_TRK || str_eq(PAGES[i].title, "CLOCK");   /* HOME's: MIXER CLOCK */
+        ok &= f != FAM_TRK || PAGES[i].graph == GR_TRK || str_eq(PAGES[i].title, "CLOCK") ||
+              str_eq(PAGES[i].title, "KEYS");                 /* HOME's: MIXER CLOCK KEYS (2.1) */
         ok &= PAGES[i].graph != GR_TRK || f == FAM_TRK;
         ui_power_on(); ui.home = 0; ui.page = (uint8_t)i; page_entered();
         ok &= FAM_BTN[cur_fam()] == (f == FAM_TRK ? B_HOME : f == FAM_GLO ? B_GLO : f == FAM_SEQ ? B_SEQ :
@@ -2749,7 +2750,7 @@ static int test_page_cycles(void)
     }
     for (i = 0; i < NPAGES; i++)
         ok &= !str_eq(PAGES[i].title, "PATTERN") && !str_eq(PAGES[i].title, "CHANCE") && !str_eq(PAGES[i].title, "AUTO LIST");
-    bad += check("1.2: SEQ has STEP and AUTOMATION only; SONG is GLO's only page, PHRASES SAVE's, MIXER and CLOCK HOME's "
+    bad += check("1.2: SEQ has STEP and AUTOMATION only; SONG is GLO's only page, PHRASES SAVE's, MIXER CLOCK KEYS HOME's "
                  "(their LED HOME)", ok);
     {   /* 1.2: GLOBAL and SYSTEM are gone; their knobs: BPM SWG CLK on HOME > CLOCK, TUNE and ROUT on no page (the MENU's),
          * MIDI SYNC CPU on none (INFO shows the USB state and the CPU) */
@@ -2918,6 +2919,8 @@ static int test_product_ux(void)
         ok &= song.g[G_BPM] == bpm + 1 && song.g[G_SWING] == swg + 1 && song.g[G_CLOCK] != clk && song.g[G_TUNE] == tune;
         song.g[G_CLOCK] = clk;
     }
+    press(B_HOME);                                      /* (2.1: CLOCK > KEYS > HOME) */
+    ok &= !ui.home && str_eq(cur_page()->title, "KEYS");
     press(B_HOME);
     ok &= ui.home && !ui.menu;
     press(B_HOME);
@@ -2925,8 +2928,18 @@ static int test_product_ux(void)
     go_title("ENV"); press(B_HOME);
     ok &= ui.home;
     go_title("CLOCK"); press(B_HOME);
+    ok &= !ui.home && str_eq(cur_page()->title, "KEYS");   /* (2.1: KEYS after CLOCK) */
+    {   /* KEYS's knobs: MODE TRK SPLT OCT, nothing else */
+        int16_t g0[G_COUNT];
+        memcpy(g0, song.g, sizeof g0);
+        turn(EN_K1, 1); turn(EN_K2, -1); turn(EN_K3, 1); turn(EN_K4, 1);
+        ok &= song.g[G_KMODE] == g0[G_KMODE] + 1 && song.g[G_KTRK] == g0[G_KTRK] - 1 &&
+              song.g[G_KSPLIT] == g0[G_KSPLIT] + 1 && song.g[G_KOCT] == g0[G_KOCT] + 1 && song.g[G_BPM] == g0[G_BPM];
+        memcpy(song.g, g0, sizeof g0);
+    }
+    press(B_HOME);
     ok &= ui.home;
-    bad += check("1.2: HOME cycles HOME > MIXER > CLOCK > HOME (CLOCK: BPM SWG CLK, HOME's LED); from any other page HOME", ok);
+    bad += check("HOME cycles HOME > MIXER > CLOCK > KEYS > HOME (CLOCK: BPM SWG CLK; KEYS: MODE TRK SPLT OCT); elsewhere HOME", ok);
     hold(B_HOME);
     bad += check("1.2: HOME held still opens the menu", ui.menu == 1);
     ui_power_on();
@@ -7663,7 +7676,7 @@ static int test_knob_accel(void)
         ok = settings_import(&p, (int)sizeof p) == 1 && ui_prefs == PREF_ACCEL;
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == (PREF_SERIAL_OFF | PREF_RESTORE_OFF);   /* (GHOULBOX: older settings: SERIAL OFF, RESTORE LAST OFF once) */
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == PREF_SERIAL_OFF;   /* (GHOULBOX: older settings: SERIAL OFF; RESTORE LAST ON, as 2.1 sets it once) */
         bad += check("#52 KNOB ACCEL saved with the settings; settings from before it: OFF", ok);
     }
     ui_prefs = 0;
@@ -7733,7 +7746,7 @@ static int test_usb_level(void)
         ok &= settings_import(&p, (int)sizeof p) == 1 && ui_prefs == PREF_USB_FIXED;
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == (PREF_SERIAL_OFF | PREF_RESTORE_OFF);   /* (GHOULBOX: older settings: SERIAL OFF, RESTORE LAST OFF once) */
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == PREF_SERIAL_OFF;   /* (GHOULBOX: older settings: SERIAL OFF; RESTORE LAST ON, as 2.1 sets it once) */
         frame();
         ok &= !fx_usb_fixed;
     }
@@ -8021,9 +8034,9 @@ static int test_bpm_lock(void)
         ok &= settings_import(&q, (int)sizeof q) == 1 && ui_prefs == PREF_BPM_LOCK && !memcmp(&p, &q, sizeof p);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;                                        /* (PER3: before the favorites record) */
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == (PREF_SERIAL_OFF | PREF_RESTORE_OFF);   /* (GHOULBOX: older settings: SERIAL OFF, RESTORE LAST OFF once) */
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == PREF_SERIAL_OFF;   /* (GHOULBOX: older settings: SERIAL OFF; RESTORE LAST ON, as 2.1 sets it once) */
         q = p;
-        ok &= settings_import(&q, (int)sizeof q) == 1 && ui_prefs == (PREF_SERIAL_OFF | PREF_RESTORE_OFF);
+        ok &= settings_import(&q, (int)sizeof q) == 1 && ui_prefs == PREF_SERIAL_OFF;
         frame();
         b0 = song.g[G_BPM];
         go_home(); frame();
@@ -8131,9 +8144,9 @@ static int test_large(void)
         ok &= settings_import(&q, (int)sizeof q) == 1 && ui_prefs == PREF_LARGE && !memcmp(&p, &q, sizeof p);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;                                    /* (PER3: before the favorites record) */
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == (PREF_SERIAL_OFF | PREF_RESTORE_OFF);   /* (GHOULBOX: older settings: SERIAL OFF, RESTORE LAST OFF once) */
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == PREF_SERIAL_OFF;   /* (GHOULBOX: older settings: SERIAL OFF; RESTORE LAST ON, as 2.1 sets it once) */
         q = p;
-        ok &= settings_import(&q, (int)sizeof q) == 1 && ui_prefs == (PREF_SERIAL_OFF | PREF_RESTORE_OFF);
+        ok &= settings_import(&q, (int)sizeof q) == 1 && ui_prefs == PREF_SERIAL_OFF;
         ui.force = 1; frame();
         ok &= large_kind() == LK_OFF && lg_px(30, Y_SEP_END + 1) == T_BG;
         bad += check("#15 LARGE saved with the settings; settings from before it: OFF (idempotent)", ok);
@@ -8217,7 +8230,7 @@ static int test_menu_prefs(void)
         ok = settings_import(&p, (int)sizeof p) == 1 && (ui_prefs & PREF_ANIM_OFF);
         memset(&p.favorites, 0, sizeof p.favorites);
         p.magic = 0x50455233u;
-        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == (PREF_SERIAL_OFF | PREF_RESTORE_OFF);   /* (GHOULBOX: older settings: SERIAL OFF, RESTORE LAST OFF once) */
+        ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && ui_prefs == PREF_SERIAL_OFF;   /* (GHOULBOX: older settings: SERIAL OFF; RESTORE LAST ON, as 2.1 sets it once) */
         bad += check("#46 ANIM saved with the settings; settings from before it: ON", ok);
     }
     ui_prefs = 0;
@@ -9172,10 +9185,11 @@ static int test_home_tracks(void)
     bad += check("1.3 HOME > TRACKS: K1..K4 edit the selected track (HOME's four), ALGORITHM moves the selected row", ok);
     press(B_HOME); ok = !ui.home && cur_page()->graph == GR_TRK;
     press(B_HOME); ok &= !ui.home && str_eq(cur_page()->title, "CLOCK");
+    press(B_HOME); ok &= !ui.home && str_eq(cur_page()->title, "KEYS");
     press(B_HOME); ok &= ui.home;
     frame();
     ok &= tr_px(3 + 22, tr_y(3) + 1) == T_THEME;
-    bad += check("1.3 HOME > TRACKS: HOME tapped still goes HOME > MIXER > CLOCK > HOME (the rows back)", ok);
+    bad += check("1.3 HOME > TRACKS: HOME tapped still goes HOME > MIXER > CLOCK > KEYS > HOME (the rows back)", ok);
 
     ui_prefs |= PREF_LARGE;                             /* MENU > LARGE: the cards as on a list page, the rows */
     ui.force = 1; frame();

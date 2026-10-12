@@ -37,6 +37,10 @@ _Static_assert(GB_SERIAL_OFF == PREF_SERIAL_OFF, "settings_persist.c GB_SERIAL_O
  * the same once-only way: settings without the mark get RESTORE LAST OFF, then keep what the owner chooses */
 #define GB_RESTORE_OFF 128u                         /* ui.c PREF_RESTORE_OFF */
 #define GB_MIG_RESTORE 2u
+/* GHOULBOX 2.1: RESTORE LAST back ON (owners wanted their music back at power-on; a fresh device still starts with
+ * the SCENE, there being no autosave yet): settings without this mark get it ON once (after 1.5's OFF above, so every
+ * older setting ends ON), then keep what the owner chooses */
+#define GB_MIG_RESTORE_ON 4u
 #ifdef PREF_RESTORE_OFF
 _Static_assert(GB_RESTORE_OFF == PREF_RESTORE_OFF, "settings_persist.c GB_RESTORE_OFF is ui.c's PREF_RESTORE_OFF");
 #endif
@@ -64,6 +68,10 @@ static int settings_import(persist_t *p, int n)
     if (!(p->favorites.factory[15][28] & GB_MIG_RESTORE)) {   /* GHOULBOX 1.5: once (see above) */
         p->favorites.factory[15][30] |= GB_RESTORE_OFF;
         p->favorites.factory[15][28] |= GB_MIG_RESTORE;
+    }
+    if (!(p->favorites.factory[15][28] & GB_MIG_RESTORE_ON)) {   /* GHOULBOX 2.1: once, ON (see above) */
+        p->favorites.factory[15][30] &= (uint8_t)~GB_RESTORE_OFF;
+        p->favorites.factory[15][28] |= GB_MIG_RESTORE_ON;
     }
     if (p->favorites.factory[15][29] > 1u)        /* STYLE (ui.c ui_style): 2, the retired PIXEL = LINE; unknown = FLAT */
         p->favorites.factory[15][29] = p->favorites.factory[15][29] == 2u ? 1u : 0u;
@@ -115,8 +123,8 @@ static int settings_import(persist_t *p, int n)
 static void settings_fresh(void)
 {
 #ifdef FELUCCA_FAVORITES
-    favorites.factory[15][30] |= GB_SERIAL_OFF | GB_RESTORE_OFF;
-    favorites.factory[15][28] |= GB_MIG_SERIAL | GB_MIG_RESTORE;
+    favorites.factory[15][30] |= GB_SERIAL_OFF;                  /* (2.1: RESTORE LAST ON, Felucca's default) */
+    favorites.factory[15][28] |= GB_MIG_SERIAL | GB_MIG_RESTORE | GB_MIG_RESTORE_ON;
 #endif
 }
 

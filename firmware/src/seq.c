@@ -42,6 +42,7 @@ static uint32_t kb_prev;
 static volatile uint8_t kb_boot_hold;    /* #137: set from power-on to the end of the splash (main.c): the keys sound nothing,
                                           * and one held across its end stays silent until it is let go and pressed again */
 static uint8_t kb_note[27], kb_trk[27];  /* per key: the note it started and on which track */
+static uint8_t kb_trk2[27];              /* GHOULBOX 2.1: KEYS LAYER's second track of key k, + 1 (0: none) */
 static volatile uint8_t kb_asleep;       /* MENU > SCREEN OFF (ui.c): the screen dark or waking, a key pressed now only
                                           * wakes it (silent, no layer, its release nothing) */
 static uint8_t last_note = 60;
@@ -665,29 +666,35 @@ static __attribute__((noinline)) void perf_key_remap(void)
 
 /* key k plays kb_note[k] on track t: its chord (chord.c; the note alone with CHRD OFF). A note another key
  * holds already sounds: it is not started again (nor sent to MIDI OUT); the key keeps its notes */
-static void key_on(uint32_t k, track_t *t)
+/* a key's note (and its chord) on track t: the notes into chord[], their count into *chn (GHOULBOX 2.1: the key's
+ * own, or KEYS LAYER's second sound) */
+static void key_on_to(track_t *t, uint32_t note, uint8_t *chord, uint8_t *chn)
 {
-    uint32_t n = chord_build(t, kb_note[k], kb_chord[k]), i, mc = trk_midi_ch(trk_index(t));
-    kb_chn[k] = 0;
+    uint32_t n = chord_build(t, note, chord), i, mc = trk_midi_ch(trk_index(t));
+    *chn = 0;
     for (i = 0; i < n; i++) {
-        uint32_t x = kb_chord[k][i];
+        uint32_t x = chord[i];
         if (midi_local_held(t, x))
             continue;
         input_on(t, x, 100);
         if (!lt[trk_index(t)].stop)                 /* (a press that ended the drone: silent, MIDI OUT too) */
             midi_out_event(0x09u | (0x90u | mc) << 8 | x << 16 | 100u << 24);
     }
-    kb_chn[k] = (uint8_t)n;
+    *chn = (uint8_t)n;
+}
+static void key_on(uint32_t k, track_t *t)
+{
+    key_on_to(t, kb_note[k], kb_chord[k], &kb_chn[k]);
     last_note = kb_note[k];                         /* (step entry, the SAMPLE zone: the key's note) */
 }
 
 /* key k is up: the notes it started end, but those another key still holds */
-static void key_off(uint32_t k, track_t *t)
+static void key_off_from(track_t *t, const uint8_t *chord, uint8_t *chn)
 {
-    uint32_t n = kb_chn[k], i, mc = trk_midi_ch(trk_index(t)), quiet;
-    kb_chn[k] = 0;
+    uint32_t n = *chn, i, mc = trk_midi_ch(trk_index(t)), quiet;
+    *chn = 0;
     for (i = 0; i < n; i++) {
-        uint32_t x = kb_chord[k][i];
+        uint32_t x = chord[i];
         if (midi_local_held(t, x))
             continue;
         quiet = lt[trk_index(t)].stop;
@@ -697,6 +704,23 @@ static void key_off(uint32_t k, track_t *t)
         else if (!quiet)
             midi_out_event(0x08u | (0x80u | mc) << 8 | x << 16);
     }
+}
+static void key_off(uint32_t k, track_t *t) { key_off_from(t, kb_chord[k], &kb_chn[k]); }
+
+/* GHOULBOX 2.1: HOME > KEYS. SPLIT: key k below the KSPLIT key plays KTRK instead of the selected track; LAYER: every
+ * key plays KTRK too (not when it is the selected one). Neither on the SEQ pages (the keys enter steps there: what is
+ * written is the selected track's), the DRUM grid, NAME or SONG's keys. KTRK's note: its own map, KOCT octaves on it
+ * (an engine that maps the keys itself, DRUM's kit, as it maps them) */
+static int keys_on(void) { return !song.seq_mode && !song.grid; }
+static int keys_split(uint32_t k) { return song.g[G_KMODE] == 2 && keys_on() && k < 3u + (uint32_t)song.g[G_KSPLIT]; }
+static uint32_t keys_trk(void) { return (uint32_t)song.g[G_KTRK] & 3u; }
+static uint32_t keys_note(uint32_t tr, uint32_t k)
+{
+    const track_t *t = &trk[tr];
+    uint32_t n = kb_map(t, k);
+    if (n == KB_SILENT || ENGINES[eng_idx(t->eng_req)]->keys)
+        return n;
+    return (uint32_t)clamp((int32_t)n + 12 * (song.g[G_KOCT] - 2), 0, 127);
 }
 
 #ifdef FM1_INPUT_LAT
@@ -741,6 +765,7 @@ static void keyboard_block(void)
             continue;
         if ((cur >> k) & 1u) {                    /* the selected track; the key-up goes to the same one */
             kb_trk[k] = song.sel;
+            kb_trk2[k] = 0;                       /* (GHOULBOX 2.1: no second sound unless KEYS LAYER gives one) */
             if (kb_asleep) {                      /* (SCREEN OFF: the wake press is swallowed) */
                 kb_note[k] = KB_SILENT;
                 continue;
@@ -756,8 +781,18 @@ static void keyboard_block(void)
                 kb_note[k] = KB_SILENT;
             else if (song.grid == 1u)             /* the DRUM grid: a lane key plays its lane, the rest are the UI's */
                 kb_note[k] = key_black(k) && key_place(k) < NLANE ? DRUM_LANE_NOTE[key_place(k)] : KB_SILENT;
-            else
+            else if (keys_split(k)) {             /* GHOULBOX 2.1: KEYS SPLIT, below the split: KTRK instead */
+                kb_trk[k] = (uint8_t)keys_trk();
+                kb_note[k] = (uint8_t)keys_note(kb_trk[k], k);
+            } else
                 kb_note[k] = (uint8_t)kb_map(&trk[kb_trk[k]], k);
+            if (song.g[G_KMODE] == 1 && keys_on() && !((mute >> k) & 1u) && keys_trk() != song.sel) {
+                uint32_t n2 = keys_note(keys_trk(), k);   /* GHOULBOX 2.1: KEYS LAYER: KTRK too */
+                if (n2 != KB_SILENT) {
+                    kb_trk2[k] = (uint8_t)(keys_trk() + 1u);
+                    key_on_to(&trk[keys_trk()], n2, kb_chord2[k], &kb_chn2[k]);
+                }
+            }
             if (kb_note[k] == KB_SILENT)
                 continue;
             key_on(k, &trk[kb_trk[k]]);
@@ -769,6 +804,10 @@ static void keyboard_block(void)
                 kb_layer &= ~(1u << k);
                 perf_key_press(k, 0);
                 continue;
+            }
+            if (kb_trk2[k]) {                     /* GHOULBOX 2.1: KEYS LAYER's second sound, as it started */
+                key_off_from(&trk[(kb_trk2[k] - 1u) % NTRK], kb_chord2[k], &kb_chn2[k]);
+                kb_trk2[k] = 0;
             }
             if (kb_note[k] == KB_SILENT)
                 continue;

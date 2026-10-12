@@ -38,6 +38,13 @@ static const char *const N_RTYPE[] = {"ROOM", "SPRING", "HALL"};   /* G_RTYPE: t
 static const char *const N_GO[] = {"--", "GO"};
 static const char *const N_SLCR[] = {"OFF", "GATE", "STUT"};             /* SL_OFF .. SL_STUT (slicer.c) */
 static const char *const N_SLDIV[] = {"1/8", "1/16", "1/32", "8T", "16T", "32T"};   /* SL_DEN */
+/* GHOULBOX 2.1: HOME > KEYS (seq.c keyboard_block) */
+static const char *const N_KMODE[] = {"OFF", "LAYER", "SPLIT"};
+static const char *const N_KTRK[] = {"T1", "T2", "T3", "T4"};
+static const char *const N_KSPLIT[] = {"G#3", "A3", "A#3", "B3", "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4",
+                                       "G#4", "A4", "A#4", "B4", "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5"};
+                                       /* the upper part's lowest key (key 3 + value): the editor's 24 names at most */
+static const char *const N_KOCT[] = {"-2", "-1", "0", "+1", "+2"};
 /* modulation matrix (mod.c): sources, destinations (E1..E8 = P_E0..P_E7: shown with the engine's labels).
  * Append-only (stored values keep their meaning): S&H SLEW and DEPTH (#132) came after EXPR and E8 */
 static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR", "S&H", "SLEW"};
@@ -176,6 +183,10 @@ static const param_desc_t GP[G_COUNT] = {
     [G_CRSH] = PD("CRSH", F_PCT, 0, 127, 0),       /* .. and a cheap sampler's bits and rate */
     [G_AMB] = PD("AMB", F_PCT, 0, 127, 0),         /* GHOULBOX: the ambience (ambience.c): 0 = off, as before */
     [G_CRKL] = PD("CRKL", F_PCT, 0, 127, 40),      /* .. its crackle: 0 = the wind alone */
+    [G_KMODE] = PE("MODE", N_KMODE, 0),            /* GHOULBOX 2.1: HOME > KEYS */
+    [G_KTRK] = PE("TRK", N_KTRK, 3),               /* (T4: every scene's drone or drums) */
+    [G_KSPLIT] = PE("SPLT", N_KSPLIT, 4),          /* (C4: F3..B3 below, seven keys) */
+    [G_KOCT] = PE("OCT", N_KOCT, 2),               /* (0) */
 };
 
 static const param_desc_t *track_desc(const track_t *t, uint32_t id)
@@ -453,6 +464,7 @@ static const page_t PAGES[] = {
      * GLO > GLOBAL; its TUNE is MENU > AUDIO's now), again HOME (ui.c home_tap) */
     {"MIXER", FAM_TRK, SC_TRK, GR_TRK, {0, 1, 2, 3}},
     {"CLOCK", FAM_TRK, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, 0xFF}},
+    {"KEYS", FAM_TRK, SC_GLOBAL, GR_NONE, {G_KMODE, G_KTRK, G_KSPLIT, G_KOCT}},   /* GHOULBOX 2.1: CLOCK tapped again */
 };
 #define NPAGES (sizeof(PAGES) / sizeof(PAGES[0]))
 static uint8_t mod_ui_slot;      /* the MOD page: the matrix slot (0..3) KNOB 2..4 edit */

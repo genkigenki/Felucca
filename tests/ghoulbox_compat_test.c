@@ -122,8 +122,8 @@ int main(int argc, char **argv)
     bad += check("settings: SCREEN OFF NEVER (not SCENE's byte read as SCREEN OFF)", scr_get() == 0u && ui_scr == 0u);
     bad += check("settings: CLICK OFF, CLICK LEVEL MID, COUNT-IN OFF, SCALE LEDS OFF (not GHOULBOX's marks)",
                  rp_get(0) == 0u && rp_get(1) == 1u && rp_get(2) == 0u && ui_rec_prefs == 0u);   /* (its byte: none of the marks) */
-    bad += check("settings: RESTORE LAST OFF once (GHOULBOX 1.5), both marks set",
-                 (ui_prefs & PREF_RESTORE_OFF) && (favorites.factory[15][28] & 3u) == 3u);
+    bad += check("settings: RESTORE LAST ON (OFF in 1.5, ON again once in 2.1), the three marks set",
+                 !(ui_prefs & PREF_RESTORE_OFF) && (favorites.factory[15][28] & 7u) == 7u);
 
     bad += check("project A: its slot is used", project_used(0));
     project_load(0);
