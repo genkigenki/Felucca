@@ -13,7 +13,17 @@ static const char *const B_NAME[NB] = {"FX", "SCL", "ENV", "LFO", "EDIT", "GLO",
                                         "ARP", "SEQ", "PLAY", "REC", "OCT-", "OCT+"};
 static const char *const E_NAME[NE] = {"SELECT", "ALGORITHM", "PRESETS", "KNOB 1", "KNOB 2",
                                         "KNOB 3", "KNOB 4"};
+#ifndef FM1_NBTN                        /* (host tests without a HAL: the FM-1's buttons and encoders) */
+#define FM1_NBTN 14u
+#endif
+#ifndef FM1_NENC
+#define FM1_NENC 7u
+#endif
+#if BOARD_SMK37
+#define PANEL_MAGIC 0x504E4D31u          /* "PNM1" (MAKU37, SMK-37 Pro): bump when PANEL_DEFAULT changes */
+#else
 #define PANEL_MAGIC 0x50414E35u          /* "PAN5": bump when PANEL_DEFAULT changes */
+#endif
 
 typedef struct {
     uint32_t magic;
@@ -23,22 +33,39 @@ typedef struct {
 } panel_t;
 panel_t panel __attribute__((section(".noinit")));
 
+#if BOARD_SMK37
+/* SMK-37 Pro (smk_input.h button ids; docs/smk37-port.yaml). MAKU groups its buttons by row, so the SMK's rows keep
+ * that: the top row ARP, NOTE REPEAT, SCALE, CHORD, GLOBE, BT = the six verbs FX (SINK), SCL (CASCADE), ENV (SWELL),
+ * LFO (WOBBLE), EDIT (LIFT), GLO (SCRAMBLE), in the FM-1's order; the bottom row PATCH = HOME, PARA = ARP (the key),
+ * FX = SAVE (nothing), SEQ, SEQ PLAY = PLAY (DRIFT), SEQ REC = REC (the like); OCTAVE- / + as printed. KNOB BANK (the
+ * settings menu), FADER BANK (free), < and > (the world before, a new world) keep SMK functions (ui_input.c).
+ * Knobs as the FM-1's: K1 = MASTER (smk_input.h, a virtual pot), K2 = SELECT, K3 = PRESETS, K4 = ALGORITHM (the
+ * FM-1's MASTER, SELECT, PRESETS, ALGORITHM in reading order, as MAKU's screen), K5..K8 = KNOB 1..4 (the volumes).
+ * HARDWARE CALIBRATION (OCT- + OCT+ at power-on) re-teaches all of it. */
+static const panel_t PANEL_DEFAULT = {
+    PANEL_MAGIC,
+    {6, 7, 8, 9, 10, 11, 12, 14, 13, 15, 16, 17, 4, 5},
+    {1, 3, 2, 4, 5, 6, 7},
+    {1, 1, 1, 1, 1, 1, 1},
+};
+#else
 static const panel_t PANEL_DEFAULT = {
     PANEL_MAGIC,
     {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 1},   /* PLAY = 12, REC = 13 (measured on hardware) */
     {0, 1, 6, 2, 3, 4, 5},                           /* SELECT = enc 0, ALGORITHM = enc 1, PRESETS = enc 6 (printed labels) */
     {1, 1, 1, 1, 1, 1, 1},
 };
+#endif
 
 static void panel_init(void)                     /* also after a flash load: ids are used as array indexes and shifts */
 {
     uint32_t i, buttons = 0, encoders = 0, ok = panel.magic == PANEL_MAGIC;
     for (i = 0; ok && i < NB; i++) {
-        ok = panel.btn[i] < NB && !(buttons & (1u << panel.btn[i]));
+        ok = panel.btn[i] < FM1_NBTN && !(buttons & (1u << panel.btn[i]));
         if (ok) buttons |= 1u << panel.btn[i];
     }
     for (i = 0; ok && i < NE; i++) {
-        ok = panel.enc[i] < NE && !(encoders & (1u << panel.enc[i])) &&
+        ok = panel.enc[i] < FM1_NENC && !(encoders & (1u << panel.enc[i])) &&
              (panel.dir[i] == 1 || panel.dir[i] == -1);
         if (ok) encoders |= 1u << panel.enc[i];
     }

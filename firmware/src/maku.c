@@ -842,12 +842,24 @@ static void maku_vt_defaults(void)
 /* verb v's amount, once per block: it rises while it is pressed (RISE), stays full while it is held and HOLD after (counted from
  * the button up, once it is full), then fades (FADE) along an S, slow at both ends. Pressed again on the way: from where it is */
 #define MAKU_ONE (1 << 24)
+#if BOARD_SMK37
+/* SMK-37 Pro: a verb's standing amount (Q12) from a control that stays where it is left (the wheels, the faders:
+ * main.c smk_faders, seq.c smk_wheels_block); the verb goes at least this far, its button's RISE / HOLD / FADE on top */
+static volatile int16_t maku_vman[VB_N];
+#define MAKU_VA(v, q) ((q) > maku_vman[v] ? (q) : maku_vman[v])
+#else
+#define MAKU_VA(v, q) (q)
+#endif
 static void maku_env(uint32_t v)
 {
     uint32_t pr = (maku.hv >> v) & 1u;
     int32_t q = maku.vq[v];
-    if (!pr && !maku.vph[v])
+    if (!pr && !maku.vph[v]) {
+#if BOARD_SMK37
+        maku.va[v] = maku_vman[v];
+#endif
         return;
+    }
     if (pr && maku.vph[v] != 1u)
         maku.vph[v] = 1u;
     if (maku.vph[v] == 1u) {
@@ -876,7 +888,7 @@ static void maku_env(uint32_t v)
         }
     }
     maku.vq[v] = q;
-    maku.va[v] = (int16_t)(q >> 12);
+    maku.va[v] = (int16_t)MAKU_VA(v, q >> 12);
 }
 
 /* once per block, before the tracks tick: a ROOT / SCALE edit on any track becomes everyone's */
