@@ -70,7 +70,7 @@ check("  over by 1 s (~0.70 s)", a.ex.web_anim_levels() === 0);
 const home = a.screen();
 check(`boots: the splash, then HOME (${colours(home)} colours), the HOME LED lit`,
       splash > 1 && colours(home) > 4 && (a.ex.web_lit_buttons() >> B.HOME & 1) === 1);
-check("silent at rest", a.peak === 0);
+check(`silent at rest (GHOULBOX: TAPE 40's hiss only, peak ${a.peak.toExponential(1)})`, a.peak < 1e-4);   // (< -80 dBFS)
 a.ex.web_keys(1 << 7);                                        // C4
 a.render(300);
 const keyLit = (a.ex.web_lit_keys() >> 7) & 1;
