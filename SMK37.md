@@ -4,14 +4,19 @@ MAKU also builds for the M-Vave SMK-37, a 37-key controller with the same chip a
 unchanged; everything for the SMK-37 is behind `BOARD_SMK37`. Status: builds and passes the host tests; not yet
 tried on a unit.
 
-Until this project's releases include SMK-37 packages, unofficial builds are at https://genkigenki.github.io/smk37/
+Until this project's releases include SMK-37 packages, unofficial builds can be installed with the web installer:
+https://genkigenki.github.io/smk37/
 
 ## Supported models
 
-- **SMK-37 Pro**: this build (package identity `SMK-37 Pro_900`).
+- **SMK-37 Pro**: the default build (package identity `SMK-37 Pro_900`).
+- **SMK-37 Elite**: `MODEL=elite` (identity `SMK-37 Elite_900`).
+- **MKE-P37**: `MODEL=mke` (identity `MKE-P37_900`).
 - **Starrykey 37 Play**: uses the SMK-37 Pro build.
-- **SMK-37 Elite** and **MKE-P37**: the same hardware under other model names. This branch has no build for them
-  yet (no `MODEL=elite` / `MODEL=mke`), and the installer refuses a package made for another model.
+
+All of them are the same hardware. Each build carries its model's name, so M-Vave's updater still takes that
+unit's stock package later: install the package for your model. The installer takes a package for any of these
+models, and refuses an FM-1 package (and an SMK package on an FM-1).
 
 ## Controls
 
@@ -51,13 +56,15 @@ The decisions behind this mapping: [docs/smk37-port.yaml](docs/smk37-port.yaml).
 See [BUILDING.md](BUILDING.md) for the toolchain.
 
 ```sh
-BOARD=smk37 ./build.sh     # build/maku-smk37.fwsc
-./build.sh                 # the FM-1 build again before tests/run_tests.sh (the tests use its files)
+BOARD=smk37 ./build.sh                 # build/maku-smk37.fwsc (SMK-37 Pro, Starrykey 37 Play)
+BOARD=smk37 MODEL=elite ./build.sh     # build/maku-smk37-elite.fwsc
+BOARD=smk37 MODEL=mke ./build.sh       # build/maku-smk37-mke.fwsc
+./build.sh                             # the FM-1 build again before tests/run_tests.sh (the tests use its files)
 ```
 
 ## Install
 
-Connect the keyboard by USB and run:
+Connect the keyboard by USB and run, with the package for your model:
 
 ```sh
 python3 tools/fm1_install.py build/maku-smk37.fwsc
