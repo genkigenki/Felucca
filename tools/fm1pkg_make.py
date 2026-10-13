@@ -23,7 +23,7 @@ build.py --release do).
   fm1pkg_make.py APP.bin OTA.bin OUT.fwsc [--board fm1|smk37] [--product FM-1_9XY] [--key 0x980F]
 
 --board smk37 (M-Vave SMK-37 Pro, same AC791N, SPL and loader) selects the SMK flash layout: PRCT
-0x9D000 and the stock v016 region table (VM, BTIF, USRTRIM, USRFLASH, USR; see the fm1-to-smk37 guide).
+0x9D000 and the stock v016 region table (VM, BTIF, USRTRIM, USRFLASH, USR).
 """
 import argparse
 import os

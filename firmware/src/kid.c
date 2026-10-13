@@ -437,7 +437,7 @@ static const uint8_t *kid_row(uint32_t art, uint32_t ry)
 }
 
 #if BOARD_SMK37
-#include "kid_smk.c"                           /* RAINBOW37: the SMK-37's pads, faders, wheels, outer keys, spare buttons */
+#include "kid_smk.c"                           /* the SMK-37 build: its pads, faders, wheels, outer keys, spare buttons */
 #else
 #define KID_WIG kid.wiggle                     /* WIGGLE (the SMK: KNOB 4's and the mod wheel's) */
 #define KID_PRESET_TURN() panel_enc(EN_PRESET)
@@ -2522,8 +2522,7 @@ static uint16_t kid_hello_px(int32_t x, int32_t y)
                           : (c = kid_hello_line("HI!", 8, 34, 0u, x, y)) >= 0)
         return (uint16_t)c;
 #if BOARD_SMK37
-    if (y >= 190 && ((c = kid_hello_line("RAINBOW37", 3, 196, 3u, x, y)) >= 0 ||
-                     (c = kid_hello_line("SMK-37 PORT BY GENKIGENKI", 1, 226, 12u, x, y)) >= 0))
+    if (y >= 190 && (c = kid_hello_line("RAINBOW", 3, 196, 3u, x, y)) >= 0)
         return (uint16_t)c;
 #endif
     if ((c = kid_confetti(x, y, 14u, 5u)) >= 0)

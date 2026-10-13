@@ -172,9 +172,9 @@ for m in 1 2; do                         # the MODEL=elite / mke builds of ota.c
     run "M-UPGRADE entry, SMK model $m build (MODEL=elite / mke: its own parm identity)" "$OUT/ota_test_smk_m$m" "$OUT/smk_new.fwsc"
 done
 for m in pro elite mke; do               # the packages build.sh made (BOARD=smk37 MODEL=...), when present
-    f=build/rainbow37.fwsc; id="SMK-37 Pro_900"
-    [ $m = elite ] && f=build/rainbow37-elite.fwsc && id="SMK-37 Elite_900"
-    [ $m = mke ] && f=build/rainbow37-mke.fwsc && id="MKE-P37_900"
+    f=build/rainbow-smk37.fwsc; id="SMK-37 Pro_900"
+    [ $m = elite ] && f=build/rainbow-smk37-elite.fwsc && id="SMK-37 Elite_900"
+    [ $m = mke ] && f=build/rainbow-smk37-mke.fwsc && id="MKE-P37_900"
     [ -f $f ] && run "SMK package $f: identity $id, stock region table" python3 tests/smk_pkg_test.py $f "$id"
 done
 $CC -DBOARD_SMK37=1 -o "$OUT/ldr_test_smk" tests/ldr_test.c

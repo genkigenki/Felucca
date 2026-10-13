@@ -48,9 +48,9 @@ The SMK-37's TRS jack is a MIDI output and this build does not use it; there is 
 See [BUILDING.md](BUILDING.md) for the toolchain.
 
 ```sh
-BOARD=smk37 ./build.sh                 # build/rainbow37.fwsc (SMK-37 Pro, Starrykey 37 Play)
-BOARD=smk37 MODEL=elite ./build.sh     # build/rainbow37-elite.fwsc
-BOARD=smk37 MODEL=mke ./build.sh       # build/rainbow37-mke.fwsc
+BOARD=smk37 ./build.sh                 # build/rainbow-smk37.fwsc (SMK-37 Pro, Starrykey 37 Play)
+BOARD=smk37 MODEL=elite ./build.sh     # build/rainbow-smk37-elite.fwsc
+BOARD=smk37 MODEL=mke ./build.sh       # build/rainbow-smk37-mke.fwsc
 ./build.sh                             # the FM-1 build again before tests/run_tests.sh (the tests use its files)
 ```
 
@@ -59,7 +59,7 @@ BOARD=smk37 MODEL=mke ./build.sh       # build/rainbow37-mke.fwsc
 Connect the keyboard by USB and run, with the package for your model:
 
 ```sh
-python3 tools/fm1_install.py build/rainbow37.fwsc
+python3 tools/fm1_install.py build/rainbow-smk37.fwsc
 ```
 
 `fm1_install.py` needs `mido` and `python-rtmidi` (`pip3 install mido python-rtmidi`). It checks that the package

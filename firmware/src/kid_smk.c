@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * SMK-37 port: Copyright (C) 2026 M. Geisler (makkuro) <mcgeisler@gmail.com> */
-/* RAINBOW37: Rainbow mode (kid.c) on the SMK-37 (BOARD_SMK37). Included by kid.c, before its input.
+/* The SMK-37 build: Rainbow mode (kid.c) on the SMK-37 (BOARD_SMK37). Included by kid.c, before its input.
  *   keys F3..G5  the FM-1's 27 keys, as in kid.c; fixed velocity (seq.c key_vel)
  *   outer keys   C3..E3 and G#5..C6: more notes on the friend's track (seq.c ext_keys_block); the friend hops
  *   pads         the 16 white keys F3..G5 (low row bottom), each in its note's colour: dim at rest, bright while held

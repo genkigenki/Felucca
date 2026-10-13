@@ -57,7 +57,7 @@ static uint32_t st_crc32(const void *p, uint32_t n)   /* zlib CRC-32, 4 bits per
 }
 
 #if BOARD_SMK37
-/* SMK-37 Pro (see the fm1-to-smk37 guide): every object in FL_DATA 0x9D000..0xBAFFF (the stock VM),
+/* SMK-37 Pro: every object in FL_DATA 0x9D000..0xBAFFF (the stock VM),
  * A/B neighbours: projects 0x9D000..0xA4FFF, user preset banks 0xA5000..0xA8FFF, autosave 0xA9000 /
  * 0xAA000, the user presets' FM6 patches (OBJ_UPFM6, the pair of the retired OBJ_FM6BANK) 0xAB000 / 0xAC000,
  * settings 0xAD000 / 0xAE000; the store owner tag 0xAF000 (st_owner_check); 0xB0000 the FM6 voice bank of Felucca

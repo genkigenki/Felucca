@@ -588,7 +588,7 @@ static uint32_t accord_chord(const track_t *t, uint32_t k, int32_t oct, uint8_t 
 }
 
 #ifndef SMK_KEY_VELOCITY
-#define SMK_KEY_VELOCITY 0                          /* RAINBOW37: every key and pad at 100, as on the FM-1 (a small hand's
+#define SMK_KEY_VELOCITY 0                          /* the SMK-37 build: every key and pad at 100, as on the FM-1 (a small hand's
                                                      * touch is uneven); 1: the keybed's and the pads' velocity */
 #endif
 #if BOARD_SMK37 && SMK_KEY_VELOCITY

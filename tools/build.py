@@ -10,12 +10,12 @@ felucca.fwsc (package). A release build (--release X.Y) writes felucca-X.Y.fwsc 
 release-X.Y/ with the package, the app, SHA256SUMS, the sample attribution and the licence files.
 See BUILDING.md for the toolchain and the SDK.
 
-BOARD=smk37 (or --board smk37) builds RAINBOW37 for the M-Vave SMK-37 Pro: -DBOARD_SMK37=1 for the app and
+BOARD=smk37 (or --board smk37) builds Rainbow mode for the M-Vave SMK-37 Pro: -DBOARD_SMK37=1 for the app and
 the loader, identity SMK-37 Pro_900 (release SMK-37 Pro_9XY), the SMK flash layout (fm1pkg_make.py), and the
-package build/rainbow37.fwsc (rainbow37-X.Y.fwsc for a release). The default stays the FM-1.
+package build/rainbow-smk37.fwsc (rainbow-smk37-X.Y.fwsc for a release). The default stays the FM-1.
 MODEL=elite / mke (or --model) with smk37: the same build under the SMK-37 Elite's or the MKE-P37's model
 name (identity SMK-37 Elite_900 / MKE-P37_900, the loader's and the update record's name too; -DSMK_MODEL),
-so M-Vave's updater still takes that unit's factory package; build/rainbow37-elite.fwsc, -mke.fwsc.
+so M-Vave's updater still takes that unit's factory package; build/rainbow-smk37-elite.fwsc, -mke.fwsc.
 
 The JieLi toolchain is Linux x86-64 only. JIELI_TOOLCHAIN points at it; on
 macOS (or with JIELI_DOCKER=1) each tool runs in a linux/amd64 container.
@@ -60,7 +60,7 @@ PRODUCT = "FM-1_900"                # package identity; release builds are FM-1_
 BOARD = "fm1"                       # fm1 (default) or smk37: BOARD env or --board
 BOARD_PREFIX = {"fm1": "FM-1_9", "smk37": "SMK-37 Pro_9"}   # identity of a release build: prefix + X + Y
 BOARD_DEFS = {"fm1": [], "smk37": ["-DBOARD_SMK37=1"]}       # the FM-1 build gets no new flag (byte-identical)
-BOARD_STEM = {"fm1": "felucca", "smk37": "rainbow37"}        # package name: STEM.fwsc, STEM-X.Y.fwsc
+BOARD_STEM = {"fm1": "felucca", "smk37": "rainbow-smk37"}        # package name: STEM.fwsc, STEM-X.Y.fwsc
 # smk37: the keyboard's model name (MODEL env or --model); one hardware, three names. pro adds no flag
 MODELS = {"pro": "SMK-37 Pro", "elite": "SMK-37 Elite", "mke": "MKE-P37"}
 # SMK store owner tag (storage.c st_owner_check); FELUCCA_DATA_FAMILY overrides. RAINBOW, not FELUCCA: Rainbow mode

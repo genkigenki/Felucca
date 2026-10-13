@@ -28,7 +28,7 @@
 #ifndef FELUCCA_UART
 #if BOARD_SMK37
 #define FELUCCA_UART 0           /* SMK-37 Pro: TRS MIDI OUT (UART1 TX, PC7), no MIDI IN; PH8 is a key-matrix
-                                  * row there and must never become UART RX. TODO: a TX driver (see the fm1-to-smk37 guide) */
+                                  * row there and must never become UART RX. TODO: a TX driver */
 #else
 #define FELUCCA_UART 1           /* TRS MIDI IN on UART1 / PH8 */
 #endif

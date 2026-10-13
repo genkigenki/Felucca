@@ -70,8 +70,8 @@ Build options (environment, `0` or `1`; defaults in `firmware/src/felucca.c`, `c
 Target board: `BOARD=smk37 ./build.sh` (or `./build.sh --board smk37`) builds Rainbow mode for the M-Vave
 SMK-37: `-DBOARD_SMK37=1` for the app and the update loader, identity `SMK-37 Pro_900` (release
 `SMK-37 Pro_9XY`), the SMK flash layout (PRCT 0x9D000, the stock region table with USRTRIM / USRFLASH) and the
-package `build/rainbow37.fwsc`. `MODEL=elite` or `MODEL=mke` builds the same firmware under the SMK-37 Elite's or
-the MKE-P37's model name (`build/rainbow37-elite.fwsc`, `build/rainbow37-mke.fwsc`), so M-Vave's updater still
+package `build/rainbow-smk37.fwsc`. `MODEL=elite` or `MODEL=mke` builds the same firmware under the SMK-37 Elite's or
+the MKE-P37's model name (`build/rainbow-smk37-elite.fwsc`, `build/rainbow-smk37-mke.fwsc`), so M-Vave's updater still
 takes that unit's factory package; the Starrykey 37 Play uses the Pro build. Controls: [SMK37.md](SMK37.md). The intermediate files (`build/felucca.bin`, `build/loader/ota.bin`,
 `build/felucca.dis`) are shared: build the FM-1 again before `tests/run_tests.sh`. The default stays the FM-1,
 byte for byte.
