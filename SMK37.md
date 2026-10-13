@@ -51,7 +51,7 @@ The decisions behind this mapping: [docs/smk37-port.yaml](docs/smk37-port.yaml).
 See [BUILDING.md](BUILDING.md) for the toolchain.
 
 ```sh
-BOARD=smk37 ./build.sh     # build/maku37.fwsc
+BOARD=smk37 ./build.sh     # build/maku-smk37.fwsc
 ./build.sh                 # the FM-1 build again before tests/run_tests.sh (the tests use its files)
 ```
 
@@ -60,7 +60,7 @@ BOARD=smk37 ./build.sh     # build/maku37.fwsc
 Connect the keyboard by USB and run:
 
 ```sh
-python3 tools/fm1_install.py build/maku37.fwsc
+python3 tools/fm1_install.py build/maku-smk37.fwsc
 ```
 
 `fm1_install.py` needs `mido` and `python-rtmidi` (`pip3 install mido python-rtmidi`). It checks that the package

@@ -20,7 +20,7 @@ static const char *const E_NAME[NE] = {"SELECT", "ALGORITHM", "PRESETS", "KNOB 1
 #define FM1_NENC 7u
 #endif
 #if BOARD_SMK37
-#define PANEL_MAGIC 0x504E4D31u          /* "PNM1" (MAKU37, SMK-37 Pro): bump when PANEL_DEFAULT changes */
+#define PANEL_MAGIC 0x504E4D31u          /* "PNM1" (the SMK-37 build): bump when PANEL_DEFAULT changes */
 #else
 #define PANEL_MAGIC 0x50414E35u          /* "PAN5": bump when PANEL_DEFAULT changes */
 #endif

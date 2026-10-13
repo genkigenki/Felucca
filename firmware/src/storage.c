@@ -60,7 +60,7 @@ static uint32_t st_crc32(const void *p, uint32_t n)   /* zlib CRC-32, 4 bits per
 }
 
 #if BOARD_SMK37
-/* SMK-37 Pro (see the fm1-to-smk37 guide): every object in FL_DATA 0x9D000..0xBAFFF (the stock VM), A/B neighbours:
+/* SMK-37 Pro: every object in FL_DATA 0x9D000..0xBAFFF (the stock VM), A/B neighbours:
  * projects 0x9D000..0xA4FFF, user preset banks 0xA5000..0xA8FFF, the autosave's pair 0xA9000 / 0xAA000 (MAKU's likes,
  * OBJ_MAKUFAV, share it under their own type, as on the FM-1: MAKU never writes an autosave), the user presets' FM6
  * patches 0xAB000 / 0xAC000, settings 0xAD000 / 0xAE000; the store owner tag 0xAF000 (st_owner_check, family MAKU),
