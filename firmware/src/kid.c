@@ -439,6 +439,7 @@ static const uint8_t *kid_row(uint32_t art, uint32_t ry)
 #if BOARD_SMK37
 #include "kid_smk.c"                           /* the SMK-37 build: its pads, faders, wheels, outer keys, spare buttons */
 #else
+#define KID_OUTER_PC(now) (-1)
 #define KID_WIG kid.wiggle                     /* WIGGLE (the SMK: KNOB 4's and the mod wheel's) */
 #define KID_PRESET_TURN() panel_enc(EN_PRESET)
 #endif
@@ -1470,6 +1471,9 @@ static void kid_input(void)
             kid.key = (int8_t)k;
             kid.key_ms = fm1_ms;
             kid.hop_ms = fm1_ms;
+#if BOARD_SMK37
+            kid_outer = -1;
+#endif
             if (kid.mode != KM_STRUM && !drum_track(&trk[0]))   /* (STRUM, a drum friend: the keys are not notes) */
                 kid_staff_add(notes, fm1_ms);
         }
@@ -1864,6 +1868,8 @@ static uint32_t kid_play_band(uint32_t now)
     int keyed = kid.key >= 0 && now - kid.key_ms < 900u;
     uint8_t pcs[6];
     uint32_t n = 0, k;
+    if (KID_OUTER_PC(now) >= 0)                                    /* (an outer key: its letter) */
+        return 0;
     if (kid.hint != KH_NONE && now - kid.hint_ms < 1500u && !(keyed && kid.key_ms - kid.hint_ms < 0x80000000u))
         return 0;                                                 /* (a knob's word, unless a key came after it) */
     if (kid.mode == KM_GUESS) {
@@ -1963,8 +1969,10 @@ static uint32_t kid_band_setup(uint32_t now)
         const char *w = kid_drum_word((uint32_t)kid.key, &c);
         return kid_band_word(w, str_len(w) * 24u - 4u <= 232u ? 4 : 3, kid_mix(c, RGB(0, 0, 0), 30u),
                              0x900u ^ (uint32_t)(uintptr_t)w * 7u);
-    } else if (!vol && kid.key >= 0 && now - kid.key_ms < 900u) {      /* a note: its letter, big (the effect's word, if one is on) */
-        uint32_t pc = (53u + (uint32_t)kid.key) % 12u;    /* key 0 is F (seq.c kb_map: 53 + k) */
+    } else if (!vol && ((kid.key >= 0 && now - kid.key_ms < 900u) || KID_OUTER_PC(now) >= 0)) {   /* a note: its letter, big
+                                                                  (the effect's word, if one is on) */
+        uint32_t pc = KID_OUTER_PC(now) >= 0 ? (uint32_t)KID_OUTER_PC(now) :
+                      (53u + (uint32_t)kid.key) % 12u;    /* key 0 is F (seq.c kb_map: 53 + k) */
         kf.band = KB_NOTE;
         kf.txt = KID_NOTE[pc];
         kf.bt.sc = 7;                                     /* (the band's own: as big as fits) */

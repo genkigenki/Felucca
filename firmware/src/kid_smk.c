@@ -2,7 +2,8 @@
  * SMK-37 port: Copyright (C) 2026 M. Geisler (makkuro) <mcgeisler@gmail.com> */
 /* The SMK-37 build: Rainbow mode (kid.c) on the SMK-37 (BOARD_SMK37). Included by kid.c, before its input.
  *   keys F3..G5  the FM-1's 27 keys, as in kid.c; fixed velocity (seq.c key_vel)
- *   outer keys   C3..E3 and G#5..C6: more notes on the friend's track (seq.c ext_keys_block); the friend hops
+ *   outer keys   C3..E3 and G#5..C6: more notes on the friend's track (seq.c ext_keys_block); the friend hops,
+ *                the band shows the note's letter
  *   pads         the 16 white keys F3..G5 (low row bottom), each in its note's colour: dim at rest, bright while held
  *                or while FOLLOW, GUESS or CHORDS light the key
  *   faders 1..4  BIG / SMALL, DAY / NIGHT, ECHO, WIGGLE (as KNOB 1..4); a fader takes over once it moves
@@ -11,6 +12,10 @@
  *   KNOB BANK    a surprise friend (as HOME tapped); FADER BANK the next sky (as REC); < > the friend before / after
  *   K1           MASTER, never above the grown-ups' VOLUME (kid_master)
  * No menu is reachable from the toy; HOME held 1 s and HOME + SAVE held 3 s stay the grown-ups' (kid.c). */
+
+static int8_t kid_outer = -1;                  /* the outer key whose letter shows (fm1_in.keys: C3 = 0), -1 none */
+static uint32_t kid_outer_ms;
+#define KID_OUTER_PC(now) (kid_outer >= 0 && (now) - kid_outer_ms < 900u && !drum_track(&trk[0]) ?                            (int32_t)((48u + (uint32_t)kid_outer) % 12u) : -1)
 
 static uint8_t kid_mwig;                        /* the mod wheel's WIGGLE, 0..8 (added to KNOB 4's) */
 #define KID_WIG ((uint8_t)(kid.wiggle + kid_mwig > 8u ? 8u : kid.wiggle + kid_mwig))
@@ -105,9 +110,14 @@ static int kid_smk_input(uint32_t pressed)
     }
     kd = fm1_in.keys & outer & ~keys0;            /* an outer key: the friend hops (seq.c plays it) */
     keys0 = fm1_in.keys & outer;
-    if (kd) {
+    if (kd) {                                     /* (and its letter, as a key's) */
         any = 1;
         kid.hop_ms = fm1_ms;
+        for (i = 63u; !((kd >> i) & 1u); i--)
+            ;
+        kid_outer = (int8_t)i;
+        kid_outer_ms = fm1_ms;
+        kid.key = -1;
     }
     return any;
 }
