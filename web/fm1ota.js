@@ -12,6 +12,10 @@ const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 const MAXDATA = 512;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_OTA = (id) => /^ota-/i.test(id.model);
+// the SMK-37 Pro, SMK-37 Elite, MKE-P37, Starrykey 37 Play and the SMK-37+VA mod: one keyboard under several model
+// names, so a package for one runs on all of them; an FM-1 is another device
+const SMK_FAMILY = /^(ota-)?(SMK-37[ +].*|MKE-P37|STARRYKEY-37.*)$/i;
+export const sameKeyboard = (a, b) => a === b || (SMK_FAMILY.test(a) && SMK_FAMILY.test(b));   // two models
 
 // errors carry a code the pages translate: notfound, model, stopped, noloader, lost, noreturn,
 // mismatch (detail: the identity the device reports), badreq
@@ -119,7 +123,7 @@ export class Updater {
     const outs = [...this.access.outputs.values()];
     for (const input of this.access.inputs.values()) {
       if (input.state === "disconnected") continue;
-      if (!/fm-1|smk|felucca|ota|composite|sinco|usb-midi/i.test(input.name || "")) continue;   // never probe other gear
+      if (!/fm-1|smk|elite|mke-p37|starry|felucca|maku|melodee|fomni|x0x|makkuro|snoop|vector|vox|ota|composite|sinco|usb-midi/i.test(input.name || "")) continue;   // never probe other gear
       const output = outs.find((o) => o.name === input.name && o.state !== "disconnected");
       if (!output) continue;
       try { await input.open(); await output.open(); } catch (_) { continue; }
@@ -176,7 +180,7 @@ export class Updater {
     const dev = await this.find((id) => !IS_OTA(id));
     if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
     const [model] = product.split("_");
-    if (dev.id.model !== model) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
+    if (!sameKeyboard(dev.id.model, model)) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
@@ -208,18 +212,26 @@ export class Updater {
     return s2;
   }
 
-  // resume: the device is already in update mode (loader) -> true when the write finished
+  // resume: the device is already in update mode (loader) -> true when the write finished. product: the
+  // package's identity; the loader's model must match it by install()'s rule (sameKeyboard), and without the
+  // identity, or with only another model's loader present, nothing is written ('model')
   async resume(image, onStep, product = null) {
-    const model = product && product.split("_")[0];
-    const ota = await this.find((id) => model ? id.model === "ota-" + model : IS_OTA(id));
-    if (!ota) return false;
+    const model = product ? product.split("_")[0] : "";
+    const loaderOf = (id) => IS_OTA(id) && !!model && sameKeyboard(id.model.replace(/^ota-/i, ""), model);
+    const ota = await this.find(loaderOf);
+    if (!ota) {
+      const other = await this.find(IS_OTA);
+      if (!other) return false;
+      other.link.close();
+      throw fail("model", `the device is in the update mode of ${other.id.text}, the package is for ${product || "an unknown model"}`, other.id.text);
+    }
     const step = onStep || (() => {});
     const result = await this.write(ota, image, step);
     if (!result.finished) return false;
     if (product) {
       step("reboot");
       await sleep(3000);
-      const back = await this.waitFor((id) => id.model === model, 40000);
+      const back = await this.waitFor((id) => !IS_OTA(id) && sameKeyboard(id.model, model), 40000);
       if (!back) throw fail("noreturn", "The FM-1 did not return after resuming the write.");
       back.link.close();
       if (back.id.text !== product) throw fail("mismatch", "The FM-1 reports a different firmware after resuming.", back.id.text);

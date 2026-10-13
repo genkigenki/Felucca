@@ -361,6 +361,9 @@ def smk():
     dev = FakeFM1(image, identity="SMK-37 Pro_016", name="SMK-37 Pro Midi")
     rc, out, err = cli([pkgfile("fm1.fwsc", package("FM-1_900")), "--yes"], dev)
     ok(rc == 6 and dev.upgrades == 0, "FM-1 package on an SMK-37 Pro -> exit 6 (wrong model), nothing sent")
+    dev = FakeFM1(image, identity="ota-SMK-37 Pro_900", name="Felucca Update")
+    rc, out, err = cli([pkgfile("fm1.fwsc", package("FM-1_900")), "--yes"], dev)
+    ok(rc == 6 and dev.upgrades == 0, "FM-1 package on an SMK in update mode -> exit 6 (wrong model), nothing sent")
     dev = FakeFM1(image, identity="FM-1_015", name="FM-1")
     rc, out, err = cli([p, "--yes"], dev)
     ok(rc == 6 and dev.upgrades == 0, "SMK-37 Pro package on an FM-1 -> exit 6, nothing sent")
@@ -385,5 +388,14 @@ smk()
 against_js()
 official()
 shutil.rmtree(TMP, ignore_errors=True)
+# the SMK-37 Pro, Elite and MKE-P37 are one keyboard: packages install across them, never across FM-1 / SMK
+ok(I.same_keyboard("SMK-37 Elite_016", "SMK-37 Pro_900") and I.same_keyboard("ota-MKE-P37_900", "SMK-37 Elite_900")
+   and I.same_keyboard("STARRYKEY-37 PLAY_01", "SMK-37 Pro_900") and I.same_keyboard("FM-1_015", "FM-1_900")
+   and not I.same_keyboard("FM-1_015", "SMK-37 Pro_900") and not I.same_keyboard("SMK-37 Elite_016", "FM-1_900")
+   and not I.same_keyboard("XY-9_001", "SMK-37 Pro_900"),
+   "models: SMK-37 Pro / Elite / MKE-P37 / Starrykey are one keyboard, FM-1 is another")
+ok(all(I.PORT_RE.search(n) for n in ("SMK-37 Elite", "MKE-P37", "STARRYKEY-37 PLAY", "Snoop37", "Vox37", "Felucca",
+                                     "X0X FM-1", "FoMni SMK-37", "Makkuro37 Update", "MAKU")),
+   "port names: every SMK model and every port firmware probed")
 print(f"INSTALL TESTS FAILED ({failed})" if failed else "install tests passed")
 sys.exit(1 if failed else 0)
