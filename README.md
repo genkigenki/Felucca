@@ -35,6 +35,8 @@ The sequencer editing, presets and projects, engine pages, web editor and the ot
 
 Build it yourself: [BUILDING.md](BUILDING.md).
 
+**M-Vave SMK-37:** see [SMK-37 instructions](SMK37.md).
+
 ## Docs
 
 Start here:

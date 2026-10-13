@@ -1,9 +1,8 @@
-# smk37-port.yaml: every decision of the MAKU37 port (MAKU on the M-Vave SMK-37 Pro), in one place.
-# From the fm1-to-smk37 kit (github.com/genkigenki/fm1-to-smk37), filled from the owner's answers. Change this file
-# first, then the code. The controls as built: docs/SMK37.md.
+# smk37-port.yaml: every decision of the SMK-37 build of MAKU (M-Vave SMK-37 Pro), in one place. Change this file
+# first, then the code. The controls as built: SMK37.md.
 
 firmware:
-  name: MAKU37
+  name: MAKU (SMK-37 build)
   upstream: https://github.com/okumurari2/maku
   base: MAKU 64cb7e4 (Felucca ac6bfcb, v1.1.5.1-1); board layer from hugelton/Felucca#237 (b4038b2)
   family: felucca
